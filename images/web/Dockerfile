@@ -27,7 +27,7 @@ COPY apps/web apps/web
 # The build's hidden source maps (about 12 MB) are for local debugging: nothing links to them.
 RUN pnpm --filter @ats/web build && find apps/web/dist -name '*.map' -delete
 
-FROM caddy:2.11-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
+FROM caddy:2.11-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
 COPY --from=build /app/apps/web/dist /srv/web
 # Caddyfile normally, Caddyfile.proxy behind another reverse proxy (chosen in compose.yml); both
 # import routes.caddy.
