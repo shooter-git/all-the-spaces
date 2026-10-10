@@ -1,0 +1,24 @@
+{
+  "name": "@allthespaces/bridge-protocol",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Messages between an All the Spaces host and a creation running in its frame.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shooter-git/all-the-spaces.git",
+    "directory": "packages/bridge-protocol"
+  },
+  "homepage": "https://github.com/shooter-git/all-the-spaces/tree/main/packages/bridge-protocol#readme",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

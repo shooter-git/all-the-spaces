@@ -1,0 +1,15 @@
+{
+  "$comment": "What a person might do, played on every screen size during checks. Positions are fractions of the screen (0 to 1).",
+  "steps": [
+    { "wait": 1 },
+    { "tap": [0.45, 0.55] },
+    { "tap": [0.55, 0.5] },
+    { "press": "Space" },
+    { "hold": "KeyD", "seconds": 1.2 },
+    { "screenshot": "tipping" },
+    { "drag": [[0.3, 0.5], [0.6, 0.5]], "seconds": 0.6 },
+    { "hold": "KeyW", "seconds": 1 },
+    { "wait": 1 },
+    { "screenshot": "rolling" }
+  ]
+}

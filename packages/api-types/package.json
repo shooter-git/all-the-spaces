@@ -1,0 +1,21 @@
+{
+  "name": "@ats/api-types",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The JSON the server sends and the web app reads: types only, no runtime code.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@allthespaces/bridge-protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

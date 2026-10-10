@@ -1,0 +1,48 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #dde6ea;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  font:
+    15px / 1.3 system-ui,
+    sans-serif;
+}
+/* The lap time and the board sit clear of notches and rounded corners. */
+.hud,
+.board {
+  position: fixed;
+  z-index: 2;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(251 249 247 / 0.9);
+  color: #2e2c33;
+  pointer-events: none;
+}
+.hud {
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.board {
+  top: calc(60px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  padding-left: 30px;
+  font-size: 13px;
+}
+.board:empty {
+  display: none;
+}
+@media (orientation: portrait) {
+  .board {
+    top: auto;
+    bottom: calc(160px + env(safe-area-inset-bottom));
+  }
+}

@@ -1,0 +1,334 @@
+/*
+ * Chat overlay: a bottom sheet in portrait, a side panel in landscape. It stays above the
+ * on-screen keyboard: Android shrinks the page (interactive-widget in index.html); elsewhere
+ * ChatPanel sets --chat-inset (covered at the bottom), --chat-visible and --chat-top from the
+ * visual viewport.
+ */
+.chat-panel {
+  position: fixed;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  bottom: var(--chat-inset, 0px);
+  height: min(58dvh, 34rem, var(--chat-visible, 100dvh));
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--ats-surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-lg) var(--ats-radius-lg) 0 0;
+  padding-bottom: var(--ats-safe-bottom);
+  color: var(--ats-text);
+  box-shadow: 0 -8px 24px rgb(0 0 0 / 0.08);
+}
+@media (orientation: landscape) {
+  .chat-panel {
+    left: auto;
+    top: var(--chat-top, 0px);
+    height: auto;
+    width: min(24rem, 46vw);
+    border-top: 0;
+    border-left: 1px solid var(--ats-line);
+    border-radius: 0;
+    padding-top: var(--ats-safe-top);
+    padding-right: var(--ats-safe-right);
+    box-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
+  }
+}
+
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  padding: var(--ats-space-2) var(--ats-space-3) 0;
+  border-bottom: 1px solid var(--ats-line);
+}
+.chat-tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ats-touch);
+  padding: 0 var(--ats-space-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ats-text-muted);
+  font: inherit;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chat-tab[aria-selected="true"] {
+  color: var(--ats-text);
+  border-bottom-color: var(--ats-accent);
+}
+.chat-tab-label {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-badge {
+  min-width: 1.25rem;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ats-accent);
+  color: var(--ats-accent-text);
+  font-size: 0.72rem;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+.chat-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px var(--ats-space-3);
+  padding: var(--ats-space-2) var(--ats-space-4);
+  font-size: 0.85rem;
+}
+.chat-toggles {
+  display: flex;
+  gap: var(--ats-space-3);
+}
+.chat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  color: var(--ats-text-muted);
+  cursor: pointer;
+}
+.chat-toggle input {
+  accent-color: var(--ats-accent);
+}
+@media (pointer: coarse) {
+  .chat-toggle,
+  .chat-link {
+    min-height: var(--ats-touch);
+  }
+}
+.chat-muted {
+  color: var(--ats-text-muted);
+}
+.chat-dnd {
+  color: var(--ats-danger);
+  font-size: 0.85em;
+}
+.chat-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  min-height: 32px;
+  color: var(--ats-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ats-space-2) var(--ats-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-3);
+}
+.chat-older {
+  align-self: center;
+}
+.chat-empty {
+  margin: auto;
+  padding: var(--ats-space-5);
+  color: var(--ats-text-muted);
+  text-align: center;
+}
+.chat-message {
+  position: relative;
+}
+.chat-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+.chat-meta time {
+  color: var(--ats-text-muted);
+}
+.chat-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--ats-stone);
+}
+.chat-body {
+  margin: 2px 0 0 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.chat-message[data-mine="true"] .chat-body {
+  color: var(--ats-text);
+}
+.chat-more {
+  margin-left: auto;
+  width: 30px;
+  height: 28px;
+}
+/* The only way to report or block a message: a full-size target on touch screens, overlapping
+   the lines around it rather than spacing the messages out. */
+@media (pointer: coarse) {
+  .chat-more {
+    width: var(--ats-touch);
+    height: var(--ats-touch);
+    margin-block: -8px;
+    margin-right: -7px;
+  }
+  .chat-menu {
+    top: 36px;
+  }
+}
+.chat-menu {
+  position: absolute;
+  right: 0;
+  top: 28px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 4px;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+}
+.chat-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  min-height: 40px;
+  padding: 0 var(--ats-space-3);
+  border: 0;
+  border-radius: var(--ats-radius-sm);
+  background: none;
+  color: var(--ats-text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.chat-menu button:hover {
+  background: var(--ats-subtle);
+}
+.chat-notice {
+  margin: 0;
+  padding: var(--ats-space-2) var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  background: var(--ats-accent-soft);
+  font-size: 0.85rem;
+}
+
+.chat-people {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--ats-space-2);
+}
+.chat-person {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-3);
+  width: 100%;
+  min-height: var(--ats-touch);
+  padding: 0 var(--ats-space-2);
+  border: 0;
+  border-radius: var(--ats-radius);
+  background: none;
+  color: var(--ats-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.chat-person:hover {
+  background: var(--ats-subtle);
+}
+.chat-person .chat-dot[data-online="false"] {
+  opacity: 0.35;
+}
+.chat-person-name {
+  flex: 1;
+}
+
+.chat-compose {
+  padding: var(--ats-space-2) var(--ats-space-3) var(--ats-space-3);
+  border-top: 1px solid var(--ats-line);
+  font-size: 0.85rem;
+}
+.chat-compose-row {
+  display: flex;
+  gap: var(--ats-space-2);
+}
+.chat-compose-row .ats-input {
+  flex: 1;
+  min-width: 0;
+}
+.chat-error {
+  margin: 0 0 6px;
+  color: var(--ats-danger);
+}
+
+/* A new message while the chat is closed. */
+.chat-toast {
+  position: fixed;
+  z-index: 25;
+  top: calc(var(--ats-safe-top) + 64px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(26rem, calc(100vw - 32px));
+  padding: var(--ats-space-2) var(--ats-space-4);
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .chat-toast {
+    animation: chat-in 180ms ease-out;
+  }
+}
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}
+
+/* Upright, the chat sheet covers the controls at the bottom: hide them while it's open, so
+   they're not reachable (by Tab, or a stray tap) under it. */
+@media (orientation: portrait) {
+  .space-root[data-chat="open"] .space-bottom {
+    visibility: hidden;
+  }
+}
+
+.chat-send {
+  padding-inline: var(--ats-space-3);
+}

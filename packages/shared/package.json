@@ -1,0 +1,22 @@
+{
+  "name": "@ats/shared",
+  "private": true,
+  "version": "0.0.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./assistants": "./src/assistants.ts",
+    "./topics": "./src/topics.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

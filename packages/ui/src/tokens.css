@@ -1,0 +1,749 @@
+/* All the Spaces design tokens — washi paper, sumi ink, ai-iro indigo, stone and moss.
+   Mobile-first; portrait and landscape. */
+:root {
+  /* Muted naturals (decorative: tints, highlights, illustrations). Sakura is a small accent only. */
+  --ats-sora: #d3dde8; /* sky */
+  --ats-stone: #ddd7cc;
+  --ats-moss: #cfd8c2;
+  --ats-kinari: #efe8dc; /* unbleached silk */
+  --ats-sakura: #e6c3c9;
+
+  --ats-font: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ats-font-display: "Zen Kaku Gothic New", "Inter Variable", system-ui, sans-serif;
+
+  --ats-radius-sm: 6px;
+  --ats-radius: 10px;
+  --ats-radius-lg: 14px;
+  --ats-space-1: 4px;
+  --ats-space-2: 8px;
+  --ats-space-3: 12px;
+  --ats-space-4: 16px;
+  --ats-space-5: 24px;
+  --ats-space-6: 32px;
+  --ats-space-7: 48px;
+  --ats-touch: 44px; /* minimum touch target */
+
+  --ats-safe-top: env(safe-area-inset-top, 0px);
+  --ats-safe-right: env(safe-area-inset-right, 0px);
+  --ats-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ats-safe-left: env(safe-area-inset-left, 0px);
+
+  /* Light (default): washi paper and sumi ink */
+  --ats-bg: #f5f1ee;
+  --ats-surface: #fbf9f7;
+  --ats-subtle: #eee8e3;
+  --ats-text: #2e2c33;
+  --ats-text-muted: #67626c; /* 4.5:1 or better on every paper surface (WCAG AA) */
+  --ats-line: #e6dfda; /* decorative dividers */
+  /* Edges of fields you type in: 3:1 or better on every paper surface (WCAG 1.4.11) */
+  --ats-field-line: #88827d;
+  --ats-accent: #3f5b7c; /* ai-iro (Japanese indigo): the one strong colour, for primary actions */
+  --ats-accent-text: #ffffff;
+  --ats-accent-soft: #e3eaf2;
+  --ats-danger: #a63f4d;
+  --ats-danger-soft: #f6dde1;
+  --ats-success: #4f7355;
+  --ats-paper-grain: 0.035;
+  --ats-hero: #efe8dc; /* a flat kinari tint for welcome panels */
+  color-scheme: light;
+}
+
+/* Dark: sumi night, with moonlit indigo as the accent */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ats-bg: #1c1b21;
+    --ats-surface: #24232a;
+    --ats-subtle: #2c2b33;
+    --ats-text: #eeebf0;
+    --ats-text-muted: #a6a1ab;
+    --ats-line: #34323b;
+    --ats-field-line: #7a7680;
+    --ats-accent: #a9bfd9; /* moonlit indigo at night */
+    --ats-accent-text: #1a1f27;
+    --ats-accent-soft: #28313d;
+    --ats-danger: #f0a0aa;
+    --ats-danger-soft: #3d242a;
+    --ats-success: #a7c9a9;
+    --ats-paper-grain: 0.025;
+    --ats-hero: #29261f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ats-bg: #1c1b21;
+  --ats-surface: #24232a;
+  --ats-subtle: #2c2b33;
+  --ats-text: #eeebf0;
+  --ats-text-muted: #a6a1ab;
+  --ats-line: #34323b;
+  --ats-field-line: #7a7680;
+  --ats-accent: #a9bfd9; /* moonlit indigo at night */
+  --ats-accent-text: #1a1f27;
+  --ats-accent-soft: #28313d;
+  --ats-danger: #f0a0aa;
+  --ats-danger-soft: #3d242a;
+  --ats-success: #a7c9a9;
+  --ats-paper-grain: 0.025;
+  --ats-hero: #29261f;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--ats-bg);
+  color: var(--ats-text);
+  font-family: var(--ats-font);
+  font-size: 16px; /* 16px inputs stop iOS from zooming on focus */
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--ats-font-display);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0;
+  margin: 0;
+}
+h1 {
+  font-size: 1.5rem;
+}
+h2 {
+  font-size: 1.15rem;
+}
+
+/* Washi grain: a faint, fixed paper-fibre texture over the whole page. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: var(--ats-paper-grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.2 0 0 0 0 0.18 0 0 0 1.6 -0.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override every component */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override every component */
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Layout ---------- */
+
+.ats-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--ats-space-5) + var(--ats-safe-top))
+    calc(var(--ats-space-4) + var(--ats-safe-right))
+    calc(var(--ats-space-5) + var(--ats-safe-bottom))
+    calc(var(--ats-space-4) + var(--ats-safe-left));
+}
+.ats-center {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+.ats-container {
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+}
+.ats-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-4);
+}
+.ats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ats-space-3);
+  align-items: center;
+}
+
+/* A quiet surface: hairline border, no shadow. */
+.ats-card {
+  background: var(--ats-surface);
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-lg);
+  padding: var(--ats-space-5);
+}
+
+/* On narrow phones the page itself is the surface: drop the box entirely. */
+@media (max-width: 480px) and (orientation: portrait) {
+  .ats-card--page {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+}
+
+/* Sections separated by whitespace and a hairline instead of boxes. */
+.ats-section {
+  padding-block: var(--ats-space-5);
+  border-top: 1px solid var(--ats-line);
+}
+.ats-section:first-of-type {
+  border-top: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .ats-screen {
+    padding-top: calc(var(--ats-space-3) + var(--ats-safe-top));
+    padding-bottom: calc(var(--ats-space-3) + var(--ats-safe-bottom));
+  }
+  .ats-card {
+    padding: var(--ats-space-4);
+  }
+  .ats-stack {
+    gap: var(--ats-space-3);
+  }
+  .ats-container {
+    max-width: 40rem;
+  }
+}
+
+/* ---------- Controls ---------- */
+
+.ats-button {
+  min-height: var(--ats-touch);
+  padding: 0 var(--ats-space-4);
+  border-radius: var(--ats-radius-sm);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: 500 0.95rem / 1 var(--ats-font);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ats-space-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    opacity 120ms ease;
+}
+.ats-button:hover {
+  background: var(--ats-subtle);
+}
+.ats-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ats-button--primary {
+  border-color: var(--ats-accent);
+  background: var(--ats-accent);
+  color: var(--ats-accent-text);
+}
+.ats-button--primary:hover {
+  background: var(--ats-accent);
+  opacity: 0.9;
+}
+.ats-button--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ats-text-muted);
+}
+.ats-button--ghost:hover {
+  background: var(--ats-subtle);
+  color: var(--ats-text);
+}
+.ats-button--block {
+  width: 100%;
+}
+/* Working on what was pressed: it stays clear (it's the one that's busy), the spinner where its
+   icon was. */
+.ats-button--busy[disabled] {
+  opacity: 0.85;
+  cursor: progress;
+}
+.ats-button--busy > svg {
+  display: none;
+}
+[aria-busy="true"].ats-icon-button[disabled] {
+  opacity: 0.85;
+  cursor: progress;
+}
+
+/* A small ring of ink, turning. Without motion it stays still, its gap still saying "not yet". */
+.ats-spinner {
+  flex: none;
+  display: inline-block;
+  box-sizing: border-box;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: ats-spin 0.9s linear infinite;
+}
+@keyframes ats-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ats-spinner {
+    animation: none;
+  }
+}
+
+.ats-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ats-field label,
+.ats-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+.ats-field .ats-hint {
+  color: var(--ats-text-muted);
+  font-size: 0.85rem;
+}
+.ats-field .ats-error {
+  color: var(--ats-danger);
+  font-size: 0.85rem;
+}
+.ats-input {
+  min-height: var(--ats-touch);
+  width: 100%;
+  padding: 0 var(--ats-space-3);
+  border-radius: var(--ats-radius-sm);
+  border: 1px solid var(--ats-field-line);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: inherit;
+  transition: border-color 120ms ease;
+}
+/* A 2 px indigo ring (6:1 or better on paper); the soft glow around it is decoration. */
+.ats-input:focus {
+  border-color: var(--ats-accent);
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px var(--ats-accent-soft);
+}
+
+.ats-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--ats-space-2);
+}
+.ats-choice {
+  min-height: var(--ats-touch);
+  padding: var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+.ats-choice:hover {
+  background: var(--ats-subtle);
+}
+.ats-choice[aria-pressed="true"] {
+  border-color: var(--ats-accent);
+  background: var(--ats-accent-soft);
+}
+
+/* A colour to choose: a round chip with a ring when picked. */
+.ats-swatch {
+  position: relative;
+  width: var(--ats-touch);
+  height: var(--ats-touch);
+  border-radius: 50%;
+  border: 1px solid var(--ats-line);
+  cursor: pointer;
+}
+.ats-swatch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ats-swatch:has(input:checked) {
+  box-shadow:
+    0 0 0 3px var(--ats-bg),
+    0 0 0 5px var(--ats-accent);
+}
+.ats-swatch:has(input:focus-visible) {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 4px;
+}
+
+.ats-muted {
+  color: var(--ats-text-muted);
+}
+
+.ats-notice {
+  border-radius: var(--ats-radius);
+  padding: var(--ats-space-3) var(--ats-space-4);
+  background: var(--ats-subtle);
+  font-size: 0.95rem;
+}
+.ats-notice--error {
+  background: var(--ats-danger-soft);
+  color: var(--ats-danger);
+}
+
+.ats-steps {
+  display: flex;
+  gap: 4px;
+}
+.ats-steps span {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ats-line);
+}
+.ats-steps span[data-done="true"] {
+  background: var(--ats-accent);
+}
+
+/*
+ * A native <dialog> opened with showModal(): a sheet on the bottom edge on phones in portrait, a
+ * centred dialog everywhere else. No browser border; the page dims behind it.
+ */
+dialog.ats-sheet {
+  width: 100%;
+  max-width: 30rem;
+  margin: auto auto 0;
+  border: 0;
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  border-radius: var(--ats-radius-lg) var(--ats-radius-lg) 0 0;
+  /* Longer than the screen: it scrolls on its own, and never scrolls the page behind it. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ats-space-5) calc(var(--ats-space-5) + var(--ats-safe-right))
+    calc(var(--ats-space-5) + var(--ats-safe-bottom))
+    calc(var(--ats-space-5) + var(--ats-safe-left));
+}
+dialog.ats-sheet::backdrop {
+  background: rgb(23 22 28 / 0.35);
+}
+@media (min-width: 640px), (orientation: landscape) {
+  dialog.ats-sheet {
+    margin: auto;
+    border-radius: var(--ats-radius-lg);
+  }
+}
+
+.ats-hero-washi {
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* Read by screen readers, not shown. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Icons, compact lists and small parts (parts.tsx) ---------- */
+
+.ats-icon {
+  flex: none;
+  display: block;
+}
+
+/* An icon on its own: quiet until pointed at. 36px to look at; a full finger's width on touch. */
+.ats-icon-button {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--ats-radius-sm);
+  background: transparent;
+  color: var(--ats-text-muted);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.ats-icon-button:hover {
+  background: var(--ats-subtle);
+  color: var(--ats-text);
+}
+.ats-icon-button--danger:hover {
+  background: var(--ats-danger-soft);
+  color: var(--ats-danger);
+}
+.ats-icon-button:focus-visible {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 1px;
+}
+.ats-icon-button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (pointer: coarse) {
+  .ats-icon-button {
+    width: var(--ats-touch);
+    height: var(--ats-touch);
+  }
+}
+
+.ats-button--danger {
+  border-color: var(--ats-danger);
+  background: var(--ats-danger);
+  color: var(--ats-accent-text);
+}
+.ats-button--danger:hover {
+  background: var(--ats-danger);
+  opacity: 0.9;
+}
+
+.ats-avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.ats-tag {
+  display: inline-block;
+  margin-left: var(--ats-space-2);
+  padding: 1px 6px;
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-subtle);
+  color: var(--ats-text-muted);
+  font: 500 0.72rem / 1.5 var(--ats-font);
+  letter-spacing: 0.01em;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+.ats-tag--accent {
+  background: var(--ats-accent-soft);
+  color: var(--ats-text);
+}
+
+/* Side-by-side choices in one quiet frame. */
+.ats-segmented {
+  display: inline-flex;
+  margin: 0;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+}
+.ats-segmented label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 var(--ats-space-3);
+  border-radius: var(--ats-radius-sm);
+  color: var(--ats-text-muted);
+  font: 500 0.9rem / 1 var(--ats-font);
+  cursor: pointer;
+}
+.ats-segmented input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ats-segmented label:hover {
+  color: var(--ats-text);
+}
+.ats-segmented label:has(input:checked) {
+  background: var(--ats-accent-soft);
+  color: var(--ats-text);
+}
+.ats-segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 1px;
+}
+@media (pointer: coarse) {
+  .ats-segmented label {
+    min-height: var(--ats-touch);
+  }
+}
+
+/* Compact lists: a row is a line or two, with its actions at the end. */
+.ats-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ats-row-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "lead text actions" "below below below";
+  align-items: center;
+  column-gap: var(--ats-space-3);
+  padding: var(--ats-space-2) 0;
+  border-bottom: 1px solid var(--ats-line);
+}
+.ats-row-item:last-child {
+  border-bottom: none;
+}
+.ats-row-lead {
+  grid-area: lead;
+  display: inline-grid;
+  place-items: center;
+  color: var(--ats-text-muted);
+}
+.ats-row-text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ats-row-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ats-row-item--muted .ats-row-title {
+  color: var(--ats-text-muted);
+}
+.ats-row-meta {
+  color: var(--ats-text-muted);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ats-row-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.ats-row-actions select.ats-input {
+  width: auto;
+  min-height: 36px;
+  padding-inline: var(--ats-space-2);
+  font-size: 0.88rem;
+}
+.ats-row-below {
+  grid-area: below;
+  margin-top: var(--ats-space-2);
+}
+/* On phones, two lines of text may wrap rather than cut off. */
+@media (max-width: 480px) {
+  .ats-row-title,
+  .ats-row-meta {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+.ats-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  padding: var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  background: var(--ats-danger-soft);
+  font-size: 0.9rem;
+}
+.ats-confirm p {
+  margin: 0;
+}
+.ats-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ats-space-2);
+}
+
+.ats-facts {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) 1fr;
+  gap: var(--ats-space-2) var(--ats-space-5);
+  margin: 0;
+}
+.ats-facts > div {
+  display: contents;
+}
+.ats-facts dt {
+  color: var(--ats-text-muted);
+}
+.ats-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* "← Your spaces" at the top of a page. */
+.ats-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  margin-left: -6px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--ats-radius-sm);
+  background: none;
+  color: var(--ats-text-muted);
+  font: 500 0.9rem / 1 var(--ats-font);
+  text-decoration: none;
+  cursor: pointer;
+}
+.ats-back:hover {
+  background: var(--ats-subtle);
+  color: var(--ats-text);
+}
+@media (pointer: coarse) {
+  .ats-back {
+    min-height: var(--ats-touch);
+  }
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "match": { "params": { "bookId": "409" } },
+    "status": 409,
+    "body": { "code": "ALREADY_ON_LOAN", "message": "Someone in the club has it until Friday." }
+  },
+  { "status": 200, "body": { "due": "in two weeks" } }
+]

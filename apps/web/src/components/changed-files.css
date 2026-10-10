@@ -1,0 +1,181 @@
+/* What the assistant made or changed in a workspace, as folders (see ChangedFiles.tsx). */
+.changed-files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  min-height: 0;
+  height: 100%;
+}
+.changed-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  flex: 1;
+  min-height: 0;
+}
+.changed-files-list[hidden] {
+  display: none;
+}
+.changed-files-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ats-space-2);
+}
+.changed-files-head h2 {
+  margin: 0;
+}
+.changed-files-head p {
+  margin: 2px 0 0;
+}
+.changed-files-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: var(--ats-space-2);
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+}
+.changed-files-tree,
+.changed-files-tree ul {
+  list-style: none;
+}
+.changed-files-tree ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.changed-files-tree summary,
+.changed-file-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 6px;
+  border-radius: var(--ats-radius-sm);
+  font-size: 0.92rem;
+}
+.changed-files-tree summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.changed-files-tree summary:hover,
+button.changed-file-row:hover {
+  background: var(--ats-subtle);
+}
+/* A file to open: the whole row is the button. */
+button.changed-file-row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.changed-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.changed-files-count {
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+.changed-file-badge {
+  flex: none;
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: var(--ats-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--ats-subtle);
+  color: var(--ats-text-muted);
+}
+.changed-file[data-change="added"] .changed-file-badge {
+  background: var(--ats-accent-soft);
+  color: var(--ats-accent);
+}
+.changed-file[data-change="removed"] .changed-file-name {
+  text-decoration: line-through;
+  color: var(--ats-text-muted);
+}
+/* Just made or changed: a moment's highlight, so you can follow the assistant at work. */
+.changed-file[data-fresh] {
+  animation: changed-file-fresh 2.5s ease-out;
+}
+@keyframes changed-file-fresh {
+  from {
+    background: var(--ats-accent-soft);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .changed-file[data-fresh] {
+    animation: none;
+    background: var(--ats-accent-soft);
+  }
+}
+
+/* One file's contents: its text, or the picture. */
+.file-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  flex: 1;
+  min-height: 0;
+}
+.file-view-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ats-space-2);
+}
+.file-view-title {
+  flex: 1;
+  min-width: 0;
+}
+.file-view-title h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.file-view-title p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.file-view-text,
+.file-view-picture {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+}
+.file-view-text {
+  padding: var(--ats-space-2) var(--ats-space-3);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font:
+    12.5px / 1.5 ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
+}
+.file-view-text pre {
+  margin: 0;
+  font: inherit;
+  white-space: pre;
+  tab-size: 2;
+}
+.file-view-picture {
+  display: grid;
+  place-items: center;
+  padding: var(--ats-space-2);
+  background: var(--ats-subtle);
+}
+.file-view-picture img {
+  max-width: 100%;
+  height: auto;
+}

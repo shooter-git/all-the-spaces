@@ -1,0 +1,22 @@
+{
+  "name": "@allthespaces/example-vehicle",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Sail a paper boat around the pond, through the buoys, against your best time and everyone else\u2019s.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.2",
+    "@types/three": "0.186.0"
+  }
+}

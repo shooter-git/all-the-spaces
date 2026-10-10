@@ -1,0 +1,1011 @@
+.studio-wide {
+  max-width: 900px;
+}
+.studio-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ats-space-2);
+  align-items: center;
+}
+.studio-small {
+  font-size: 0.88rem;
+}
+.studio-grow {
+  flex: 1;
+  min-width: 0;
+}
+.studio-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-3);
+}
+.studio-build {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-3);
+}
+.studio-dot {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ats-text-muted);
+  vertical-align: 1px;
+}
+.studio-dot--good {
+  background: var(--ats-success);
+}
+.studio-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.studio-status[data-state="connected"] .studio-dot {
+  background: var(--ats-success);
+}
+.studio-status[data-state="installed"] .studio-dot {
+  background: #b98a3e;
+}
+.studio-log {
+  max-height: 240px;
+  overflow: auto;
+  padding: var(--ats-space-3);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-subtle);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.studio-assistants {
+  display: flex;
+  flex-direction: column;
+}
+.studio-connect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-3);
+}
+.studio-steps {
+  margin: 0;
+  padding-left: 1.3em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.studio-connect-terminal {
+  height: min(60vh, 460px);
+}
+.studio-brief {
+  min-height: 120px;
+  resize: vertical;
+  font: inherit;
+}
+.studio-check {
+  display: flex;
+  gap: var(--ats-space-3);
+  align-items: flex-start;
+  min-height: var(--ats-touch);
+}
+.studio-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--ats-accent);
+}
+
+/* ---- A workspace ---------------------------------------------------------------------------- */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: calc(var(--ats-space-2) + var(--ats-safe-top))
+    calc(var(--ats-space-3) + var(--ats-safe-right))
+    calc(var(--ats-space-2) + var(--ats-safe-bottom))
+    calc(var(--ats-space-3) + var(--ats-safe-left));
+  gap: var(--ats-space-2);
+  box-sizing: border-box;
+  background: var(--ats-bg);
+}
+.workspace-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ats-space-3);
+  flex-wrap: wrap;
+}
+.workspace-title {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  min-width: 0;
+}
+.workspace-title h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.workspace-notice .ats-notice {
+  margin: 0;
+}
+.workspace-sleeping {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2) var(--ats-space-3);
+  flex-wrap: wrap;
+}
+.workspace-build {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-3);
+  padding: var(--ats-space-2) var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+  border: 1px solid var(--ats-line);
+  flex-wrap: wrap;
+}
+.workspace-build[data-status="published"] .studio-dot,
+.workspace-build[data-status="passed"] .studio-dot {
+  background: var(--ats-success);
+}
+.workspace-build[data-status="failed"] .studio-dot,
+.workspace-build[data-status="error"] .studio-dot {
+  background: var(--ats-danger);
+}
+.workspace-build[data-status="queued"] .studio-dot,
+.workspace-build[data-status="running"] .studio-dot {
+  background: var(--ats-accent);
+  animation: workspace-pulse 1.6s ease-in-out infinite;
+}
+@keyframes workspace-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-build[data-status] .studio-dot {
+    animation: none;
+  }
+}
+.workspace-tabs {
+  display: none;
+  gap: 4px;
+}
+.workspace-tabs button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--ats-touch);
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: 500 0.95rem var(--ats-font);
+}
+.workspace-tabs button[aria-pressed="true"] {
+  background: var(--ats-accent);
+  color: var(--ats-accent-text);
+  border-color: var(--ats-accent);
+}
+.workspace-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--ats-space-3);
+}
+.workspace-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--ats-space-2);
+}
+/* The brief has its own tab on narrow screens only. */
+.workspace-body > .workspace-pane--brief {
+  display: none;
+}
+/* What the assistant made or changed: in the preview's place when chosen (Files, by the terminal),
+   or its own tab on narrow screens. */
+.workspace-body > .workspace-pane--files {
+  display: none;
+}
+.workspace-body[data-tab="files"] > .workspace-pane--preview {
+  display: none;
+}
+.workspace-body[data-tab="files"] > .workspace-pane--files {
+  display: flex;
+}
+.workspace-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.workspace-terminal {
+  flex: 1;
+  min-height: 0;
+}
+.workspace-suggest {
+  position: relative;
+}
+.workspace-suggestions {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  width: min(460px, calc(100vw - 32px));
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: var(--ats-radius);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+  box-shadow: 0 12px 32px rgb(46 44 51 / 0.16);
+}
+.workspace-suggestions button {
+  display: block;
+  width: 100%;
+  min-height: var(--ats-touch);
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--ats-radius-sm);
+  background: transparent;
+  color: var(--ats-text);
+  text-align: left;
+  font: 0.9rem / 1.35 var(--ats-font);
+}
+.workspace-suggestions button:hover {
+  background: var(--ats-subtle);
+}
+.workspace-asleep {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ats-space-3);
+  text-align: center;
+  padding: var(--ats-space-5);
+}
+.workspace-asleep h2 {
+  margin: 0;
+}
+.workspace-asleep p {
+  max-width: 460px;
+}
+.workspace-brief-inline {
+  max-width: 560px;
+  text-align: left;
+}
+.workspace-brief {
+  white-space: pre-wrap;
+}
+/* ---- The live preview ----------------------------------------------------------------------- */
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  height: 100%;
+  min-height: 0;
+}
+.preview-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ats-space-2);
+  flex-wrap: wrap;
+  min-height: var(--ats-touch);
+}
+.preview-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+}
+/* Over the screen until the creation says it's ready: what's happening, and how far it's got. */
+.preview-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ats-space-3);
+  padding: var(--ats-space-4);
+  background: var(--ats-bg);
+  color: var(--ats-text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+.preview-loading .ats-spinner {
+  font-size: 1.5rem;
+  color: var(--ats-accent);
+}
+.preview-loading-bar {
+  width: min(12rem, 70%);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ats-line);
+  overflow: hidden;
+}
+.preview-loading-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ats-accent);
+  transition: width 200ms ease;
+}
+.preview-devices {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-sm);
+  overflow: hidden;
+}
+.preview-devices button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: 500 0.85rem var(--ats-font);
+}
+.preview-devices button[aria-pressed="true"] {
+  background: var(--ats-accent-soft);
+  color: var(--ats-accent);
+}
+.preview-error {
+  max-height: 140px;
+  margin: 0;
+}
+.preview-stage {
+  flex: 1;
+  min-height: 0;
+  /* The phone's size comes from the room here (cq units), upright or on its side. */
+  container-type: size;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ats-radius);
+  background: var(--ats-subtle);
+  overflow: hidden;
+}
+.preview-screen {
+  position: relative;
+  overflow: hidden;
+  background: var(--ats-bg);
+}
+.preview-stage[data-device="laptop"] .preview-screen {
+  width: 100%;
+  height: 100%;
+}
+.preview-stage[data-device="phone"] .preview-screen {
+  box-sizing: border-box;
+  height: min(100cqh, 100cqw * 844 / 390, 780px);
+  aspect-ratio: 390 / 844;
+  border-radius: 22px;
+  border: 6px solid #2e2c33;
+}
+.preview-stage[data-device="phone"][data-turned="true"] .preview-screen {
+  height: auto;
+  width: min(100cqw, 100cqh * 844 / 390, 780px);
+  aspect-ratio: 844 / 390;
+}
+
+/* Phones and narrow windows: one pane at a time. */
+@media (max-width: 900px) {
+  .workspace-tabs {
+    display: flex;
+  }
+  .workspace-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace-body > .workspace-pane {
+    display: none;
+    overflow: auto;
+  }
+  .workspace-body[data-tab="terminal"] > .workspace-pane--terminal,
+  .workspace-body[data-tab="preview"] > .workspace-pane--preview,
+  .workspace-body[data-tab="files"] > .workspace-pane--files,
+  .workspace-body[data-tab="brief"] > .workspace-pane--brief {
+    display: flex;
+  }
+  /* The tabs have Files. */
+  .workspace-files-toggle {
+    display: none;
+  }
+}
+
+/* The checks' results, above the terminal. */
+.workspace-checks {
+  padding: var(--ats-space-2) var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+  max-height: 40%;
+  overflow: auto;
+}
+.workspace-checks-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ats-space-2);
+  flex-wrap: wrap;
+}
+.workspace-checks[data-ok="true"] strong {
+  color: var(--ats-success);
+}
+.workspace-checks ul {
+  margin: var(--ats-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.workspace-checks li {
+  padding: 3px 0;
+}
+.studio-dot--bad {
+  background: var(--ats-danger);
+}
+.studio-dot--ok {
+  background: #b98a3e;
+}
+
+/* Adding a place */
+.studio-choices {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.studio-choices legend {
+  font-weight: 500;
+  margin-bottom: var(--ats-space-2);
+}
+.studio-file {
+  position: relative;
+  overflow: hidden;
+  align-self: flex-start;
+}
+.studio-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.studio-room {
+  flex: 1 1 220px;
+}
+.studio-thumbs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--ats-space-3);
+}
+.studio-thumbs li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.studio-thumbs img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--ats-radius-sm);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-subtle);
+}
+
+/* A place's plan in its workspace */
+.plan-view {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-radius: var(--ats-radius);
+  background: var(--ats-subtle);
+  display: grid;
+  place-items: center;
+}
+.plan-image,
+.plan-svg {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+.plan-svg {
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  background: #fff;
+}
+.plan-empty {
+  padding: var(--ats-space-5);
+  text-align: center;
+}
+.plan-room {
+  fill: rgb(63 91 124 / 0.1);
+  stroke: #3f5b7c;
+  stroke-width: 2;
+}
+.plan-label {
+  font: 600 13px var(--ats-font);
+  fill: #3f5b7c;
+  pointer-events: none;
+}
+.plan-handle {
+  stroke: transparent;
+  stroke-width: 16;
+}
+.plan-handle:hover,
+.plan-handle--picked {
+  stroke: rgb(168 120 42 / 0.45);
+}
+.plan-handle:focus-visible {
+  outline: none;
+  stroke: rgb(63 91 124 / 0.7);
+}
+.plan-handle--x {
+  cursor: ew-resize;
+}
+.plan-handle--z {
+  cursor: ns-resize;
+}
+.plan-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  flex: 1;
+  min-height: 0;
+}
+.plan-problems {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.9rem;
+}
+.plan-problems li[data-level="error"] {
+  color: var(--ats-danger);
+}
+.plan-build {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  padding: var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+}
+.plan-build p {
+  margin: 0;
+}
+.plan-build .studio-pulse {
+  display: inline-block;
+  vertical-align: 1px;
+  margin-right: 6px;
+}
+
+/* Changing a live place: what changes, and new homes for creations. */
+.plan-changes ul {
+  margin: 0 0 4px;
+  padding-left: 18px;
+}
+.plan-homeless {
+  display: grid;
+  gap: 8px;
+  padding: var(--ats-space-3);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-accent-soft);
+}
+.plan-homeless p {
+  margin: 0;
+}
+.plan-move {
+  display: grid;
+  grid-template-columns: 1fr minmax(12rem, 16rem);
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .plan-move {
+    grid-template-columns: 1fr;
+  }
+}
+.studio-subhead {
+  margin: var(--ats-space-2) 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Choosing the assistant, model and effort. */
+.assistant-picker {
+  display: grid;
+  gap: var(--ats-space-3);
+}
+@media (min-width: 640px) {
+  .assistant-picker {
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
+}
+.assistant-model {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+}
+/* The model and effort in a workspace's header, and changing them. */
+.workspace-choice {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.workspace-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  margin: 0 var(--ats-space-4) var(--ats-space-3);
+  padding: var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  background: var(--ats-subtle);
+}
+.workspace-assistant p {
+  margin: 0;
+}
+
+/* A row's actions as icons, close together at its end. */
+.studio-icon-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Files dragged over the workspace: dropping anywhere adds them. */
+.workspace-drop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--ats-space-4);
+  background: rgb(28 27 33 / 0.35);
+  pointer-events: none;
+}
+.workspace-drop-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(420px, 100%);
+  padding: 28px 24px;
+  text-align: center;
+  color: var(--ats-text);
+  background: var(--ats-surface);
+  border: 2px dashed var(--ats-accent);
+  border-radius: var(--ats-radius-lg);
+}
+.workspace-drop-card > svg {
+  color: var(--ats-accent);
+}
+.workspace-drop-card > span {
+  color: var(--ats-text-muted);
+  font-size: 0.9rem;
+}
+/* What happened, in a sentence or two: shown whole. */
+.chat-toast.workspace-toast {
+  white-space: normal;
+}
+.workspace-blocked summary {
+  cursor: pointer;
+}
+.workspace-blocked[open] summary {
+  margin-bottom: 4px;
+}
+
+/* On a phone the assistant's tools take one row: each an icon over a short name (the full name
+   stays the button's name for screen readers), and on its side too. */
+@media (max-width: 600px), (max-height: 520px) {
+  .workspace-tools {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .workspace-tools .ats-button[data-short] {
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    min-width: 0;
+    padding: 4px 2px;
+    font-size: 0;
+  }
+  .workspace-tools .ats-button[data-short]::after {
+    content: attr(data-short) / "";
+    font-size: 0.72rem;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .workspace-suggest .ats-button {
+    width: 100%;
+  }
+}
+/* A phone on its side: the page scrolls, and the terminal keeps a usable height. */
+@media (max-height: 520px) {
+  .workspace {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .workspace-body {
+    flex: none;
+  }
+  .workspace-terminal,
+  .preview-stage {
+    flex: none;
+    height: max(240px, 85dvh);
+  }
+}
+
+/* The files added to the workspace: one row, the newest at the end. */
+.workspace-uploads {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  min-width: 0;
+}
+.workspace-uploads-label {
+  flex: none;
+  color: var(--ats-text-muted);
+  font-size: 0.8rem;
+}
+.workspace-uploads ul {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.workspace-uploads-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+}
+/* A file: its name (tap to name it in the terminal again), then remove. */
+.workspace-uploads li {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-surface);
+}
+.workspace-uploads li[data-removing] {
+  border-color: var(--ats-danger);
+}
+.workspace-uploads li > button:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 16rem;
+  min-height: 32px;
+  padding: 0 4px 0 10px;
+  border: 0;
+  border-radius: var(--ats-radius-sm) 0 0 var(--ats-radius-sm);
+  background: transparent;
+  color: var(--ats-text);
+  font: 0.82rem var(--ats-font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.workspace-uploads li > button:first-child span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.workspace-uploads li > button:first-child svg {
+  flex: none;
+  color: var(--ats-text-muted);
+}
+.workspace-uploads li > button:first-child:hover {
+  background: var(--ats-subtle);
+}
+.workspace-uploads .workspace-uploads-remove {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  margin-right: 1px;
+  border-radius: var(--ats-radius-sm);
+}
+.workspace-uploads li > button.workspace-uploads-remove svg {
+  width: 14px;
+  height: 14px;
+}
+@media (pointer: coarse) {
+  .workspace-uploads li > button:first-child {
+    min-height: var(--ats-touch);
+  }
+  .workspace-uploads .workspace-uploads-remove {
+    width: var(--ats-touch);
+    min-width: var(--ats-touch);
+    height: var(--ats-touch);
+    min-height: var(--ats-touch);
+  }
+}
+/* A setting's explanation, under its label. */
+.studio-check-hint {
+  display: block;
+  margin-top: 2px;
+}
+
+/* The assistant's pictures: rooms from their corners, models from four sides. */
+.plan-view--pictures {
+  overflow: auto;
+  align-items: stretch;
+}
+.pictures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  width: 100%;
+}
+.pictures-empty {
+  max-width: 34rem;
+  margin: var(--ats-space-4) auto;
+  text-align: center;
+}
+.pictures-kinds {
+  align-self: flex-start;
+}
+.pictures-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--ats-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pictures-grid button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: 0.8rem var(--ats-font);
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+}
+.pictures-grid img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--ats-subtle);
+}
+.pictures-caption {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 7px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pictures-count {
+  min-width: 1.4em;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ats-subtle);
+  color: var(--ats-text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+/* A native <dialog> filling the screen. */
+dialog.pictures-large {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  flex-direction: column;
+  padding: calc(var(--ats-space-2) + var(--ats-safe-top)) var(--ats-space-3)
+    calc(var(--ats-space-2) + var(--ats-safe-bottom));
+  background: rgb(28 27 33 / 0.92);
+  color: #f5f1ee;
+}
+dialog.pictures-large[open] {
+  display: flex;
+}
+dialog.pictures-large::backdrop {
+  background: transparent;
+}
+.pictures-large-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  color: #f5f1ee;
+}
+.pictures-large-bar .ats-button {
+  margin-left: auto;
+  color: #f5f1ee;
+}
+.pictures-large img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+}
+
+/* The place has changed since its last build. */
+.plan-changed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ats-space-2) var(--ats-space-3);
+  margin-bottom: var(--ats-space-2);
+  padding: var(--ats-space-2) var(--ats-space-3);
+  border: 1px solid var(--ats-accent);
+  border-radius: var(--ats-radius);
+  background: var(--ats-accent-soft);
+}
+.plan-changed-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--ats-accent);
+}
+.plan-changed p {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+/* Pictures shown instead of the live creation (which keeps running, out of sight). */
+.preview-stage[hidden],
+.preview-devices[hidden] {
+  display: none;
+}
+/* A model's sheet: its name and front views are at the top. */
+.pictures-grid img[data-kind="model"] {
+  object-position: center top;
+}
+
+/* Earlier versions (of a creation, or a place), folded under the newest. */
+.studio-unfold {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ats-touch);
+  padding: 0 var(--ats-space-2);
+  margin: calc(-1 * var(--ats-space-2)) 0 calc(-1 * var(--ats-space-3));
+  border: 0;
+  border-radius: var(--ats-radius-sm);
+  background: none;
+  color: var(--ats-accent);
+  font: 500 0.88rem var(--ats-font);
+  cursor: pointer;
+}
+.studio-unfold:hover {
+  background: var(--ats-subtle);
+}

@@ -1,0 +1,116 @@
+/* A creation, full screen, with the app's own controls on top. */
+.creation-host {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--ats-bg);
+}
+/* Inside a box (the Studio's live preview). */
+.creation-host--embedded {
+  position: absolute;
+  z-index: auto;
+}
+.creation-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: var(--ats-bg);
+}
+.creation-stuck {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  gap: var(--ats-space-4);
+  padding: var(--ats-space-5);
+  text-align: center;
+  background: color-mix(in srgb, var(--ats-bg) 88%, transparent);
+  backdrop-filter: blur(6px);
+}
+.creation-stuck-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--ats-space-3);
+}
+/* The app's controls over a creation are its menu (CreationMenu): always drawn by the app,
+   never by the creation. */
+
+/* A newer version of the creation is out: a quiet card near the top, never covering Back. */
+/* A native <dialog>, near the top of the screen. */
+dialog.creation-rejoin {
+  inset: calc(64px + var(--ats-safe-top)) auto auto 50%;
+  margin: 0;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 80px - var(--ats-safe-top));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ats-space-4);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  border: 1px solid var(--ats-line);
+  box-shadow: 0 12px 32px rgb(46 44 51 / 0.16);
+}
+dialog.creation-rejoin::backdrop {
+  background: rgb(23 22 28 / 0.35);
+}
+.creation-rejoin p {
+  margin: 0 0 var(--ats-space-3);
+}
+.creation-rejoin-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ats-space-2);
+}
+
+/*
+ * Linking an account at a connector's service: the app's own card over the creation (which never
+ * draws it or sees it). Clear of the app's bar at the top, scrolling on a short screen.
+ */
+.creation-link {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: calc(64px + var(--ats-safe-top)) calc(16px + var(--ats-safe-right))
+    calc(16px + var(--ats-safe-bottom)) calc(16px + var(--ats-safe-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgb(23 22 28 / 0.35);
+}
+.creation-link-card {
+  width: min(420px, 100%);
+  padding: var(--ats-space-5);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  border: 1px solid var(--ats-line);
+  box-shadow: 0 12px 32px rgb(46 44 51 / 0.16);
+}
+.creation-link-card h2 {
+  margin: 0 0 var(--ats-space-3);
+  font-size: 1.25rem;
+}
+.creation-link-card p {
+  margin: 0 0 var(--ats-space-3);
+}
+.creation-link-scopes {
+  margin: 0 0 var(--ats-space-3);
+  padding-left: 1.25em;
+}
+.creation-link-error {
+  color: var(--ats-danger);
+}
+.creation-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ats-space-2);
+}

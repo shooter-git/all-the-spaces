@@ -1,0 +1,22 @@
+{
+  "name": "@allthespaces/example-explorable-scene",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Step into the painting: a small garden to wander together, with a lantern anyone can light.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.2",
+    "@types/three": "0.186.0"
+  }
+}

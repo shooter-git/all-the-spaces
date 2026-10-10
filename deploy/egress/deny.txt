@@ -1,0 +1,7 @@
+# Hosts an Architect's sandbox never reaches, even when its group allows the whole internet.
+# One per line; "*.example.com" covers every name under example.com.
+
+# Claude Code's way into the connectors on the Architect's own claude.ai account (email,
+# documents…). A workspace runs AI-written code: it never gets a way into the Architect's other
+# accounts.
+mcp-proxy.anthropic.com

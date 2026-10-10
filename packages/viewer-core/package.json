@@ -1,0 +1,27 @@
+{
+  "name": "@ats/viewer-core",
+  "private": true,
+  "version": "0.0.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@allthespaces/bridge-protocol": "workspace:*",
+    "@allthespaces/portal": "workspace:*",
+    "@ats/space-format": "workspace:*",
+    "three": "0.186.1",
+    "three-mesh-bvh": "0.9.15"
+  },
+  "devDependencies": {
+    "@ats/space-builder": "workspace:*",
+    "@types/node": "^24.19.1",
+    "@types/three": "0.186.0",
+    "vitest": "5.0.3"
+  }
+}

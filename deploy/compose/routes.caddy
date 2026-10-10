@@ -1,0 +1,71 @@
+# What the app's and the play origin's addresses serve, shared by Caddyfile (Caddy faces the
+# internet and handles HTTPS) and Caddyfile.proxy (behind another reverse proxy).
+#
+# Each service gets the visitor's address in X-Forwarded-For, and only that (it trusts exactly one
+# hop: see apps/server/src/app.ts). {client_ip} is the address that connected, unless that was a
+# trusted proxy (Caddyfile.proxy's trusted_proxies), in which case it's the address the proxy
+# passed on.
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+(app) {
+	import security_headers
+	encode zstd gzip
+
+	handle /manifest.webmanifest {
+		reverse_proxy server:3000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+	handle /api/* {
+		reverse_proxy server:3000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+	handle /rt/* {
+		uri strip_prefix /rt
+		reverse_proxy realtime:2567 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+	# Voice chat signalling (LiveKit); the audio itself doesn't come through here.
+	handle_path /lk/* {
+		reverse_proxy livekit:7880 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+	handle {
+		root * /srv/web
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		header /sw.js Cache-Control "no-cache"
+		header Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
+		header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' wss://{$ATS_APP_HOST}; frame-src https://{$ATS_PLAY_HOST}; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		try_files {path} /index.html
+		# The page's link-preview picture needs this server's full address (see apps/web/vite.config.ts).
+		@page path / /index.html
+		templates @page
+		file_server
+	}
+}
+
+# Creations and live previews run on their own origin (see docs/security.md).
+(play) {
+	import security_headers
+	# Only creations and live previews are served on this origin (Phase 3+).
+	@creations path /c/* /preview/*
+	handle @creations {
+		reverse_proxy server:3000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+	handle {
+		respond 404
+	}
+}

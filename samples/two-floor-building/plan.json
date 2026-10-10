@@ -1,0 +1,533 @@
+{
+  "name": "Two-floor building",
+  "spaceType": "building",
+  "floors": [
+    { "key": "f1", "name": "Ground floor", "elevation": 0, "height": 3.0 },
+    { "key": "f2", "name": "First floor", "elevation": 3.3, "height": 3.0 }
+  ],
+  "rooms": [
+    {
+      "key": "lobby",
+      "name": "Lobby",
+      "floor": "f1",
+      "rect": [0, 0, 8, 6],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "cafe",
+      "name": "Café",
+      "floor": "f1",
+      "rect": [8, 0, 14, 6],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "stairs",
+      "name": "Stairwell",
+      "floor": "f1",
+      "spansTo": "f2",
+      "rect": [0, 6, 3, 12],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "meeting",
+      "name": "Meeting room",
+      "floor": "f1",
+      "rect": [3, 6, 9, 12],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "paint-sage"
+    },
+    {
+      "key": "garden",
+      "name": "Garden",
+      "floor": "f1",
+      "rect": [9, 6, 14, 12],
+      "outdoor": true,
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "hall",
+      "name": "Upper hall",
+      "floor": "f2",
+      "rect": [0, 0, 6, 6],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "office",
+      "name": "Open office",
+      "floor": "f2",
+      "rect": [6, 0, 14, 6],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "quiet",
+      "name": "Quiet room",
+      "floor": "f2",
+      "rect": [3, 6, 9, 12],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "paint-sky"
+    },
+    {
+      "key": "terrace",
+      "name": "Terrace",
+      "floor": "f2",
+      "rect": [9, 6, 14, 12],
+      "outdoor": true,
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    }
+  ],
+  "openings": [
+    { "kind": "open", "rooms": ["lobby", "cafe"], "at": [8, 3], "width": 2.4, "height": 2.6 },
+    { "kind": "door", "rooms": ["lobby", "stairs"], "at": [2.3, 6] },
+    { "kind": "door", "rooms": ["lobby", "meeting"], "at": [6, 6], "width": 1.0 },
+    { "kind": "door", "rooms": ["cafe", "garden"], "at": [11.5, 6], "width": 1.6, "height": 2.3 },
+    { "kind": "door", "rooms": ["meeting", "garden"], "at": [9, 9] },
+    { "kind": "door", "rooms": ["stairs", "hall"], "at": [1.0, 6], "level": "f2" },
+    { "kind": "open", "rooms": ["hall", "office"], "at": [6, 3], "width": 1.8, "height": 2.5 },
+    { "kind": "door", "rooms": ["hall", "quiet"], "at": [4.5, 6] },
+    {
+      "kind": "door",
+      "rooms": ["office", "terrace"],
+      "at": [11.5, 6],
+      "width": 1.6,
+      "height": 2.3
+    },
+    { "kind": "door", "rooms": ["quiet", "terrace"], "at": [9, 9] },
+    {
+      "kind": "window",
+      "room": "lobby",
+      "side": "north",
+      "at": 4,
+      "width": 3.2,
+      "height": 1.8,
+      "sill": 0.5
+    },
+    { "kind": "window", "room": "lobby", "side": "west", "at": 3, "width": 1.6 },
+    {
+      "kind": "window",
+      "room": "cafe",
+      "side": "north",
+      "at": 11,
+      "width": 3.2,
+      "height": 1.8,
+      "sill": 0.5
+    },
+    { "kind": "window", "room": "cafe", "side": "east", "at": 3, "width": 2.2 },
+    { "kind": "window", "room": "meeting", "side": "south", "at": 6, "width": 2.4 },
+    {
+      "kind": "window",
+      "room": "stairs",
+      "side": "west",
+      "at": 9,
+      "width": 1.0,
+      "height": 2.4,
+      "sill": 1.6
+    },
+    { "kind": "window", "room": "hall", "side": "north", "at": 3, "width": 2.0 },
+    { "kind": "window", "room": "office", "side": "north", "at": 10, "width": 4.0, "height": 1.6 },
+    { "kind": "window", "room": "office", "side": "east", "at": 3, "width": 2.2 },
+    { "kind": "window", "room": "quiet", "side": "south", "at": 6, "width": 2.0 }
+  ],
+  "stairs": [
+    {
+      "room": "stairs",
+      "start": [1.0, 10.8],
+      "direction": "north",
+      "width": 1.0,
+      "run": 3.8,
+      "from": "f1",
+      "to": "f2"
+    }
+  ],
+  "elevators": [
+    {
+      "key": "lift",
+      "name": "Lift",
+      "stops": [
+        { "room": "lobby", "at": [7.2, 5.2], "yaw": 0 },
+        { "room": "hall", "at": [5.2, 5.2], "yaw": 0 }
+      ]
+    }
+  ],
+  "furniture": [
+    {
+      "key": "lobby-sofa",
+      "room": "lobby",
+      "kind": "sofa",
+      "label": "Lobby sofa",
+      "at": [4, 0.55],
+      "material": "fabric-indigo"
+    },
+    {
+      "key": "lobby-armchair-1",
+      "room": "lobby",
+      "kind": "armchair",
+      "label": "Armchair",
+      "at": [2.3, 1.9],
+      "rotation": 90
+    },
+    {
+      "key": "lobby-armchair-2",
+      "room": "lobby",
+      "kind": "armchair",
+      "label": "Armchair",
+      "at": [5.7, 1.9],
+      "rotation": -90
+    },
+    {
+      "key": "lobby-rug",
+      "room": "lobby",
+      "kind": "rug",
+      "label": "Rug",
+      "at": [4, 1.8],
+      "size": [3.0, 0.012, 2.2]
+    },
+    {
+      "key": "lobby-table",
+      "room": "lobby",
+      "kind": "coffee-table",
+      "label": "Coffee table",
+      "at": [4, 1.9]
+    },
+    {
+      "key": "lobby-plant-1",
+      "room": "lobby",
+      "kind": "plant",
+      "label": "Monstera",
+      "at": [0.5, 0.5],
+      "size": [0.6, 1.4, 0.6]
+    },
+    {
+      "key": "lobby-plant-2",
+      "room": "lobby",
+      "kind": "plant",
+      "label": "Palm",
+      "at": [7.4, 0.5],
+      "size": [0.6, 1.7, 0.6]
+    },
+    {
+      "key": "lobby-mural",
+      "room": "lobby",
+      "kind": "frame",
+      "label": "Mural",
+      "at": [0.09, 4.5],
+      "rotation": 90,
+      "mountHeight": 1.6,
+      "size": [2.0, 1.2, 0.03]
+    },
+    {
+      "key": "cafe-counter",
+      "room": "cafe",
+      "kind": "counter",
+      "label": "Café counter",
+      "at": [11, 0.4],
+      "size": [4.0, 1.0, 0.65],
+      "material": "walnut",
+      "accent": "tile-dark"
+    },
+    {
+      "key": "cafe-table-1",
+      "room": "cafe",
+      "kind": "table",
+      "label": "Café table",
+      "at": [10, 3.2],
+      "size": [0.8, 0.75, 0.8]
+    },
+    { "key": "cafe-chair-1", "room": "cafe", "kind": "chair", "label": "Chair", "at": [10, 2.6] },
+    {
+      "key": "cafe-chair-2",
+      "room": "cafe",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [10, 3.8],
+      "rotation": 180
+    },
+    {
+      "key": "cafe-table-2",
+      "room": "cafe",
+      "kind": "table",
+      "label": "Café table",
+      "at": [12.5, 3.2],
+      "size": [0.8, 0.75, 0.8]
+    },
+    { "key": "cafe-chair-3", "room": "cafe", "kind": "chair", "label": "Chair", "at": [12.5, 2.6] },
+    {
+      "key": "cafe-chair-4",
+      "room": "cafe",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [12.5, 3.8],
+      "rotation": 180
+    },
+    {
+      "key": "cafe-plant",
+      "room": "cafe",
+      "kind": "plant",
+      "label": "Fern",
+      "at": [13.5, 5.5],
+      "size": [0.5, 1.0, 0.5]
+    },
+    {
+      "key": "meeting-table",
+      "room": "meeting",
+      "kind": "table",
+      "label": "Meeting table",
+      "at": [6, 9],
+      "size": [3.0, 0.75, 1.2]
+    },
+    {
+      "key": "meeting-chair-1",
+      "room": "meeting",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [5, 8.1]
+    },
+    {
+      "key": "meeting-chair-2",
+      "room": "meeting",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [6, 8.1]
+    },
+    {
+      "key": "meeting-chair-3",
+      "room": "meeting",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [7, 8.1]
+    },
+    {
+      "key": "meeting-chair-4",
+      "room": "meeting",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [5, 9.9],
+      "rotation": 180
+    },
+    {
+      "key": "meeting-chair-5",
+      "room": "meeting",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [6, 9.9],
+      "rotation": 180
+    },
+    {
+      "key": "meeting-chair-6",
+      "room": "meeting",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [7, 9.9],
+      "rotation": 180
+    },
+    {
+      "key": "meeting-screen",
+      "room": "meeting",
+      "kind": "tv",
+      "label": "Screen",
+      "at": [3.1, 9],
+      "rotation": 90,
+      "mountHeight": 1.5,
+      "size": [1.6, 0.9, 0.05]
+    },
+    {
+      "key": "garden-table",
+      "room": "garden",
+      "kind": "table",
+      "label": "Garden table",
+      "at": [11.5, 9],
+      "size": [1.6, 0.75, 0.9],
+      "material": "walnut"
+    },
+    {
+      "key": "garden-tree-1",
+      "room": "garden",
+      "kind": "plant",
+      "label": "Maple",
+      "at": [13.2, 11.2],
+      "size": [0.9, 2.6, 0.9],
+      "material": "concrete"
+    },
+    {
+      "key": "garden-tree-2",
+      "room": "garden",
+      "kind": "plant",
+      "label": "Pine",
+      "at": [9.8, 11.2],
+      "size": [0.7, 2.2, 0.7],
+      "material": "concrete"
+    },
+    {
+      "key": "stairs-plant",
+      "room": "stairs",
+      "kind": "plant",
+      "label": "Rubber plant",
+      "at": [2.4, 11.4],
+      "size": [0.45, 1.1, 0.45]
+    },
+    {
+      "key": "hall-shelf",
+      "room": "hall",
+      "kind": "shelf",
+      "label": "Library shelf",
+      "at": [0.25, 3],
+      "rotation": 90,
+      "size": [1.6, 2.0, 0.35]
+    },
+    {
+      "key": "hall-plant",
+      "room": "hall",
+      "kind": "plant",
+      "label": "Ficus",
+      "at": [5.5, 0.5],
+      "size": [0.5, 1.5, 0.5]
+    },
+    { "key": "office-desk-1", "room": "office", "kind": "desk", "label": "Desk", "at": [8.5, 1.2] },
+    {
+      "key": "office-chair-1",
+      "room": "office",
+      "kind": "chair",
+      "label": "Desk chair",
+      "at": [8.5, 1.8],
+      "rotation": 180
+    },
+    { "key": "office-desk-2", "room": "office", "kind": "desk", "label": "Desk", "at": [11, 1.2] },
+    {
+      "key": "office-chair-2",
+      "room": "office",
+      "kind": "chair",
+      "label": "Desk chair",
+      "at": [11, 1.8],
+      "rotation": 180
+    },
+    {
+      "key": "office-desk-3",
+      "room": "office",
+      "kind": "desk",
+      "label": "Desk",
+      "at": [8.5, 4.5],
+      "rotation": 180
+    },
+    {
+      "key": "office-chair-3",
+      "room": "office",
+      "kind": "chair",
+      "label": "Desk chair",
+      "at": [8.5, 3.9]
+    },
+    {
+      "key": "office-desk-4",
+      "room": "office",
+      "kind": "desk",
+      "label": "Desk",
+      "at": [11, 4.5],
+      "rotation": 180
+    },
+    {
+      "key": "office-chair-4",
+      "room": "office",
+      "kind": "chair",
+      "label": "Desk chair",
+      "at": [11, 3.9]
+    },
+    {
+      "key": "office-shelf",
+      "room": "office",
+      "kind": "shelf",
+      "label": "Shelf",
+      "at": [13.75, 1.5],
+      "rotation": -90
+    },
+    {
+      "key": "office-plant",
+      "room": "office",
+      "kind": "plant",
+      "label": "Bird of paradise",
+      "at": [13.4, 5.4],
+      "size": [0.6, 1.6, 0.6]
+    },
+    { "key": "office-lamp", "room": "office", "kind": "lamp", "label": "Lamp", "at": [6.6, 0.5] },
+    {
+      "key": "quiet-armchair-1",
+      "room": "quiet",
+      "kind": "armchair",
+      "label": "Reading chair",
+      "at": [4.2, 10.5],
+      "material": "fabric-moss"
+    },
+    {
+      "key": "quiet-armchair-2",
+      "room": "quiet",
+      "kind": "armchair",
+      "label": "Reading chair",
+      "at": [7.8, 10.5],
+      "material": "fabric-linen"
+    },
+    {
+      "key": "quiet-rug",
+      "room": "quiet",
+      "kind": "rug",
+      "label": "Rug",
+      "at": [6, 10],
+      "size": [2.6, 0.012, 1.8]
+    },
+    { "key": "quiet-lamp", "room": "quiet", "kind": "lamp", "label": "Lamp", "at": [6, 11.4] },
+    {
+      "key": "quiet-shelf",
+      "room": "quiet",
+      "kind": "shelf",
+      "label": "Bookshelf",
+      "at": [3.25, 8.4],
+      "rotation": 90
+    },
+    {
+      "key": "quiet-frame",
+      "room": "quiet",
+      "kind": "frame",
+      "label": "Painting",
+      "at": [8.9, 8.2],
+      "rotation": -90,
+      "mountHeight": 1.6,
+      "size": [1.0, 0.7, 0.03]
+    },
+    {
+      "key": "terrace-chair-1",
+      "room": "terrace",
+      "kind": "armchair",
+      "label": "Lounge chair",
+      "at": [10.5, 10.5],
+      "material": "fabric-linen"
+    },
+    {
+      "key": "terrace-chair-2",
+      "room": "terrace",
+      "kind": "armchair",
+      "label": "Lounge chair",
+      "at": [12.5, 10.5],
+      "material": "fabric-linen"
+    },
+    {
+      "key": "terrace-plant-1",
+      "room": "terrace",
+      "kind": "plant",
+      "label": "Lavender",
+      "at": [13.4, 7],
+      "size": [0.5, 0.7, 0.5]
+    },
+    {
+      "key": "terrace-plant-2",
+      "room": "terrace",
+      "kind": "plant",
+      "label": "Bamboo",
+      "at": [13.4, 11.4],
+      "size": [0.6, 2.0, 0.6]
+    }
+  ],
+  "spawns": [{ "key": "entrance", "room": "lobby", "at": [4, 4.6], "yaw": 0 }]
+}

@@ -1,0 +1,7 @@
+#cloud-config
+# Paste this into your cloud provider's "user data" / "cloud-init" box when creating a server.
+# Replace spaces.example.com with your own address, or delete the --domain part to get a free
+# address based on the server's IP. When the server is ready, log in and run:
+#   sudo ats-admin setup-code
+runcmd:
+  - curl -fsSL https://github.com/__ATS_REPO__/releases/latest/download/install.sh | bash -s -- --yes --domain spaces.example.com

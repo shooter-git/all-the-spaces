@@ -1,0 +1,118 @@
+/* The veil between the space and a creation. */
+.passage {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      ellipse at 50% 42%,
+      color-mix(in srgb, var(--ats-surface) 92%, transparent),
+      var(--ats-bg) 70%
+    ),
+    var(--ats-bg);
+  color: var(--ats-text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 700ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.passage[data-phase="in"],
+.passage[data-phase="held"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.passage[data-phase="out"] {
+  opacity: 0;
+  transition-duration: 800ms;
+}
+
+.passage-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ats-space-3);
+  padding: var(--ats-space-5);
+  text-align: center;
+  transform: translateY(4px);
+  transition: transform 900ms cubic-bezier(0.2, 0, 0, 1);
+}
+.passage[data-phase="held"] .passage-center {
+  transform: none;
+}
+.passage-mark {
+  color: var(--ats-text);
+  animation: passage-breathe 3.2s ease-in-out infinite;
+}
+.passage-title {
+  margin: var(--ats-space-2) 0 0;
+  font-family: var(--ats-font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+.passage-subtitle {
+  margin: 0;
+  color: var(--ats-text-muted);
+  font-size: 0.9rem;
+}
+.passage-progress {
+  width: min(10rem, 50vw);
+  height: 2px;
+  margin-top: var(--ats-space-2);
+  border-radius: 2px;
+  background: var(--ats-line);
+  overflow: hidden;
+}
+.passage-progress span {
+  display: block;
+  height: 100%;
+  background: var(--ats-accent);
+  transform-origin: left;
+  transition: transform 300ms ease-out;
+}
+
+.passage-sheets {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.passage-sheet {
+  animation: passage-drift ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes passage-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+/* Sheets of paper settle slowly, turning a little, as if on air. */
+@keyframes passage-drift {
+  from {
+    transform: translate(-6px, -8px) rotate(-3deg);
+  }
+  to {
+    transform: translate(10px, 14px) rotate(4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passage {
+    transition-duration: 300ms;
+  }
+  .passage[data-phase="out"] {
+    transition-duration: 300ms;
+  }
+  .passage-mark,
+  .passage-sheet {
+    animation: none;
+  }
+}

@@ -1,0 +1,15 @@
+# gitleaks configuration for the CI "secrets" job (.github/workflows/ci.yml).
+# Keeps every built-in rule, and skips test code and dev fixtures, which hold
+# deliberately fake keys so the secret scanners can be tested against them.
+title = "all-the-spaces"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake secrets in tests and dev fixtures"
+paths = [
+  '''^apps/[^/]+/test/''',
+  '''^packages/[^/]+/test/''',
+  '''^tools/dev/fixtures/''',
+]

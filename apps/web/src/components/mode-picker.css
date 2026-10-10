@@ -1,0 +1,283 @@
+/* The door into a creation. Calm: paper, one picture, a little light. */
+
+/* `dialog.` so these win over the plain sheet's padding and width (dialog.ats-sheet). */
+dialog.portal-sheet {
+  padding: 0;
+  /* Taller than a phone held sideways (or a short one upright): it scrolls, never cuts off. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-width: 26rem;
+  border: 0;
+}
+.portal-sheet[open] {
+  animation: portal-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+dialog.portal-sheet::backdrop {
+  background: rgb(23 22 28 / 0.42);
+  backdrop-filter: blur(2px);
+}
+
+/* The door's artwork: the washi mark, and a saying with its meaning. */
+.door-art {
+  position: relative;
+  margin: 10px 10px 0;
+  border-radius: calc(var(--ats-radius-lg) - 6px);
+  overflow: hidden;
+  background: var(--ats-kinari);
+  box-shadow: inset 0 0 0 1px rgb(46 44 51 / 0.06);
+}
+.door-frame {
+  position: relative;
+}
+.door-art svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 640 / 340;
+}
+.door-saying {
+  position: absolute;
+  left: var(--door-left);
+  top: var(--door-top);
+  width: var(--door-width);
+  height: auto;
+  animation: door-ink 900ms ease-out both;
+}
+.door-art figcaption {
+  position: absolute;
+  right: 4%;
+  bottom: 6%;
+  left: 34%;
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+.door-meaning {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: rgb(46 44 51 / 0.85);
+}
+.door-source {
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ats-accent);
+}
+.door-sheet {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: door-drift 16s ease-in-out infinite alternate;
+}
+.door-sheet--1 {
+  animation-duration: 19s;
+  animation-delay: -4s;
+}
+.door-sheet--2 {
+  animation-duration: 23s;
+  animation-delay: -9s;
+}
+
+.portal-body {
+  display: grid;
+  gap: var(--ats-space-4);
+  padding: var(--ats-space-2) calc(var(--ats-space-5) + var(--ats-safe-right))
+    calc(var(--ats-space-4) + var(--ats-safe-bottom))
+    calc(var(--ats-space-5) + var(--ats-safe-left));
+  padding-top: var(--ats-space-4);
+  position: relative;
+}
+/* Centred, it meets no edge of the screen: no room kept for the notch or the home bar. */
+@media (min-width: 640px), (orientation: landscape) {
+  .portal-body {
+    padding-right: var(--ats-space-5);
+    padding-bottom: var(--ats-space-4);
+    padding-left: var(--ats-space-5);
+  }
+}
+.portal-body:focus {
+  outline: none;
+}
+.portal-head {
+  display: grid;
+  gap: 6px;
+}
+.portal-where {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ats-accent);
+}
+.portal-head h2 {
+  font-family: var(--ats-font-display);
+  font-size: 1.55rem;
+  line-height: 1.2;
+  margin: 0;
+}
+.portal-head p {
+  margin: 0;
+}
+.portal-inside {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--ats-text);
+}
+.portal-dots {
+  display: inline-flex;
+}
+.portal-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ats-accent);
+  border: 2px solid var(--ats-surface);
+  margin-left: -4px;
+  animation: portal-breathe 2.4s ease-in-out infinite;
+}
+.portal-dots i:first-child {
+  margin-left: 0;
+}
+.portal-dots i:nth-child(2) {
+  background: var(--ats-sora);
+  animation-delay: 0.3s;
+}
+.portal-dots i:nth-child(3) {
+  background: var(--ats-moss);
+  animation-delay: 0.6s;
+}
+.portal-actions {
+  display: grid;
+  gap: 8px;
+}
+.portal-foot {
+  display: flex;
+  /* On narrow screens it wraps between phrases, never inside one. */
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding-top: var(--ats-space-2);
+  border-top: 1px solid var(--ats-line);
+}
+.portal-foot > .ats-button {
+  white-space: nowrap;
+}
+.portal-foot .mode-ask {
+  justify-content: flex-start;
+  font-size: 0.84rem;
+}
+.portal-foot .mode-ask button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/*
+ * A phone held sideways is too short for the picture above the words: the words go on the left
+ * and the picture on the right, so the way in shows without scrolling.
+ */
+@media (orientation: landscape) and (max-height: 500px) {
+  dialog.portal-sheet {
+    /* Wider, but clear of the notch and the rounded corners. */
+    max-width: min(
+      46rem,
+      calc(100% - 2 * max(var(--ats-safe-left), var(--ats-safe-right)) - 2 * var(--ats-space-4))
+    );
+  }
+  dialog.portal-sheet[open] {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    align-items: start;
+  }
+  /*
+   * The card fills the right side, as tall as the words (or the screen), and stays put while they
+   * scroll. With the room it has, the mark sits at the top, the saying large below it (a vertical
+   * one tall beside it) and what it means at the bottom, in larger type. One after the other, so a
+   * long meaning makes the saying smaller rather than running into it.
+   */
+  .door-art {
+    grid-area: 1 / 2;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 10px;
+    max-height: calc(100dvh - 2em - 6px - 20px);
+    margin: 10px 10px 10px 0;
+  }
+  .door-frame {
+    position: static;
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .door-art svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  /* Below the mark (margins in % follow the card's width, as the mark's size does). */
+  .door-saying {
+    position: static;
+    flex: 1 1 0;
+    min-height: 0;
+    width: 88%;
+    margin: 46% 6% 6px auto;
+    object-fit: contain;
+    object-position: right center;
+  }
+  .door-saying--vertical {
+    width: 40%;
+    margin: 7% 8% 6px auto;
+    object-position: right top;
+  }
+  .door-art figcaption {
+    position: static;
+    gap: 4px;
+    padding: 0 6% 6%;
+  }
+  .door-meaning {
+    font-size: 0.95rem;
+  }
+  .door-source {
+    font-size: 0.72rem;
+  }
+  .portal-body {
+    grid-area: 1 / 1;
+  }
+}
+
+@keyframes portal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+@keyframes door-ink {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes door-drift {
+  to {
+    transform: translate(10px, -6px) rotate(1.5deg);
+  }
+}
+
+@keyframes portal-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-sheet[open],
+  .door-sheet,
+  .door-saying,
+  .portal-dots i {
+    animation: none;
+  }
+}

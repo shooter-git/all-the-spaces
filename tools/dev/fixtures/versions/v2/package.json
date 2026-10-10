@@ -1,0 +1,8 @@
+{
+  "name": "versions-fixture",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*"
+  }
+}

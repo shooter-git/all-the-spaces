@@ -1,0 +1,9 @@
+{
+  "name": "over-budget",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*",
+    "three": "0.186.1"
+  }
+}

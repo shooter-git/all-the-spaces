@@ -1,0 +1,144 @@
+.terminal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+  background: var(--ats-surface);
+  overflow: hidden;
+}
+/* An assistant's sign-in link, as a button (a long wrapped link can't be tapped or selected). */
+.terminal-signin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ats-space-2);
+  padding: var(--ats-space-2) var(--ats-space-3);
+  border-bottom: 1px solid var(--ats-line);
+  background: var(--ats-accent-soft);
+}
+.terminal-signin-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  flex: 1 1 12rem;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+.terminal-screen {
+  flex: 1;
+  /* Swipes scroll the session (see Terminal.tsx), not the page. */
+  touch-action: none;
+  min-height: 0;
+  padding: 8px 4px 4px 10px;
+  /* The fit addon reads this box's height as the room for rows: without its padding, or the
+     last row (an assistant's status line, under its input) is cut off. */
+  box-sizing: content-box;
+}
+/* xterm's own element also has the class "terminal": none of the frame above is for it (a border
+   there would be a second frame, and room the fit addon doesn't count, cutting off the last row). */
+.terminal-screen .xterm {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+/* xterm paints the space under the last whole row black: the box's colour shows instead. */
+.terminal-screen .xterm .xterm-viewport {
+  background-color: transparent;
+}
+.terminal-closed {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: var(--ats-space-3);
+  text-align: center;
+  background: color-mix(in srgb, var(--ats-surface) 85%, transparent);
+}
+.terminal-keys {
+  display: none;
+  gap: 4px;
+  padding: 6px;
+  border-top: 1px solid var(--ats-line);
+  overflow-x: auto;
+  background: var(--ats-subtle);
+}
+.terminal-keys button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: var(--ats-touch);
+  min-height: var(--ats-touch);
+  border-radius: var(--ats-radius-sm);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  font: 500 0.85rem var(--ats-font);
+}
+/* Phones and tablets: the keys their keyboards don't have. */
+@media (pointer: coarse) {
+  .terminal-keys {
+    display: flex;
+  }
+}
+
+/* Scrolled back in the history: one tap returns to the live screen. */
+.terminal-live {
+  position: absolute;
+  right: var(--ats-space-3);
+  bottom: calc(var(--ats-space-3) + 52px);
+  min-height: 36px;
+  padding-inline: var(--ats-space-3);
+  z-index: 2;
+}
+@media (pointer: fine) {
+  .terminal-live {
+    bottom: var(--ats-space-3);
+  }
+}
+
+/* The message box (phones): type or dictate, then add it to the terminal in one go. */
+.terminal-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+}
+.terminal-compose-text {
+  width: 100%;
+  min-height: 4.5em;
+  max-height: 40vh;
+  padding: 8px 10px;
+  border: 1px solid var(--ats-field-line);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-bg);
+  color: var(--ats-text);
+  /* 16px or more, or iPhones zoom the page in when it's tapped. */
+  font: 16px / 1.4 var(--ats-font);
+  resize: vertical;
+}
+.terminal-compose-text:focus {
+  border-color: var(--ats-accent);
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 1px;
+}
+.terminal-compose-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.terminal-compose-actions > :first-child {
+  margin-right: auto;
+}
+.terminal-keys button[aria-pressed="true"] {
+  border-color: var(--ats-accent);
+  background: var(--ats-accent-soft);
+}

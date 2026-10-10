@@ -1,0 +1,56 @@
+7[r8[?25h[?25l[?2004h[?2031h[?1004h[38;5;174mWelcome[9Gto[12GClaude[19GCode[24G[38;5;246mv2.1.285[39m
+..............................................
+
+[6G*
+[34G*
+[13G░░░░░░
+[5G░░░[11G░░░░░░░░░░
+[4G░░░░░░░░░░░░░░░░░░░[27G[1m*[22m
+
+[38;5;246m *[36G░░░░[39m
+[38;5;246m [34G░░░░░░░░[39m
+[38;5;246m [39m
+[7G[38;5;174m █████████[39m
+[7G[38;5;174m██▄█████▄██[42G[39m[1m*[22m
+[7G[38;5;174m █████████[23G[39m*
+.......[38;5;174m█[10G█[14G█[39m
+[38;5;174m█[39m..........................................
+[>0q[?u[c[1A[K
+[2GLet's[8Gget[12Gstarted.
+
+[2G[1mChoose[9Gthe[13Gtext[18Gstyle[24Gthat[29Glooks[35Gbest[40Gwith[22m
+[2G[1myour[7Gterminal[22m
+[2G[38;5;246mTo[5Gchange[12Gthis[17Glater,[24Grun[28G/theme[39m
+
+[4G[38;5;246m1.[7G[39mAuto[12G(match[19Gterminal)
+[2G[38;5;153m❯[4G[38;5;246m2.[7G[38;5;114mDark[12Gmode[17G✔[39m
+[4G[38;5;246m3.[7G[39mLight[13Gmode
+[4G[38;5;246m4.[7G[39mDark[12Gmode[17G(colorblind-friendly)
+[4G[38;5;246m5.[7G[39mLight[13Gmode[18G(colorblind-friendly)
+[4G[38;5;246m6.[7G[39mDark[12Gmode[17G(ANSI[23Gcolors[30Gonly)
+[4G[38;5;246m7.[7G[39mLight[13Gmode[18G(ANSI[24Gcolors[31Gonly)
+
+[2G[38;5;239m╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌[39m
+[2G[38;5;231m[2m 1[5G[22m [38;5;81mfunction[38;5;231m [38;5;148mgreet[38;5;231m()[23G{[39m
+[2G[38;5;167m[48;5;52m 2 -[38;5;231m  console.log("Hello, World!");     [39m[49m
+[2G[38;5;77m[48;5;22m 2 +[38;5;231m  console.[38;5;148mlog[38;5;231m([38;5;186m"Hello, [48;5;28mClaude[48;5;22m!"[38;5;231m);    [39m[49m
+[2G[38;5;231m[2m 3[5G[22m }[39m
+[2G[38;5;239m╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌[39m
+[2G[38;5;246m Syntax[10Gtheme:[17GMonokai[25GExtended[34G(ctrl+t[42Gto[39m
+[2G[38;5;246mdisable)[39m
+[1C[15A[1D[15B[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[1A[13A[38;5;174m█[39m..........................................[1C[1B[1mClaude Code can be used with your Claude [1C[1Bsubscription or billed based on API usage [1C[1Bt[4Gr[6Gugh your Con[19Gole account.[22m[K[1C[1B[K[1C[1BSelect login method:[K[1C[2B[38;5;153m❯[7GClaude account with subscription · [38;5;246mPro, [1C[1B[39m [4G   [38;5;246mMax, Team, or Enterprise[3C[1B2[7G[39mAnt[11Gropic Console[25Gaccount[33G·[35G[38;5;246mAPI usage [3C[1B[39m   [38;5;246mbilling[39m[K[3C[1B[38;5;246m3[7G[39m3rd-party platf[24Gm · [38;5;246mAmazon Bedrock, [3C[1B[39m   [38;5;246mMicrosoft Foundry, Google Vertex AI[1B[39m[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[9A[1C[6A[1D[6B[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[1A[1A[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[11A[2G[38;5;246mBrowser[10Gdidn't[17Gopen?[23GUse[27Gthe[31Gurl[38G(c[41Gto[39m
+[2G[38;5;246mbelow[8Gto[11Gsign[16Gin[38Gcopy)[39m
+
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246mhttps://claude.com/cai/oauth/authorize?code=tr[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246mue&client_id=9d1c250a-e61b-44d9-88ed-5944d1962[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246mf5e&response_type=code&redirect_uri=https%3A%2[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246mF%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallb[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246mack&scope=org%3Acreate_api_key+user%3Aprofile+[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246muser%3Ainference+user%3Asessions%3Aclaude_code[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246m+user%3Amcp_servers+user%3Afile_upload+user%3A[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246mplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrOR[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246mgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S25[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246m6&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY[39m]8;;
+]8;id=fefi3l;https://claude.com/cai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload+user%3Aplugins&code_challenge=AcJqMGWR25uRXAMZd2vvrORgVTWH7BazqFcdPA1fqJQ&code_challenge_method=S256&state=I7LcoIciS5BdlZUsAhtxPthuNt1VcJblr5zdLY4EXok[38;5;246m4EXok[39m]8;;
+
+[2GPaste[8Gcode[13Ghere[18Gif[21Gprompted[30G>

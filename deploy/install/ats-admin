@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+# ats-admin — everyday maintenance for an All the Spaces server.
+set -euo pipefail
+# Written by the installer. ATS_ADMIN_CONF points elsewhere (the installer test uses its own).
+CONF=${ATS_ADMIN_CONF:-/etc/all-the-spaces.conf}
+# shellcheck disable=SC1090
+[[ -f $CONF ]] && . "$CONF"
+DIR=${DIR:-/opt/all-the-spaces}
+PROJECT=${PROJECT:-all-the-spaces}
+ATS_REPO=${ATS_REPO:-}
+# Testing only: where releases are downloaded from (the installer test serves its own).
+RELEASES=${ATS_RELEASES_URL:-https://github.com/$ATS_REPO/releases}
+BACKUPS=$DIR/backups
+# The saved settings in $DIR/.env must win over any same-named shell variables.
+dc() {
+  local unset_args=() v
+  for v in $(compgen -e); do
+    [[ $v =~ ^(ATS_|POSTGRES_|GARAGE_|S3_|BETTER_AUTH_) ]] && unset_args+=(-u "$v")
+  done
+  env "${unset_args[@]}" docker compose -p "$PROJECT" --project-directory "$DIR" -f "$DIR/compose.yml" "$@"
+}
+release() { grep '^ATS_RELEASE=' "$DIR/.env" | cut -d= -f2-; }
+env_value() { grep "^$2=" "$1" 2>/dev/null | cut -d= -f2- || true; } # env_value FILE KEY
+# Stored files, the off-site copy and old backups are handled by a one-off app container: the only
+# thing that can reach the built-in storage and the saved backup settings (same as the installer's
+# storage_files). Reads standard input (off-site details, when fetching without saved ones).
+app() { # app MOUNT storage-backup.ts ARGS…
+  local mount=$1; shift
+  dc run --rm --no-deps -T --user "$(id -u):$(id -g)" -v "$mount" server \
+    node "apps/server/src/cli/$1" "${@:2}" 2>&1 |
+    sed -E '/^ *Container .* Creat(ing|ed) *$/d; s/^/  /'
+}
+storage_files() { # storage_files backup|restore DIR
+  if [[ $1 == backup ]]; then
+    app "$(dirname "$2"):/backups" storage-backup.ts backup "/backups/$(basename "$2")" </dev/null
+  else
+    app "$2:/restore:ro" storage-backup.ts restore /restore </dev/null
+  fi
+}
+# One backup, update or restore at a time (the installer takes the same lock).
+lock() { # lock -n (give up at once) | lock -w SECONDS
+  exec 9>"$DIR/.backup.lock"
+  flock "$@" 9
+}
+# A value from the settings chosen in setup; empty until setup is finished. Fails when the
+# database isn't running.
+setting() { # setting SQL_EXPRESSION
+  dc exec -T postgres psql -U ats -d ats -tAc \
+    "select $1 from install_state where id = 1 and setup_completed_at is not null" </dev/null
+}
+offsite_set_up() { [[ $(setting "jsonb_typeof(backup->'offsite')") == object ]]; }
+stamp_epoch() { # stamp_epoch 20260930T031500Z-auto
+  local s=$1
+  date -u -d "${s:0:4}-${s:4:2}-${s:6:2} ${s:9:2}:${s:11:2}:${s:13:2}" +%s
+}
+newest() { # newest [LABEL]: the newest backup folder's name (of that kind)
+  local d
+  d=$(find "$BACKUPS" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended \
+    -regex ".*/[0-9]{8}T[0-9]{6}Z-${1:-.+}" -printf '%f\n' 2>/dev/null | sort | tail -1)
+  printf '%s' "$d"
+}
+# The database, the stored files and the settings; never Docker volumes such as sign-ins.
+# Sets $dest. A backup that fails part-way is removed.
+make_backup() { # make_backup LABEL
+  dest="$BACKUPS/$(date -u +%Y%m%dT%H%M%SZ)-$1"
+  mkdir -p "$dest"
+  if ! { dc exec -T postgres pg_dump -U ats -d ats --clean --if-exists </dev/null | gzip >"$dest/database.sql.gz" &&
+    cp "$DIR/.env" "$DIR/compose.yml" "$dest/" && copy_connectors && storage_files backup "$dest"; }; then
+    rm -rf "$dest"
+    echo "The backup didn't finish, so it was removed. Is there enough free disk space?" >&2
+    return 1
+  fi
+  echo "Backed up to $dest"
+}
+# Connectors' and repository hosts' definitions and secrets, where there are any (the
+# installer's copy_connectors).
+copy_connectors() {
+  local kind
+  for kind in connectors sources; do
+    if [[ -d $DIR/$kind ]]; then cp -a "$DIR/$kind" "$dest/" || return 1; fi
+    if [[ -f $DIR/$kind.env ]]; then cp -p "$DIR/$kind.env" "$dest/" && chmod 600 "$dest/$kind.env" || return 1; fi
+  done
+}
+copy_offsite() { # copy_offsite BACKUP_DIR
+  offsite_set_up || return 0
+  app "$BACKUPS:/backups:ro" storage-backup.ts offsite "/backups/$(basename "$1")" </dev/null
+}
+prune() { # prune [--all]: backups older than the chosen number of days, here and off-site
+  local protect=() last
+  # Never the backup the last update would roll back to.
+  last=$(cat "$DIR/.last-backup" 2>/dev/null || true)
+  [[ -n $last && $(dirname "$last") == "$BACKUPS" ]] && protect=(--protect "$(basename "$last")")
+  app "$BACKUPS:/backups" storage-backup.ts prune /backups "${protect[@]}" "$@" </dev/null
+}
+
+case ${1:-help} in
+  status)
+    printf 'Version: %s\n' "$(release)"
+    printf 'Newest backup: %s\n\n' "$(b=$(newest || true); echo "${b:-none yet}")"
+    dc ps --format 'table {{.Service}}\t{{.Status}}'
+    printf '\nDisk used by Docker on this server:\n'
+    docker system df
+    printf 'Free disk space: %s\n' "$(df -h --output=avail "$DIR" | tail -1 | tr -d ' ')"
+    ;;
+  logs)
+    shift
+    dc logs --tail 200 -f "$@"
+    ;;
+  setup-code)
+    dc exec -T server node apps/server/src/cli/setup-code.ts
+    ;;
+  backup)
+    mkdir -p "$BACKUPS"
+    if [[ ${2:-} != --auto ]]; then
+      lock -w 3600 || { echo "Another backup, update or restore is still running." >&2; exit 1; }
+      make_backup manual
+      copy_offsite "$dest" || { echo "The backup is safe on this server, but the off-site copy didn't work." >&2; exit 1; }
+      exit 0
+    fi
+    # Scheduled (the all-the-spaces-backup timer runs this every night): follows the schedule
+    # chosen in setup, then removes scheduled backups older than chosen.
+    lock -n || { echo "Another backup, update or restore is running, so this one is skipped."; exit 0; }
+    schedule=$(setting "backup->>'schedule'") || { echo "Couldn't read the backup settings. Is everything running? (ats-admin status)" >&2; exit 1; }
+    case $schedule in
+      nightly) hours=12 ;;
+      weekly) hours=156 ;; # six and a half days, so a timer that ran a little late still counts
+      '') echo "Setup isn't finished yet, so there's nothing to back up."; exit 0 ;;
+      *) echo "Scheduled backups are off."; exit 0 ;;
+    esac
+    last=$(newest auto)
+    if [[ -n $last ]] && (( $(date -u +%s) - $(stamp_epoch "$last") < hours * 3600 )); then
+      echo "The last scheduled backup ($last) is recent enough."
+      exit 0
+    fi
+    failed=false
+    if make_backup auto; then
+      copy_offsite "$dest" || { failed=true; echo "The backup is safe on this server, but the off-site copy didn't work." >&2; }
+    else
+      failed=true
+    fi
+    # Even after a failure: old backups make way for new ones, and the newest is always kept.
+    prune || failed=true
+    if $failed; then exit 1; fi
+    ;;
+  prune)
+    [[ -z ${2:-} || $2 == --all ]] || { echo "Usage: ats-admin prune [--all]" >&2; exit 2; }
+    if [[ ${2:-} == --all ]]; then
+      echo "This also removes manual backups and those made before updates, if they're older than"
+      echo "the number of days chosen for keeping backups (the newest backup and the one an update"
+      read -r -p "would roll back to are always kept). Type 'delete' to continue: " answer
+      [[ $answer == delete ]] || exit 1
+    fi
+    lock -w 3600 || { echo "Another backup, update or restore is still running." >&2; exit 1; }
+    prune ${2:+"$2"}
+    ;;
+  backup-settings)
+    case ${2:-show} in
+      show|schedule|keep-days)
+        dc exec -T server node apps/server/src/cli/backup-settings.ts "${@:2}" </dev/null
+        ;;
+      offsite)
+        if [[ ${3:-} == off ]]; then
+          dc exec -T server node apps/server/src/cli/backup-settings.ts offsite off </dev/null
+          exit
+        fi
+        echo "Backups can also be copied to any S3-compatible storage (Backblaze B2, Cloudflare R2,"
+        echo "AWS S3, …). Use a private bucket: backups hold everything, including passwords."
+        read -r -p "Endpoint URL (e.g. https://s3.eu-central-003.backblazeb2.com): " endpoint
+        read -r -p "Region [auto]: " region
+        read -r -p "Bucket name: " bucket
+        host=$(env_value "$DIR/.env" ATS_APP_HOST)
+        read -r -p "Folder in the bucket [all-the-spaces/$host]: " folder
+        read -r -p "Access key ID: " key_id
+        read -r -s -p "Secret access key: " secret; echo
+        # Through standard input, so the secret never appears in a process list.
+        printf '%s\n' "$endpoint" "${region:-auto}" "$bucket" "$folder" "$key_id" "$secret" |
+          dc exec -T server node apps/server/src/cli/backup-settings.ts offsite
+        ;;
+      *)
+        echo "Usage: ats-admin backup-settings [show | schedule nightly|weekly|off | keep-days DAYS | offsite [off]]" >&2
+        exit 2
+        ;;
+    esac
+    ;;
+  offsite-fetch)
+    # Brings an off-site backup (default: the newest) back into the backups folder for 'restore'.
+    mkdir -p "$BACKUPS"
+    lock -w 3600 || { echo "Another backup, update or restore is still running." >&2; exit 1; }
+    if offsite_set_up 2>/dev/null; then
+      out=$(app "$BACKUPS:/backups" storage-backup.ts fetch /backups ${2:+"$2"} </dev/null) || { printf '%s\n' "$out" >&2; exit 1; }
+    else
+      echo "Enter the off-site storage details used by the server that made the backups."
+      read -r -p "Endpoint URL: " endpoint
+      read -r -p "Region [auto]: " region
+      read -r -p "Bucket name: " bucket
+      read -r -p "Folder in the bucket (e.g. all-the-spaces/spaces.example.com): " folder
+      read -r -p "Access key ID: " key_id
+      read -r -s -p "Secret access key: " secret; echo
+      out=$(printf '%s\n' "$endpoint" "${region:-auto}" "$bucket" "$folder" "$key_id" "$secret" |
+        app "$BACKUPS:/backups" storage-backup.ts fetch /backups ${2:+"$2"}) || { printf '%s\n' "$out" >&2; exit 1; }
+    fi
+    printf '%s\n' "$out"
+    name=$(sed -n 's/^ *Fetched \([^ ]*\) .*/\1/p' <<<"$out")
+    echo "To put it back: sudo ats-admin restore $BACKUPS/$name"
+    ;;
+  restore)
+    src=${2:?"Usage: ats-admin restore BACKUP_DIR (see: ls $BACKUPS)"}
+    [[ -f $src/database.sql.gz ]] || { echo "$src isn't a backup folder (see: ls $BACKUPS)" >&2; exit 1; }
+    src=$(cd "$src" && pwd)
+    read -r -p "This replaces all current data with the backup in $src. Type 'restore' to continue: " answer
+    [[ $answer == restore ]] || exit 1
+    lock -w 3600 || { echo "Another backup, update or restore is still running." >&2; exit 1; }
+    # Everything that works with the data stops: the app's services, the supervisor, and the
+    # sandboxes, previews and build steps it started. 'up' below starts the services again; the
+    # supervisor starts sandboxes again when they're next needed.
+    dc stop server realtime worker supervisor
+    instance=$(env_value "$DIR/.env" ATS_INSTANCE)
+    mapfile -t sandboxes < <(docker ps -q --filter "label=io.allthespaces.instance=${instance:-$PROJECT}")
+    if (( ${#sandboxes[@]} )); then docker stop "${sandboxes[@]}" >/dev/null; fi
+    dc exec -T postgres psql -q -U ats -d postgres -v ON_ERROR_STOP=1 \
+      -c 'DROP DATABASE IF EXISTS ats WITH (FORCE)' -c 'CREATE DATABASE ats OWNER ats' >/dev/null
+    gunzip -c "$src/database.sql.gz" | dc exec -T postgres psql -q -U ats -d ats -v ON_ERROR_STOP=1 >/dev/null
+    # Passwords saved in the database (your own storage bucket, the off-site copy) are locked with
+    # the sign-in secret of the server that made the backup: on a new server, use that one.
+    secret=$(env_value "$src/.env" BETTER_AUTH_SECRET)
+    if [[ -n $secret && $secret != "$(env_value "$DIR/.env" BETTER_AUTH_SECRET)" ]]; then
+      sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$secret|" "$DIR/.env"
+      echo "Using the sign-in secret from the backup (everyone signs in again)."
+    fi
+    files=true
+    storage_files restore "$src" || files=false
+    dc up -d
+    $files || { echo "The database was restored, but not all stored files could be put back. Run the restore again to retry." >&2; exit 1; }
+    echo "Restored from $src"
+    ;;
+  # The installer is told this installation's folder and Compose project, which it can't guess.
+  update)
+    [[ -n $ATS_REPO ]] || { echo "Unknown release source. Run the installer from GitHub Releases with --update."; exit 1; }
+    curl -fsSL "$RELEASES/latest/download/install.sh" | env ATS_PROJECT="$PROJECT" bash -s -- --update --dir "$DIR"
+    ;;
+  rollback)
+    [[ -n $ATS_REPO ]] || { echo "Unknown release source."; exit 1; }
+    curl -fsSL "$RELEASES/download/$(release)/install.sh" | env ATS_PROJECT="$PROJECT" bash -s -- --rollback --dir "$DIR"
+    ;;
+  *)
+    cat <<'HELP'
+Usage: ats-admin COMMAND
+
+  status              Show the version, the newest backup, whether each part is running and disk use
+  logs [part]         Follow the logs (parts: server, realtime, worker, supervisor, egress, caddy,
+                      livekit, postgres, valkey, garage)
+  setup-code          Print a new one-time setup code (only before setup is finished)
+  backup              Make a backup now (database, stored files and settings; copied off-site if set up)
+  backup-settings     Show or change backups: schedule nightly|weekly|off, keep-days DAYS, offsite [off]
+  prune [--all]       Remove scheduled backups older than chosen (--all: manual ones too)
+  restore DIR         Restore a backup (replaces current data)
+  offsite-fetch [NAME]  Download a backup from the off-site copy (default: the newest)
+  update              Update to the latest release (backs up first; rolls back if anything fails)
+  rollback            Undo the last update
+HELP
+    ;;
+esac

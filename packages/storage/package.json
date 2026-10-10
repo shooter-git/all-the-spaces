@@ -1,0 +1,21 @@
+{
+  "name": "@ats/storage",
+  "private": true,
+  "version": "0.0.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1146.0",
+    "@aws-sdk/s3-request-presigner": "3.1146.0"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

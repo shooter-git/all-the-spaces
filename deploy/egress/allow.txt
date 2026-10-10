@@ -1,0 +1,39 @@
+# Hosts an Architect's sandbox may reach (HTTPS only, through the egress proxy).
+# One per line; "*.example.com" allows every name under example.com. Add your own below.
+
+# Claude Code (Anthropic): installer, downloads, sign-in and the assistant itself
+claude.ai
+downloads.claude.ai
+api.anthropic.com
+console.anthropic.com
+platform.claude.com
+statsig.anthropic.com
+
+# Codex (OpenAI): installer, downloads, sign-in and the assistant itself
+chatgpt.com
+auth.openai.com
+api.openai.com
+releases.openai.com
+
+# Packages for creations (installed with scripts switched off)
+registry.npmjs.org
+
+# Free (CC0) assets
+api.polyhaven.com
+dl.polyhaven.org
+cdn.polyhaven.com
+ambientcg.com
+kenney.nl
+
+# Open-source code, models and files on GitHub (read and download)
+github.com
+codeload.github.com
+raw.githubusercontent.com
+objects.githubusercontent.com
+
+# Reference pictures and documentation
+commons.wikimedia.org
+upload.wikimedia.org
+docs.blender.org
+threejs.org
+developer.mozilla.org

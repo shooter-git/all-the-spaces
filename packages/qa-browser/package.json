@@ -1,0 +1,33 @@
+{
+  "name": "@ats/qa-browser",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Builds a creation and plays it in a real browser on phones, tablets and laptops: the checks' heavy half, run in the workbench (and by the server in development).",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "ats-qa": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@allthespaces/bridge-protocol": "workspace:*",
+    "@ats/qa": "workspace:*",
+    "@ats/shared": "workspace:*",
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "meshoptimizer": "1.3.0",
+    "playwright": "1.63.0",
+    "sharp": "0.35.5",
+    "vite": "8.3.2"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

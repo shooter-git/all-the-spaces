@@ -1,0 +1,110 @@
+name: Installer
+
+# Full install → update → broken-update rollback test on fresh runners. Actions minutes are paid
+# for, and this is the costly workflow, so it doesn't run on every commit: a pull request that
+# touches the installer or the images gets one runner; main gets all three, once a night, when
+# something has landed since the last nightly test (and on demand).
+on:
+  pull_request:
+    paths: ["deploy/**", "images/**", ".github/workflows/installer.yml"]
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read # the nightly run looks up what the last one tested
+
+# As in ci.yml: a pull request's newer push replaces its running test; every other run is kept.
+concurrency:
+  group: installer-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  # What the nightly run last tested on main. Nothing new since → nothing to run.
+  since:
+    runs-on: ubuntu-24.04
+    outputs:
+      run: ${{ steps.last.outputs.run }}
+      last: ${{ steps.last.outputs.last }}
+    steps:
+      - id: last
+        env:
+          EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          last=""
+          if [[ $EVENT == schedule ]]; then
+            # Finished (passed or failed) nightly or by-hand runs on main; cancelled ones tested nothing.
+            last=$(gh run list -R "$REPO" --workflow installer.yml --branch main --limit 30 \
+              --json event,conclusion,headSha \
+              --jq '[.[] | select(.event == "schedule" or .event == "workflow_dispatch")
+                         | select(.conclusion == "success" or .conclusion == "failure")][0].headSha // ""')
+          fi
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+          if [[ $EVENT == schedule && $last == "$GITHUB_SHA" ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "main is unchanged since the last nightly test ($last)."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  install:
+    needs: since
+    if: needs.since.outputs.run == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        # One runner for a pull request; every supported system on main.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-24.04"]') || fromJSON('["ubuntu-22.04", "ubuntu-24.04", "ubuntu-24.04-arm"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The test publishes ports in 45000-45999, inside Linux's ephemeral range: an outgoing
+      # connection (an image pull) can hold one and make Caddy's bind fail. Keep them free.
+      - name: Reserve the test's ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=45000-45999
+      - name: Install, update and roll back
+        run: deploy/install/test/run.sh
+
+  # The ~3 GB workbench is otherwise first built when a release is tagged. Built (amd64, not
+  # pushed) whenever something it's made from changes, so a broken Dockerfile shows up here.
+  workbench:
+    needs: since
+    if: needs.since.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Did anything the workbench is built from change?
+        id: changed
+        env:
+          EVENT: ${{ github.event_name }}
+          LAST: ${{ needs.since.outputs.last }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          case $EVENT in
+            pull_request) range="$BASE...HEAD" ;;
+            schedule) range=${LAST:+$LAST..HEAD} ;; # no earlier nightly run: build
+            *) range="" ;; # run by hand: always build
+          esac
+          # Unchanged only when the diff works and is empty (a force-pushed "last" is gone).
+          if [[ -n $range ]] && git diff --quiet "$range" -- images/workbench packages/qa packages/qa-browser \
+              packages/ats-cli packages/space-builder pnpm-lock.yaml; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing the workbench is built from changed."
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.changed.outputs.build == 'true'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - if: steps.changed.outputs.build == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: images/workbench/Dockerfile
+          platforms: linux/amd64
+          push: false

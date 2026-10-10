@@ -1,0 +1,8 @@
+{
+  "name": "lanternfield-desk",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*"
+  }
+}

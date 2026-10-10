@@ -1,0 +1,279 @@
+/* Home: your spaces as cards, and everything else in a quiet column beside them on wide screens. */
+.home {
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+}
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ats-space-3);
+  padding-bottom: var(--ats-space-4);
+}
+.home-header h1 {
+  font-size: 1.15rem;
+}
+.home-grid {
+  display: grid;
+  gap: var(--ats-space-5);
+}
+.home-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-5);
+  min-width: 0;
+}
+
+.home-spaces-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ats-space-3);
+  margin-bottom: var(--ats-space-3);
+}
+.space-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+  gap: var(--ats-space-4);
+}
+
+/* A card: a sheet of paper with a little plan of the place on it. */
+.space-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--ats-surface);
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-lg);
+  overflow: hidden;
+}
+.space-card-plate {
+  --tint: var(--ats-kinari);
+  position: relative;
+  aspect-ratio: 2 / 1;
+  display: grid;
+  place-items: center;
+  padding: var(--ats-space-4);
+  background: color-mix(in srgb, var(--tint) var(--home-plate-strength, 70%), var(--ats-surface));
+  border-bottom: 1px solid var(--ats-line);
+  /* Full ink: muted text isn't dark enough on every tint. */
+  color: var(--ats-text);
+  font-size: 0.9rem;
+}
+.space-card:nth-child(3n + 2) .space-card-plate {
+  --tint: var(--ats-sora);
+}
+.space-card:nth-child(3n + 3) .space-card-plate {
+  --tint: var(--ats-moss);
+}
+.space-card[data-status="draft"] .space-card-plate,
+.space-card[data-status="building"] .space-card-plate,
+.space-card[data-status="failed"] .space-card-plate {
+  --tint: var(--ats-subtle);
+}
+/* The drawing fits the plate; it never sets its size. */
+/* A place being set up: where it's up to, in words, on its plate. */
+.space-card-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ats-space-2);
+  max-width: 16rem;
+  text-align: center;
+  font-weight: 500;
+}
+.space-card-plate > svg {
+  position: absolute;
+  inset: var(--ats-space-4);
+  width: calc(100% - 2 * var(--ats-space-4));
+  height: calc(100% - 2 * var(--ats-space-4));
+  overflow: visible;
+}
+.space-sketch-sheet {
+  fill: var(--ats-surface);
+  stroke: var(--ats-text);
+  stroke-opacity: 0.18;
+}
+.space-sketch-room {
+  fill: var(--ats-surface);
+  fill-opacity: 0.75;
+  stroke: var(--ats-text);
+  stroke-opacity: 0.55;
+}
+.space-sketch-room[data-outdoor="true"] {
+  fill: var(--ats-moss);
+  fill-opacity: var(--home-outdoor, 0.5);
+  stroke-dasharray: 3 3;
+}
+.space-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  padding: var(--ats-space-4);
+}
+.space-card-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ats-space-2);
+}
+.space-card-body h3 {
+  font-size: 1.02rem;
+  overflow-wrap: anywhere;
+}
+.space-card-remove {
+  margin: -8px -8px 0 0;
+}
+/* Studio, creations and privacy: quiet links under the main action. */
+.space-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ats-space-4);
+  margin-top: var(--ats-space-1);
+  padding-top: var(--ats-space-2);
+  border-top: 1px solid var(--ats-line);
+}
+.space-card-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  color: var(--ats-text-muted);
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+.space-card-links a:hover {
+  color: var(--ats-accent);
+  text-decoration: underline;
+}
+.space-card-meta {
+  font-size: 0.85rem;
+}
+.space-card-actions {
+  margin-top: auto;
+  padding-top: var(--ats-space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ats-space-1);
+}
+.space-card-actions .ats-button--ghost {
+  font-size: 0.9rem;
+}
+.space-card-error {
+  color: var(--ats-danger);
+  font-size: 0.85rem;
+}
+
+/* Adding your own place: an empty sheet waiting to be drawn on. */
+.space-card--add {
+  border-style: dashed;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: var(--ats-space-5);
+  justify-content: center;
+  gap: var(--ats-space-2);
+  min-height: 12rem;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+.space-card--add:hover {
+  background: var(--ats-surface);
+  border-color: var(--ats-accent);
+}
+.space-card--add strong {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  font-family: var(--ats-font-display);
+  font-size: 1.02rem;
+  color: var(--ats-accent);
+}
+/* Importing: the whole card is the file picker. */
+.space-card--import {
+  position: relative;
+  min-height: 9rem;
+}
+.space-card--import input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.space-card--import:has(input:focus-visible) {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 2px;
+}
+.space-card--add span {
+  color: var(--ats-text-muted);
+  font-size: 0.9rem;
+}
+
+.home-samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ats-space-2);
+  margin-top: var(--ats-space-4);
+}
+.home-samples > span {
+  font-size: 0.9rem;
+  margin-right: var(--ats-space-1);
+}
+
+.home-aside .ats-section:first-child {
+  border-top: none;
+}
+
+@media (min-width: 640px) {
+  .home {
+    max-width: 46rem;
+  }
+}
+/* Wide screens: spaces take the room; settings and sharing sit in a column beside them. */
+@media (min-width: 1040px) {
+  .home {
+    max-width: 76rem;
+  }
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+    gap: var(--ats-space-7);
+    align-items: start;
+  }
+  .home-aside {
+    padding-left: var(--ats-space-6);
+    border-left: 1px solid var(--ats-line);
+  }
+  .home-aside .ats-section:first-child {
+    padding-top: 0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --home-plate-strength: 10%;
+    --home-outdoor: 0.15;
+  }
+}
+:root[data-theme="dark"] {
+  --home-plate-strength: 10%;
+  --home-outdoor: 0.15;
+}
+
+.home-header .ats-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .home-wide-only {
+    display: none;
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "name": "Studio apartment",
+  "spaceType": "apartment",
+  "floors": [{ "key": "f1", "name": "Apartment", "elevation": 0, "height": 2.7 }],
+  "rooms": [
+    {
+      "key": "hall",
+      "name": "Entry",
+      "floor": "f1",
+      "rect": [0, 0, 1.6, 2.4],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bath",
+      "name": "Bathroom",
+      "floor": "f1",
+      "rect": [0, 2.4, 1.6, 5.0],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "paint-sky"
+    },
+    {
+      "key": "living",
+      "name": "Living room",
+      "floor": "f1",
+      "rect": [1.6, 0, 7.6, 5.0],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "balcony",
+      "name": "Balcony",
+      "floor": "f1",
+      "rect": [1.6, 5.0, 5.6, 6.6],
+      "outdoor": true,
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster-warm"
+    }
+  ],
+  "openings": [
+    { "kind": "door", "rooms": ["hall", "living"], "at": [1.6, 1.2] },
+    { "kind": "door", "rooms": ["hall", "bath"], "at": [0.8, 2.4], "width": 0.8 },
+    {
+      "kind": "open",
+      "rooms": ["living", "balcony"],
+      "at": [3.6, 5.0],
+      "width": 1.6,
+      "height": 2.2
+    },
+    { "kind": "window", "room": "living", "side": "north", "at": 5.0, "width": 1.6 },
+    { "kind": "window", "room": "living", "side": "east", "at": 2.5, "width": 1.4 },
+    { "kind": "window", "room": "living", "side": "south", "at": 6.4, "width": 1.2 },
+    {
+      "kind": "window",
+      "room": "bath",
+      "side": "west",
+      "at": 3.7,
+      "width": 0.6,
+      "height": 0.6,
+      "sill": 1.4
+    }
+  ],
+  "furniture": [
+    {
+      "key": "entry-cabinet",
+      "room": "hall",
+      "kind": "cabinet",
+      "label": "Entry cabinet",
+      "at": [0.28, 1.2],
+      "rotation": 90,
+      "size": [1.0, 0.9, 0.4]
+    },
+    {
+      "key": "entry-plant",
+      "room": "hall",
+      "kind": "plant",
+      "label": "Snake plant",
+      "at": [1.25, 0.35],
+      "size": [0.35, 0.9, 0.35]
+    },
+    {
+      "key": "bath-vanity",
+      "room": "bath",
+      "kind": "counter",
+      "label": "Vanity",
+      "at": [0.33, 3.5],
+      "rotation": 90,
+      "size": [0.9, 0.85, 0.5],
+      "material": "walnut",
+      "accent": "ceramic"
+    },
+    {
+      "key": "bath-tub",
+      "room": "bath",
+      "kind": "box",
+      "label": "Bathtub",
+      "at": [0.8, 4.52],
+      "size": [1.45, 0.55, 0.8],
+      "material": "ceramic"
+    },
+    { "key": "sofa", "room": "living", "kind": "sofa", "label": "Sofa", "at": [3.4, 0.55] },
+    {
+      "key": "rug",
+      "room": "living",
+      "kind": "rug",
+      "label": "Rug",
+      "at": [3.4, 1.5],
+      "size": [2.4, 0.012, 1.8]
+    },
+    {
+      "key": "coffee-table",
+      "room": "living",
+      "kind": "coffee-table",
+      "label": "Coffee table",
+      "at": [3.4, 1.65]
+    },
+    {
+      "key": "frame-over-sofa",
+      "room": "living",
+      "kind": "frame",
+      "label": "Framed print",
+      "at": [3.4, 0.09],
+      "mountHeight": 1.7,
+      "size": [0.9, 0.6, 0.03]
+    },
+    {
+      "key": "reading-lamp",
+      "room": "living",
+      "kind": "lamp",
+      "label": "Floor lamp",
+      "at": [5.0, 0.4]
+    },
+    { "key": "bed", "room": "living", "kind": "bed", "label": "Bed", "at": [6.55, 1.15] },
+    {
+      "key": "kitchen-counter",
+      "room": "living",
+      "kind": "counter",
+      "label": "Kitchen counter",
+      "at": [1.99, 3.6],
+      "rotation": 90
+    },
+    {
+      "key": "dining-table",
+      "room": "living",
+      "kind": "table",
+      "label": "Dining table",
+      "at": [3.7, 3.7],
+      "size": [1.2, 0.75, 0.8]
+    },
+    {
+      "key": "dining-chair-1",
+      "room": "living",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [3.4, 3.1]
+    },
+    {
+      "key": "dining-chair-2",
+      "room": "living",
+      "kind": "chair",
+      "label": "Chair",
+      "at": [4.0, 4.3],
+      "rotation": 180
+    },
+    {
+      "key": "bookshelf",
+      "room": "living",
+      "kind": "shelf",
+      "label": "Bookshelf",
+      "at": [7.35, 3.3],
+      "rotation": -90
+    },
+    {
+      "key": "fiddle-leaf",
+      "room": "living",
+      "kind": "plant",
+      "label": "Fiddle-leaf fig",
+      "at": [7.15, 4.55],
+      "size": [0.5, 1.5, 0.5]
+    },
+    {
+      "key": "desk",
+      "room": "living",
+      "kind": "desk",
+      "label": "Desk",
+      "at": [5.6, 4.55],
+      "rotation": 180,
+      "size": [1.2, 0.75, 0.6]
+    },
+    {
+      "key": "desk-chair",
+      "room": "living",
+      "kind": "chair",
+      "label": "Desk chair",
+      "at": [5.6, 3.95],
+      "rotation": 180
+    },
+    {
+      "key": "balcony-chair-1",
+      "room": "balcony",
+      "kind": "chair",
+      "label": "Balcony chair",
+      "at": [2.4, 5.9],
+      "rotation": 90
+    },
+    {
+      "key": "balcony-chair-2",
+      "room": "balcony",
+      "kind": "chair",
+      "label": "Balcony chair",
+      "at": [3.6, 5.9],
+      "rotation": -90
+    },
+    {
+      "key": "balcony-table",
+      "room": "balcony",
+      "kind": "coffee-table",
+      "label": "Side table",
+      "at": [3.0, 5.9],
+      "size": [0.5, 0.45, 0.5]
+    },
+    {
+      "key": "balcony-plant",
+      "room": "balcony",
+      "kind": "plant",
+      "label": "Olive tree",
+      "at": [5.1, 6.2],
+      "size": [0.5, 1.4, 0.5]
+    }
+  ],
+  "spawns": [{ "key": "front-door", "room": "hall", "at": [0.8, 1.0], "yaw": -1.5708 }]
+}

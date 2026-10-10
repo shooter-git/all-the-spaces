@@ -1,0 +1,17 @@
+**/node_modules
+**/dist
+**/.turbo
+.git
+.github
+private
+.env
+.env.*
+!.env.example
+brand
+docs
+*.log
+# Local data and generated files: the asset cache alone is tens of MB of build context.
+.data
+**/qa-output
+**/coverage
+**/*.tsbuildinfo

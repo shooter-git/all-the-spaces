@@ -1,0 +1,384 @@
+/* The full-screen space view. Everything respects safe areas and reflows between orientations. */
+/*
+ * The page under a space never scrolls or bounces (pop-ups scroll inside their own boxes): a page
+ * left scrolled after turning the phone puts the controls in one place on screen and their taps
+ * in another. See lib/turns.ts, which also puts it back if a browser moves it anyway.
+ */
+html.ats-still-page,
+html.ats-still-page body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.space-root {
+  position: fixed;
+  inset: 0;
+  background: #dfe8f1;
+  overflow: hidden;
+}
+/*
+ * Touches on the 3D view walk and look, and never scroll, zoom or select the page. Only the view
+ * and the controls over it are held to that: pop-ups (sheets, dialogs, the chat, a creation) sit
+ * inside this page too, and keep the browser's own touch behaviour, so they scroll, zoom, take
+ * taps and can be typed into. (`touch-action` on an ancestor also limits everything inside it.)
+ */
+.space-canvas,
+.space-look {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.space-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Quick taps on the controls; no zooming the page from them. */
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  padding: calc(12px + var(--ats-safe-top)) calc(12px + var(--ats-safe-right))
+    calc(12px + var(--ats-safe-bottom)) calc(12px + var(--ats-safe-left));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #2e2c33;
+}
+.space-hud > * {
+  pointer-events: auto;
+}
+.space-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+.space-top > * {
+  pointer-events: auto;
+}
+.space-chip {
+  background: rgb(251 249 247 / 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgb(46 44 51 / 0.08);
+  border-radius: var(--ats-radius);
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+.space-chip strong {
+  font-family: var(--ats-font-display);
+  font-weight: 700;
+  display: block;
+}
+.space-icon-button {
+  min-width: var(--ats-touch);
+  min-height: var(--ats-touch);
+  display: inline-grid;
+  grid-auto-flow: column;
+  column-gap: 6px;
+  place-items: center;
+  border-radius: var(--ats-radius);
+  border: 1px solid rgb(46 44 51 / 0.08);
+  background: rgb(251 249 247 / 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #2e2c33;
+  font: 500 0.95rem var(--ats-font);
+  padding: 0 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.space-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+.space-bottom > * {
+  pointer-events: auto;
+}
+.space-hint {
+  margin-inline: auto;
+  color: #2e2c33;
+}
+.space-lift {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* Touch joystick: bottom-left thumb zone in both orientations. */
+.space-joystick {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: rgb(251 249 247 / 0.45);
+  border: 1px solid rgb(46 44 51 / 0.12);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  position: relative;
+  touch-action: none;
+}
+.space-joystick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: rgb(63 91 124 / 0.85);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .space-joystick {
+    width: 116px;
+    height: 116px;
+  }
+}
+
+.space-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--ats-bg);
+  color: var(--ats-text);
+  transition: opacity 400ms ease;
+  z-index: 2;
+}
+.space-loading[data-done="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.space-loading-progress {
+  width: min(12rem, 60vw);
+  height: 3px;
+  border-radius: 3px;
+  background: var(--ats-line);
+  overflow: hidden;
+}
+.space-loading-progress span {
+  display: block;
+  height: 100%;
+  background: var(--ats-accent);
+  transform-origin: left;
+  transition: transform 300ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .space-loading-progress span {
+    transition: none;
+  }
+}
+
+.space-perf {
+  font:
+    12px / 1.45 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  background: rgb(28 27 33 / 0.78);
+  color: #eeebf0;
+  border-radius: var(--ats-radius-sm);
+  padding: 8px 10px;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.space-travel h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ats-text-muted);
+  margin: 12px 0 6px;
+}
+.space-travel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 6px;
+}
+
+.space-chat-button {
+  position: relative;
+}
+.space-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ats-accent);
+  color: var(--ats-accent-text);
+  font-size: 0.72rem;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* Narrow phones: icon-only buttons keep the top bar on one line. */
+@media (max-width: 480px) {
+  .space-wide-only {
+    display: none;
+  }
+}
+
+/* Landscape: the chat panel sits on the right; keep the controls beside it, not under it. */
+@media (orientation: landscape) {
+  .space-root[data-chat="open"] .space-hud {
+    right: min(24rem, 46vw);
+  }
+}
+
+.space-sound {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.space-sound-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-3);
+  min-height: var(--ats-touch);
+}
+.space-sound-row input[type="checkbox"] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ats-accent);
+}
+.space-sound-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--ats-accent);
+}
+
+/* "Click to open …" when you point at something that holds a creation. */
+.space-focus {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + var(--ats-safe-bottom));
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 8px 14px;
+  border-radius: var(--ats-radius);
+  background: rgb(251 249 247 / 0.9);
+  backdrop-filter: blur(8px);
+  color: #2e2c33;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 5;
+}
+@media (pointer: coarse) {
+  .space-focus {
+    bottom: auto;
+    top: calc(72px + var(--ats-safe-top));
+  }
+}
+
+.space-hud[hidden] {
+  display: none;
+}
+
+/* A new version of the app is ready: under the top bar, with a way to refresh. */
+.space-update {
+  position: absolute;
+  top: calc(64px + var(--ats-safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+  white-space: nowrap;
+}
+
+/* Walking through a version that isn't live yet. */
+.space-draft {
+  position: fixed;
+  z-index: 15;
+  top: calc(64px + var(--ats-safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 6px 14px;
+  border-radius: var(--ats-radius);
+  background: rgb(46 44 51 / 0.72);
+  color: #fbf9f7;
+  font-size: 0.88rem;
+  text-align: center;
+  pointer-events: none;
+}
+/* With a new version offered (.space-update), the labels under the top bar move down. */
+.space-root[data-update] .space-draft {
+  top: calc(124px + var(--ats-safe-top));
+}
+@media (pointer: coarse) {
+  .space-root[data-update] .space-focus {
+    top: calc(128px + var(--ats-safe-top));
+  }
+}
+
+/* Under a creation's "go in" choices: suggest a change, or say something's wrong. */
+.mode-ask {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  color: var(--ats-text-muted);
+  font-size: 0.88rem;
+}
+.mode-ask button {
+  border: 0;
+  background: none;
+  color: var(--ats-text-muted);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: var(--ats-touch);
+  padding: 0 6px;
+  cursor: pointer;
+}
+.mode-ask button:hover {
+  color: var(--ats-text);
+}
+
+/* The space's floating controls are light washi in either theme (they sit over the 3D view):
+   whatever is inside them uses the light palette, so it stays readable in dark mode too. */
+.space-chip,
+.space-icon-button,
+.space-focus,
+.ask-select-tip {
+  --ats-text: #2e2c33;
+  --ats-text-muted: #67626c;
+  --ats-accent: #3f5b7c;
+  --ats-accent-text: #ffffff;
+  --ats-subtle: #eee8e3;
+  --ats-line: #e6dfda;
+}
+
+/* Voice chat: a live microphone shows in indigo. */
+.voice-controls {
+  display: inline-flex;
+  gap: 6px;
+}
+.voice-mic[data-on="true"] {
+  background: #3f5b7c;
+  color: #ffffff;
+}
+.voice-talking {
+  font-size: 0.85em;
+  opacity: 0.85;
+}

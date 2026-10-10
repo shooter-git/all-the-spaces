@@ -1,0 +1,23 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #f5f1ee;
+  color: #2e2c33;
+  font:
+    16px / 1.5 system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#app {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+    calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  box-sizing: border-box;
+  text-align: center;
+}

@@ -1,0 +1,258 @@
+/* Managing the group and your account: sections beside the page, or above it on phones. */
+.manage {
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+}
+.manage-header {
+  padding-bottom: var(--ats-space-4);
+}
+.manage-home {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ats-space-3);
+  min-height: var(--ats-touch);
+  color: inherit;
+  text-decoration: none;
+}
+.manage-home > span {
+  display: flex;
+  flex-direction: column;
+}
+.manage-group {
+  font: 700 1.05rem / 1.3 var(--ats-font-display);
+}
+.manage-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ats-text-muted);
+  font-size: 0.85rem;
+}
+.manage-home:hover .manage-back {
+  color: var(--ats-accent);
+}
+
+/* Phones: every section in view, wrapping onto a second line rather than hiding off-screen. */
+.manage-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ats-space-1);
+  padding-bottom: var(--ats-space-3);
+  border-bottom: 1px solid var(--ats-line);
+}
+.manage-nav-heading {
+  display: none;
+}
+.manage-nav a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  min-height: 40px;
+  padding: 0 var(--ats-space-3);
+  border-radius: var(--ats-radius-sm);
+  color: var(--ats-text-muted);
+  font-size: 0.92rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.manage-nav a:hover {
+  background: var(--ats-subtle);
+  color: var(--ats-text);
+}
+.manage-nav a[aria-current="page"] {
+  background: var(--ats-accent-soft);
+  color: var(--ats-text);
+  font-weight: 500;
+}
+.manage-page {
+  min-width: 0;
+  padding-top: var(--ats-space-5);
+}
+.manage-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  margin-bottom: var(--ats-space-3);
+}
+.manage-title p {
+  max-width: 40rem;
+}
+/* Boxes as wide as what goes in them, not the whole page. */
+.manage-page .ats-field > input.ats-input {
+  max-width: 28rem;
+}
+.manage-page .ats-field > input.ats-input[type="number"] {
+  max-width: 8rem;
+}
+
+@media (min-width: 640px) {
+  .manage {
+    max-width: 46rem;
+  }
+}
+@media (min-width: 900px) {
+  .manage {
+    max-width: 68rem;
+  }
+  .manage-grid {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: var(--ats-space-7);
+    align-items: start;
+  }
+  .manage-nav {
+    position: sticky;
+    top: var(--ats-space-5);
+    flex-direction: column;
+    flex-wrap: nowrap;
+    padding: 0;
+    border-bottom: none;
+  }
+  .manage-nav-heading {
+    display: block;
+    margin: var(--ats-space-4) 0 var(--ats-space-1) var(--ats-space-3);
+    color: var(--ats-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .manage-nav-heading:first-child {
+    margin-top: 0;
+  }
+  .manage-page {
+    padding-top: 0;
+    max-width: 48rem;
+  }
+}
+
+/* ---- The server page ---- */
+.manage-error {
+  color: var(--ats-danger);
+  font-size: 0.85rem;
+  margin: var(--ats-space-2) 0 0;
+}
+.manage-commands {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-3);
+}
+.manage-commands code {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-subtle);
+  font-size: 0.88rem;
+}
+.manage-commands span {
+  display: block;
+  color: var(--ats-text-muted);
+  font-size: 0.88rem;
+  margin-top: 2px;
+}
+
+/* ---- Activity ---- */
+.activity-day {
+  margin: var(--ats-space-5) 0 var(--ats-space-2);
+  color: var(--ats-text-muted);
+  font: 500 0.8rem / 1.4 var(--ats-font);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.activity-entry {
+  display: flex;
+  gap: var(--ats-space-3);
+  padding: var(--ats-space-2) 0;
+  border-bottom: 1px solid var(--ats-line);
+  font-size: 0.95rem;
+}
+.activity-entry time {
+  flex: none;
+  min-width: 4.75rem;
+  white-space: nowrap;
+  color: var(--ats-text-muted);
+  font-size: 0.85rem;
+  padding-top: 1px;
+}
+
+/* ---- Home: where to go to run things ---- */
+.home-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.home-links a {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-3);
+  min-height: var(--ats-touch);
+  padding: var(--ats-space-1) 0;
+  border-bottom: 1px solid var(--ats-line);
+  color: var(--ats-text);
+  text-decoration: none;
+}
+.home-links a > .ats-icon:first-child {
+  color: var(--ats-text-muted);
+}
+.home-links li:last-child a {
+  border-bottom: none;
+}
+.home-links strong {
+  font-weight: 500;
+  flex: 1;
+}
+.home-links a:hover strong {
+  color: var(--ats-accent);
+}
+.home-links span {
+  color: var(--ats-text-muted);
+  font-size: 0.85rem;
+  text-align: right;
+}
+.home-links span[data-tone="attention"] {
+  color: var(--ats-accent);
+  font-weight: 500;
+}
+.home-link-chevron {
+  color: var(--ats-text-muted);
+  opacity: 0.6;
+}
+
+/* ---- People ---- */
+.people-spacer {
+  width: 36px;
+}
+@media (pointer: coarse) {
+  .people-spacer {
+    width: var(--ats-touch);
+  }
+}
+
+/* ---- Inviting ---- */
+.invite-make {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ats-space-3);
+}
+.invite-link {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-1);
+  max-width: 36rem;
+}
+.invite-copied {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.invite-live h3 {
+  font-size: 0.95rem;
+  margin: var(--ats-space-2) 0 0;
+}

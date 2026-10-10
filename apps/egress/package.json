@@ -1,0 +1,16 @@
+{
+  "name": "@ats/egress",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The only way out of an Architect's sandbox: HTTPS to allow-listed hosts, nothing else.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

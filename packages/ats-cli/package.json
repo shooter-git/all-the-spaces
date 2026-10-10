@@ -1,0 +1,27 @@
+{
+  "name": "@allthespaces/ats-cli",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The `ats` command inside an All the Spaces workspace: check a creation, and find free (CC0) assets.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shooter-git/all-the-spaces.git",
+    "directory": "packages/ats-cli"
+  },
+  "homepage": "https://github.com/shooter-git/all-the-spaces/tree/main/packages/ats-cli",
+  "type": "module",
+  "bin": {
+    "ats": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "4.5.1"
+  }
+}

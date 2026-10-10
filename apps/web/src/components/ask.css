@@ -1,0 +1,260 @@
+/* Asking for something: drawing a box over the space, then writing it. */
+
+.ask-select {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  touch-action: none;
+  cursor: crosshair;
+  background: rgb(23 22 28 / 0.08);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ask-select-tip {
+  position: absolute;
+  left: 50%;
+  top: calc(16px + var(--ats-safe-top));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--ats-radius);
+  background: rgb(251 249 247 / 0.94);
+  backdrop-filter: blur(8px);
+  color: #2e2c33;
+  font-size: 0.92rem;
+  cursor: default;
+}
+.ask-select-tip .ats-button {
+  white-space: nowrap;
+}
+/* Phones: the hint on its own line, the buttons under it. */
+@media (max-width: 480px) {
+  .ask-select-tip {
+    flex-wrap: wrap;
+    width: calc(100vw - 32px);
+    padding: 10px 6px 6px 14px;
+  }
+  .ask-select-tip > span {
+    flex: 1 0 100%;
+  }
+  .ask-select-tip .ats-icon-button {
+    margin-left: auto;
+  }
+}
+.ask-box {
+  position: absolute;
+  border: 2px solid #fff;
+  outline: 2px solid var(--ats-accent);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.12);
+  pointer-events: none;
+}
+
+.ask-sheet {
+  max-height: min(92dvh, 48rem);
+  overflow-y: auto;
+}
+.ask-aside {
+  color: var(--ats-text-muted);
+  font-weight: 400;
+}
+.ask-what {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ask-what img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--ats-radius-sm);
+  flex: none;
+}
+.ask-what div {
+  display: grid;
+}
+.ask-small {
+  font-size: 0.85rem;
+}
+.ask-kinds {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ask-prompt {
+  min-height: 7rem;
+  resize: vertical;
+}
+.ask-pictures {
+  display: grid;
+  gap: 8px;
+}
+.ask-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--ats-touch);
+}
+.ask-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ats-accent);
+}
+.ask-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ask-thumbs:empty {
+  display: none;
+}
+.ask-thumbs figure {
+  position: relative;
+  margin: 0;
+}
+.ask-thumbs img {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: var(--ats-radius-sm);
+  border: 1px solid var(--ats-line);
+}
+.ask-thumbs button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+  color: var(--ats-text);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+/* A document to go with it: its name, then remove. */
+.ask-documents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ask-documents li {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 32px;
+  padding-left: 10px;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-surface);
+  font-size: 0.85rem;
+}
+.ask-documents span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ask-documents button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ats-radius-sm);
+  background: transparent;
+  color: var(--ats-text);
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .ask-documents button {
+    width: var(--ats-touch);
+    height: var(--ats-touch);
+  }
+}
+.ask-file {
+  position: relative;
+  overflow: hidden;
+  gap: var(--ats-space-2);
+}
+.ask-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The sketch pad fills the screen. */
+.sketch {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  padding: calc(8px + var(--ats-safe-top)) calc(12px + var(--ats-safe-right))
+    calc(8px + var(--ats-safe-bottom)) calc(12px + var(--ats-safe-left));
+  background: var(--ats-bg);
+}
+.sketch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sketch-tools {
+  display: flex;
+  gap: 2px;
+}
+.sketch-inks {
+  display: flex;
+  gap: 10px;
+  margin-right: auto;
+}
+.sketch-ink {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  outline: 1px solid var(--ats-line);
+  cursor: pointer;
+}
+.sketch-ink[aria-pressed="true"] {
+  border-color: var(--ats-surface);
+  outline: 2px solid var(--ats-accent);
+}
+.sketch-paper {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: #fff;
+  border-radius: var(--ats-radius);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* In the space: the Ask button, and what's been asked for on an object. */
+.space-ask {
+  pointer-events: auto;
+}
+.space-focus-state {
+  color: var(--ats-text-muted);
+}
+
+/* A picture this browser can't preview (an iPhone HEIC photo): a plain tile instead. */
+.ask-thumbs img[data-unshown] {
+  visibility: hidden;
+}
+.ask-thumbs figure:has(img[data-unshown]) {
+  background: var(--ats-subtle);
+}

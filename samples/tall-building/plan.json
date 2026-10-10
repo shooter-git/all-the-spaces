@@ -1,0 +1,5007 @@
+{
+  "name": "Tall building",
+  "spaceType": "building",
+  "floors": [
+    {
+      "key": "f0",
+      "name": "Ground floor",
+      "elevation": 0,
+      "height": 3
+    },
+    {
+      "key": "f1",
+      "name": "Floor 1",
+      "elevation": 3.3,
+      "height": 3
+    },
+    {
+      "key": "f2",
+      "name": "Floor 2",
+      "elevation": 6.6,
+      "height": 3
+    },
+    {
+      "key": "f3",
+      "name": "Floor 3",
+      "elevation": 9.899999999999999,
+      "height": 3
+    },
+    {
+      "key": "f4",
+      "name": "Floor 4",
+      "elevation": 13.2,
+      "height": 3
+    },
+    {
+      "key": "f5",
+      "name": "Floor 5",
+      "elevation": 16.5,
+      "height": 3
+    },
+    {
+      "key": "f6",
+      "name": "Floor 6",
+      "elevation": 19.799999999999997,
+      "height": 3
+    },
+    {
+      "key": "f7",
+      "name": "Floor 7",
+      "elevation": 23.099999999999998,
+      "height": 3
+    },
+    {
+      "key": "f8",
+      "name": "Floor 8",
+      "elevation": 26.4,
+      "height": 3
+    },
+    {
+      "key": "f9",
+      "name": "Floor 9",
+      "elevation": 29.7,
+      "height": 3
+    },
+    {
+      "key": "f10",
+      "name": "Floor 10",
+      "elevation": 33,
+      "height": 3
+    },
+    {
+      "key": "f11",
+      "name": "Floor 11",
+      "elevation": 36.3,
+      "height": 3
+    },
+    {
+      "key": "f12",
+      "name": "Floor 12",
+      "elevation": 39.599999999999994,
+      "height": 3
+    },
+    {
+      "key": "f13",
+      "name": "Floor 13",
+      "elevation": 42.9,
+      "height": 3
+    },
+    {
+      "key": "f14",
+      "name": "Floor 14",
+      "elevation": 46.199999999999996,
+      "height": 3
+    },
+    {
+      "key": "f15",
+      "name": "Floor 15",
+      "elevation": 49.5,
+      "height": 3
+    },
+    {
+      "key": "f16",
+      "name": "Floor 16",
+      "elevation": 52.8,
+      "height": 3
+    },
+    {
+      "key": "f17",
+      "name": "Floor 17",
+      "elevation": 56.099999999999994,
+      "height": 3
+    },
+    {
+      "key": "f18",
+      "name": "Floor 18",
+      "elevation": 59.4,
+      "height": 3
+    },
+    {
+      "key": "f19",
+      "name": "Floor 19",
+      "elevation": 62.699999999999996,
+      "height": 3
+    }
+  ],
+  "rooms": [
+    {
+      "key": "stairs-0",
+      "name": "Stairs to floor 1",
+      "floor": "f0",
+      "spansTo": "f1",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "store",
+      "name": "Store",
+      "floor": "f0",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lobby",
+      "name": "Lobby",
+      "floor": "f0",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "cafe",
+      "name": "Café",
+      "floor": "f0",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor",
+      "name": "Corridor",
+      "floor": "f0",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-01",
+      "name": "Flat 01, living room",
+      "floor": "f0",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-01",
+      "name": "Flat 01, bedroom",
+      "floor": "f0",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-02",
+      "name": "Flat 02, living room",
+      "floor": "f0",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-02",
+      "name": "Flat 02, bedroom",
+      "floor": "f0",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-03",
+      "name": "Flat 03, living room",
+      "floor": "f0",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-03",
+      "name": "Flat 03, bedroom",
+      "floor": "f0",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-04",
+      "name": "Flat 04, living room",
+      "floor": "f0",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-04",
+      "name": "Flat 04, bedroom",
+      "floor": "f0",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-1",
+      "name": "Stairs to floor 2",
+      "floor": "f1",
+      "spansTo": "f2",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-1",
+      "name": "Lift lobby, floor 1",
+      "floor": "f1",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-1",
+      "name": "Studio flat 10",
+      "floor": "f1",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-1",
+      "name": "Corridor, floor 1",
+      "floor": "f1",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-11",
+      "name": "Flat 11, living room",
+      "floor": "f1",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-11",
+      "name": "Flat 11, bedroom",
+      "floor": "f1",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-12",
+      "name": "Flat 12, living room",
+      "floor": "f1",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-12",
+      "name": "Flat 12, bedroom",
+      "floor": "f1",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-13",
+      "name": "Flat 13, living room",
+      "floor": "f1",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-13",
+      "name": "Flat 13, bedroom",
+      "floor": "f1",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-14",
+      "name": "Flat 14, living room",
+      "floor": "f1",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-14",
+      "name": "Flat 14, bedroom",
+      "floor": "f1",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-2",
+      "name": "Stairs to floor 3",
+      "floor": "f2",
+      "spansTo": "f3",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-2",
+      "name": "Lift lobby, floor 2",
+      "floor": "f2",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-2",
+      "name": "Studio flat 20",
+      "floor": "f2",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-2",
+      "name": "Corridor, floor 2",
+      "floor": "f2",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-21",
+      "name": "Flat 21, living room",
+      "floor": "f2",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-21",
+      "name": "Flat 21, bedroom",
+      "floor": "f2",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-22",
+      "name": "Flat 22, living room",
+      "floor": "f2",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-22",
+      "name": "Flat 22, bedroom",
+      "floor": "f2",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-23",
+      "name": "Flat 23, living room",
+      "floor": "f2",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-23",
+      "name": "Flat 23, bedroom",
+      "floor": "f2",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-24",
+      "name": "Flat 24, living room",
+      "floor": "f2",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-24",
+      "name": "Flat 24, bedroom",
+      "floor": "f2",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-3",
+      "name": "Stairs to floor 4",
+      "floor": "f3",
+      "spansTo": "f4",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-3",
+      "name": "Lift lobby, floor 3",
+      "floor": "f3",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-3",
+      "name": "Studio flat 30",
+      "floor": "f3",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-3",
+      "name": "Corridor, floor 3",
+      "floor": "f3",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-31",
+      "name": "Flat 31, living room",
+      "floor": "f3",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-31",
+      "name": "Flat 31, bedroom",
+      "floor": "f3",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-32",
+      "name": "Flat 32, living room",
+      "floor": "f3",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-32",
+      "name": "Flat 32, bedroom",
+      "floor": "f3",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-33",
+      "name": "Flat 33, living room",
+      "floor": "f3",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-33",
+      "name": "Flat 33, bedroom",
+      "floor": "f3",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-34",
+      "name": "Flat 34, living room",
+      "floor": "f3",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-34",
+      "name": "Flat 34, bedroom",
+      "floor": "f3",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-4",
+      "name": "Stairs to floor 5",
+      "floor": "f4",
+      "spansTo": "f5",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-4",
+      "name": "Lift lobby, floor 4",
+      "floor": "f4",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-4",
+      "name": "Studio flat 40",
+      "floor": "f4",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-4",
+      "name": "Corridor, floor 4",
+      "floor": "f4",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-41",
+      "name": "Flat 41, living room",
+      "floor": "f4",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-41",
+      "name": "Flat 41, bedroom",
+      "floor": "f4",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-42",
+      "name": "Flat 42, living room",
+      "floor": "f4",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-42",
+      "name": "Flat 42, bedroom",
+      "floor": "f4",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-43",
+      "name": "Flat 43, living room",
+      "floor": "f4",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-43",
+      "name": "Flat 43, bedroom",
+      "floor": "f4",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-44",
+      "name": "Flat 44, living room",
+      "floor": "f4",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-44",
+      "name": "Flat 44, bedroom",
+      "floor": "f4",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-5",
+      "name": "Stairs to floor 6",
+      "floor": "f5",
+      "spansTo": "f6",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-5",
+      "name": "Lift lobby, floor 5",
+      "floor": "f5",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-5",
+      "name": "Studio flat 50",
+      "floor": "f5",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-5",
+      "name": "Corridor, floor 5",
+      "floor": "f5",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-51",
+      "name": "Flat 51, living room",
+      "floor": "f5",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-51",
+      "name": "Flat 51, bedroom",
+      "floor": "f5",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-52",
+      "name": "Flat 52, living room",
+      "floor": "f5",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-52",
+      "name": "Flat 52, bedroom",
+      "floor": "f5",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-53",
+      "name": "Flat 53, living room",
+      "floor": "f5",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-53",
+      "name": "Flat 53, bedroom",
+      "floor": "f5",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-54",
+      "name": "Flat 54, living room",
+      "floor": "f5",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-54",
+      "name": "Flat 54, bedroom",
+      "floor": "f5",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-6",
+      "name": "Stairs to floor 7",
+      "floor": "f6",
+      "spansTo": "f7",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-6",
+      "name": "Lift lobby, floor 6",
+      "floor": "f6",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-6",
+      "name": "Studio flat 60",
+      "floor": "f6",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-6",
+      "name": "Corridor, floor 6",
+      "floor": "f6",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-61",
+      "name": "Flat 61, living room",
+      "floor": "f6",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-61",
+      "name": "Flat 61, bedroom",
+      "floor": "f6",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-62",
+      "name": "Flat 62, living room",
+      "floor": "f6",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-62",
+      "name": "Flat 62, bedroom",
+      "floor": "f6",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-63",
+      "name": "Flat 63, living room",
+      "floor": "f6",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-63",
+      "name": "Flat 63, bedroom",
+      "floor": "f6",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-64",
+      "name": "Flat 64, living room",
+      "floor": "f6",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-64",
+      "name": "Flat 64, bedroom",
+      "floor": "f6",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-7",
+      "name": "Stairs to floor 8",
+      "floor": "f7",
+      "spansTo": "f8",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-7",
+      "name": "Lift lobby, floor 7",
+      "floor": "f7",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-7",
+      "name": "Studio flat 70",
+      "floor": "f7",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-7",
+      "name": "Corridor, floor 7",
+      "floor": "f7",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-71",
+      "name": "Flat 71, living room",
+      "floor": "f7",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-71",
+      "name": "Flat 71, bedroom",
+      "floor": "f7",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-72",
+      "name": "Flat 72, living room",
+      "floor": "f7",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-72",
+      "name": "Flat 72, bedroom",
+      "floor": "f7",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-73",
+      "name": "Flat 73, living room",
+      "floor": "f7",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-73",
+      "name": "Flat 73, bedroom",
+      "floor": "f7",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-74",
+      "name": "Flat 74, living room",
+      "floor": "f7",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-74",
+      "name": "Flat 74, bedroom",
+      "floor": "f7",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-8",
+      "name": "Stairs to floor 9",
+      "floor": "f8",
+      "spansTo": "f9",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-8",
+      "name": "Lift lobby, floor 8",
+      "floor": "f8",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-8",
+      "name": "Studio flat 80",
+      "floor": "f8",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-8",
+      "name": "Corridor, floor 8",
+      "floor": "f8",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-81",
+      "name": "Flat 81, living room",
+      "floor": "f8",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-81",
+      "name": "Flat 81, bedroom",
+      "floor": "f8",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-82",
+      "name": "Flat 82, living room",
+      "floor": "f8",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-82",
+      "name": "Flat 82, bedroom",
+      "floor": "f8",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-83",
+      "name": "Flat 83, living room",
+      "floor": "f8",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-83",
+      "name": "Flat 83, bedroom",
+      "floor": "f8",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-84",
+      "name": "Flat 84, living room",
+      "floor": "f8",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-84",
+      "name": "Flat 84, bedroom",
+      "floor": "f8",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-9",
+      "name": "Stairs to floor 10",
+      "floor": "f9",
+      "spansTo": "f10",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-9",
+      "name": "Lift lobby, floor 9",
+      "floor": "f9",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-9",
+      "name": "Studio flat 90",
+      "floor": "f9",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-9",
+      "name": "Corridor, floor 9",
+      "floor": "f9",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-91",
+      "name": "Flat 91, living room",
+      "floor": "f9",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-91",
+      "name": "Flat 91, bedroom",
+      "floor": "f9",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-92",
+      "name": "Flat 92, living room",
+      "floor": "f9",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-92",
+      "name": "Flat 92, bedroom",
+      "floor": "f9",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-93",
+      "name": "Flat 93, living room",
+      "floor": "f9",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-93",
+      "name": "Flat 93, bedroom",
+      "floor": "f9",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-94",
+      "name": "Flat 94, living room",
+      "floor": "f9",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-94",
+      "name": "Flat 94, bedroom",
+      "floor": "f9",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-10",
+      "name": "Stairs to floor 11",
+      "floor": "f10",
+      "spansTo": "f11",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-10",
+      "name": "Lift lobby, floor 10",
+      "floor": "f10",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-10",
+      "name": "Studio flat 100",
+      "floor": "f10",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-10",
+      "name": "Corridor, floor 10",
+      "floor": "f10",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-101",
+      "name": "Flat 101, living room",
+      "floor": "f10",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-101",
+      "name": "Flat 101, bedroom",
+      "floor": "f10",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-102",
+      "name": "Flat 102, living room",
+      "floor": "f10",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-102",
+      "name": "Flat 102, bedroom",
+      "floor": "f10",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-103",
+      "name": "Flat 103, living room",
+      "floor": "f10",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-103",
+      "name": "Flat 103, bedroom",
+      "floor": "f10",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-104",
+      "name": "Flat 104, living room",
+      "floor": "f10",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-104",
+      "name": "Flat 104, bedroom",
+      "floor": "f10",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-11",
+      "name": "Stairs to floor 12",
+      "floor": "f11",
+      "spansTo": "f12",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-11",
+      "name": "Lift lobby, floor 11",
+      "floor": "f11",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-11",
+      "name": "Studio flat 110",
+      "floor": "f11",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-11",
+      "name": "Corridor, floor 11",
+      "floor": "f11",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-111",
+      "name": "Flat 111, living room",
+      "floor": "f11",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-111",
+      "name": "Flat 111, bedroom",
+      "floor": "f11",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-112",
+      "name": "Flat 112, living room",
+      "floor": "f11",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-112",
+      "name": "Flat 112, bedroom",
+      "floor": "f11",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-113",
+      "name": "Flat 113, living room",
+      "floor": "f11",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-113",
+      "name": "Flat 113, bedroom",
+      "floor": "f11",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-114",
+      "name": "Flat 114, living room",
+      "floor": "f11",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-114",
+      "name": "Flat 114, bedroom",
+      "floor": "f11",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-12",
+      "name": "Stairs to floor 13",
+      "floor": "f12",
+      "spansTo": "f13",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-12",
+      "name": "Lift lobby, floor 12",
+      "floor": "f12",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-12",
+      "name": "Studio flat 120",
+      "floor": "f12",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-12",
+      "name": "Corridor, floor 12",
+      "floor": "f12",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-121",
+      "name": "Flat 121, living room",
+      "floor": "f12",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-121",
+      "name": "Flat 121, bedroom",
+      "floor": "f12",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-122",
+      "name": "Flat 122, living room",
+      "floor": "f12",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-122",
+      "name": "Flat 122, bedroom",
+      "floor": "f12",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-123",
+      "name": "Flat 123, living room",
+      "floor": "f12",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-123",
+      "name": "Flat 123, bedroom",
+      "floor": "f12",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-124",
+      "name": "Flat 124, living room",
+      "floor": "f12",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-124",
+      "name": "Flat 124, bedroom",
+      "floor": "f12",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-13",
+      "name": "Stairs to floor 14",
+      "floor": "f13",
+      "spansTo": "f14",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-13",
+      "name": "Lift lobby, floor 13",
+      "floor": "f13",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-13",
+      "name": "Studio flat 130",
+      "floor": "f13",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-13",
+      "name": "Corridor, floor 13",
+      "floor": "f13",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-131",
+      "name": "Flat 131, living room",
+      "floor": "f13",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-131",
+      "name": "Flat 131, bedroom",
+      "floor": "f13",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-132",
+      "name": "Flat 132, living room",
+      "floor": "f13",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-132",
+      "name": "Flat 132, bedroom",
+      "floor": "f13",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-133",
+      "name": "Flat 133, living room",
+      "floor": "f13",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-133",
+      "name": "Flat 133, bedroom",
+      "floor": "f13",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-134",
+      "name": "Flat 134, living room",
+      "floor": "f13",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-134",
+      "name": "Flat 134, bedroom",
+      "floor": "f13",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-14",
+      "name": "Stairs to floor 15",
+      "floor": "f14",
+      "spansTo": "f15",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-14",
+      "name": "Lift lobby, floor 14",
+      "floor": "f14",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-14",
+      "name": "Studio flat 140",
+      "floor": "f14",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-14",
+      "name": "Corridor, floor 14",
+      "floor": "f14",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-141",
+      "name": "Flat 141, living room",
+      "floor": "f14",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-141",
+      "name": "Flat 141, bedroom",
+      "floor": "f14",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-142",
+      "name": "Flat 142, living room",
+      "floor": "f14",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-142",
+      "name": "Flat 142, bedroom",
+      "floor": "f14",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-143",
+      "name": "Flat 143, living room",
+      "floor": "f14",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-143",
+      "name": "Flat 143, bedroom",
+      "floor": "f14",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-144",
+      "name": "Flat 144, living room",
+      "floor": "f14",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-144",
+      "name": "Flat 144, bedroom",
+      "floor": "f14",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-15",
+      "name": "Stairs to floor 16",
+      "floor": "f15",
+      "spansTo": "f16",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-15",
+      "name": "Lift lobby, floor 15",
+      "floor": "f15",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-15",
+      "name": "Studio flat 150",
+      "floor": "f15",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-15",
+      "name": "Corridor, floor 15",
+      "floor": "f15",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-151",
+      "name": "Flat 151, living room",
+      "floor": "f15",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-151",
+      "name": "Flat 151, bedroom",
+      "floor": "f15",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-152",
+      "name": "Flat 152, living room",
+      "floor": "f15",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-152",
+      "name": "Flat 152, bedroom",
+      "floor": "f15",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-153",
+      "name": "Flat 153, living room",
+      "floor": "f15",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-153",
+      "name": "Flat 153, bedroom",
+      "floor": "f15",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-154",
+      "name": "Flat 154, living room",
+      "floor": "f15",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-154",
+      "name": "Flat 154, bedroom",
+      "floor": "f15",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-16",
+      "name": "Stairs to floor 17",
+      "floor": "f16",
+      "spansTo": "f17",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-16",
+      "name": "Lift lobby, floor 16",
+      "floor": "f16",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-16",
+      "name": "Studio flat 160",
+      "floor": "f16",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-16",
+      "name": "Corridor, floor 16",
+      "floor": "f16",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-161",
+      "name": "Flat 161, living room",
+      "floor": "f16",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-161",
+      "name": "Flat 161, bedroom",
+      "floor": "f16",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-162",
+      "name": "Flat 162, living room",
+      "floor": "f16",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-162",
+      "name": "Flat 162, bedroom",
+      "floor": "f16",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-163",
+      "name": "Flat 163, living room",
+      "floor": "f16",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-163",
+      "name": "Flat 163, bedroom",
+      "floor": "f16",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-164",
+      "name": "Flat 164, living room",
+      "floor": "f16",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-164",
+      "name": "Flat 164, bedroom",
+      "floor": "f16",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-17",
+      "name": "Stairs to floor 18",
+      "floor": "f17",
+      "spansTo": "f18",
+      "rect": [3, 0, 6, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-17",
+      "name": "Lift lobby, floor 17",
+      "floor": "f17",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-17",
+      "name": "Studio flat 170",
+      "floor": "f17",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-17",
+      "name": "Corridor, floor 17",
+      "floor": "f17",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-171",
+      "name": "Flat 171, living room",
+      "floor": "f17",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-171",
+      "name": "Flat 171, bedroom",
+      "floor": "f17",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-172",
+      "name": "Flat 172, living room",
+      "floor": "f17",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-172",
+      "name": "Flat 172, bedroom",
+      "floor": "f17",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-173",
+      "name": "Flat 173, living room",
+      "floor": "f17",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-173",
+      "name": "Flat 173, bedroom",
+      "floor": "f17",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-174",
+      "name": "Flat 174, living room",
+      "floor": "f17",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-174",
+      "name": "Flat 174, bedroom",
+      "floor": "f17",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "stairs-18",
+      "name": "Stairs to floor 19",
+      "floor": "f18",
+      "spansTo": "f19",
+      "rect": [0, 0, 3, 5],
+      "floorMaterial": "concrete",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-18",
+      "name": "Lift lobby, floor 18",
+      "floor": "f18",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-18",
+      "name": "Studio flat 180",
+      "floor": "f18",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-18",
+      "name": "Corridor, floor 18",
+      "floor": "f18",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-181",
+      "name": "Flat 181, living room",
+      "floor": "f18",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-181",
+      "name": "Flat 181, bedroom",
+      "floor": "f18",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-182",
+      "name": "Flat 182, living room",
+      "floor": "f18",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-182",
+      "name": "Flat 182, bedroom",
+      "floor": "f18",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-183",
+      "name": "Flat 183, living room",
+      "floor": "f18",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-183",
+      "name": "Flat 183, bedroom",
+      "floor": "f18",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-184",
+      "name": "Flat 184, living room",
+      "floor": "f18",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-184",
+      "name": "Flat 184, bedroom",
+      "floor": "f18",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "lift-19",
+      "name": "Lift lobby, floor 19",
+      "floor": "f19",
+      "rect": [6, 0, 12, 5],
+      "floorMaterial": "tile-light",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "studio-19",
+      "name": "Studio flat 190",
+      "floor": "f19",
+      "rect": [12, 0, 24, 5],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "corridor-19",
+      "name": "Corridor, floor 19",
+      "floor": "f19",
+      "rect": [0, 5, 24, 7],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-191",
+      "name": "Flat 191, living room",
+      "floor": "f19",
+      "rect": [0, 7, 6, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-191",
+      "name": "Flat 191, bedroom",
+      "floor": "f19",
+      "rect": [0, 11, 6, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-192",
+      "name": "Flat 192, living room",
+      "floor": "f19",
+      "rect": [6, 7, 12, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-192",
+      "name": "Flat 192, bedroom",
+      "floor": "f19",
+      "rect": [6, 11, 12, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-193",
+      "name": "Flat 193, living room",
+      "floor": "f19",
+      "rect": [12, 7, 18, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-193",
+      "name": "Flat 193, bedroom",
+      "floor": "f19",
+      "rect": [12, 11, 18, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    },
+    {
+      "key": "living-194",
+      "name": "Flat 194, living room",
+      "floor": "f19",
+      "rect": [18, 7, 24, 11],
+      "floorMaterial": "oak",
+      "wallMaterial": "plaster-warm"
+    },
+    {
+      "key": "bedroom-194",
+      "name": "Flat 194, bedroom",
+      "floor": "f19",
+      "rect": [18, 11, 24, 14],
+      "floorMaterial": "carpet-stone",
+      "wallMaterial": "plaster"
+    }
+  ],
+  "openings": [
+    {
+      "kind": "door",
+      "rooms": ["stairs-0", "corridor"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-0", "corridor-1"],
+      "at": [0.6, 5],
+      "level": "f1"
+    },
+    {
+      "kind": "door",
+      "rooms": ["store", "corridor"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "open",
+      "rooms": ["lobby", "corridor"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "open",
+      "rooms": ["cafe", "corridor"],
+      "at": [18, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "window",
+      "room": "cafe",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-01", "corridor"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-01", "bedroom-01"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-01",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-02", "corridor"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-02", "bedroom-02"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-02",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-03", "corridor"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-03", "bedroom-03"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-03",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-04", "corridor"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-04", "bedroom-04"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-04",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-1", "corridor-1"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-1", "corridor-2"],
+      "at": [3.6, 5],
+      "level": "f2"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-1", "corridor-1"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-1", "corridor-1"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-1",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-11", "corridor-1"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-11", "bedroom-11"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-11",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-12", "corridor-1"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-12", "bedroom-12"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-12",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-13", "corridor-1"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-13", "bedroom-13"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-13",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-14", "corridor-1"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-14", "bedroom-14"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-14",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-2", "corridor-2"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-2", "corridor-3"],
+      "at": [0.6, 5],
+      "level": "f3"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-2", "corridor-2"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-2", "corridor-2"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-2",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-21", "corridor-2"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-21", "bedroom-21"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-21",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-22", "corridor-2"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-22", "bedroom-22"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-22",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-23", "corridor-2"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-23", "bedroom-23"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-23",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-24", "corridor-2"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-24", "bedroom-24"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-24",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-3", "corridor-3"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-3", "corridor-4"],
+      "at": [3.6, 5],
+      "level": "f4"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-3", "corridor-3"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-3", "corridor-3"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-3",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-31", "corridor-3"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-31", "bedroom-31"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-31",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-32", "corridor-3"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-32", "bedroom-32"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-32",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-33", "corridor-3"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-33", "bedroom-33"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-33",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-34", "corridor-3"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-34", "bedroom-34"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-34",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-4", "corridor-4"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-4", "corridor-5"],
+      "at": [0.6, 5],
+      "level": "f5"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-4", "corridor-4"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-4", "corridor-4"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-4",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-41", "corridor-4"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-41", "bedroom-41"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-41",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-42", "corridor-4"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-42", "bedroom-42"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-42",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-43", "corridor-4"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-43", "bedroom-43"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-43",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-44", "corridor-4"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-44", "bedroom-44"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-44",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-5", "corridor-5"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-5", "corridor-6"],
+      "at": [3.6, 5],
+      "level": "f6"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-5", "corridor-5"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-5", "corridor-5"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-5",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-51", "corridor-5"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-51", "bedroom-51"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-51",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-52", "corridor-5"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-52", "bedroom-52"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-52",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-53", "corridor-5"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-53", "bedroom-53"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-53",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-54", "corridor-5"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-54", "bedroom-54"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-54",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-6", "corridor-6"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-6", "corridor-7"],
+      "at": [0.6, 5],
+      "level": "f7"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-6", "corridor-6"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-6", "corridor-6"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-6",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-61", "corridor-6"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-61", "bedroom-61"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-61",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-62", "corridor-6"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-62", "bedroom-62"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-62",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-63", "corridor-6"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-63", "bedroom-63"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-63",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-64", "corridor-6"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-64", "bedroom-64"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-64",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-7", "corridor-7"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-7", "corridor-8"],
+      "at": [3.6, 5],
+      "level": "f8"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-7", "corridor-7"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-7", "corridor-7"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-7",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-71", "corridor-7"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-71", "bedroom-71"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-71",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-72", "corridor-7"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-72", "bedroom-72"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-72",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-73", "corridor-7"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-73", "bedroom-73"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-73",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-74", "corridor-7"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-74", "bedroom-74"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-74",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-8", "corridor-8"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-8", "corridor-9"],
+      "at": [0.6, 5],
+      "level": "f9"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-8", "corridor-8"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-8", "corridor-8"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-8",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-81", "corridor-8"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-81", "bedroom-81"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-81",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-82", "corridor-8"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-82", "bedroom-82"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-82",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-83", "corridor-8"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-83", "bedroom-83"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-83",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-84", "corridor-8"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-84", "bedroom-84"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-84",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-9", "corridor-9"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-9", "corridor-10"],
+      "at": [3.6, 5],
+      "level": "f10"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-9", "corridor-9"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-9", "corridor-9"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-9",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-91", "corridor-9"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-91", "bedroom-91"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-91",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-92", "corridor-9"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-92", "bedroom-92"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-92",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-93", "corridor-9"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-93", "bedroom-93"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-93",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-94", "corridor-9"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-94", "bedroom-94"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-94",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-10", "corridor-10"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-10", "corridor-11"],
+      "at": [0.6, 5],
+      "level": "f11"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-10", "corridor-10"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-10", "corridor-10"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-10",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-101", "corridor-10"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-101", "bedroom-101"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-101",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-102", "corridor-10"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-102", "bedroom-102"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-102",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-103", "corridor-10"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-103", "bedroom-103"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-103",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-104", "corridor-10"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-104", "bedroom-104"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-104",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-11", "corridor-11"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-11", "corridor-12"],
+      "at": [3.6, 5],
+      "level": "f12"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-11", "corridor-11"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-11", "corridor-11"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-11",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-111", "corridor-11"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-111", "bedroom-111"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-111",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-112", "corridor-11"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-112", "bedroom-112"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-112",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-113", "corridor-11"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-113", "bedroom-113"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-113",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-114", "corridor-11"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-114", "bedroom-114"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-114",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-12", "corridor-12"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-12", "corridor-13"],
+      "at": [0.6, 5],
+      "level": "f13"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-12", "corridor-12"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-12", "corridor-12"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-12",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-121", "corridor-12"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-121", "bedroom-121"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-121",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-122", "corridor-12"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-122", "bedroom-122"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-122",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-123", "corridor-12"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-123", "bedroom-123"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-123",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-124", "corridor-12"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-124", "bedroom-124"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-124",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-13", "corridor-13"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-13", "corridor-14"],
+      "at": [3.6, 5],
+      "level": "f14"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-13", "corridor-13"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-13", "corridor-13"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-13",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-131", "corridor-13"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-131", "bedroom-131"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-131",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-132", "corridor-13"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-132", "bedroom-132"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-132",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-133", "corridor-13"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-133", "bedroom-133"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-133",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-134", "corridor-13"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-134", "bedroom-134"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-134",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-14", "corridor-14"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-14", "corridor-15"],
+      "at": [0.6, 5],
+      "level": "f15"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-14", "corridor-14"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-14", "corridor-14"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-14",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-141", "corridor-14"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-141", "bedroom-141"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-141",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-142", "corridor-14"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-142", "bedroom-142"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-142",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-143", "corridor-14"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-143", "bedroom-143"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-143",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-144", "corridor-14"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-144", "bedroom-144"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-144",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-15", "corridor-15"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-15", "corridor-16"],
+      "at": [3.6, 5],
+      "level": "f16"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-15", "corridor-15"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-15", "corridor-15"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-15",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-151", "corridor-15"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-151", "bedroom-151"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-151",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-152", "corridor-15"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-152", "bedroom-152"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-152",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-153", "corridor-15"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-153", "bedroom-153"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-153",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-154", "corridor-15"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-154", "bedroom-154"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-154",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-16", "corridor-16"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-16", "corridor-17"],
+      "at": [0.6, 5],
+      "level": "f17"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-16", "corridor-16"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-16", "corridor-16"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-16",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-161", "corridor-16"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-161", "bedroom-161"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-161",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-162", "corridor-16"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-162", "bedroom-162"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-162",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-163", "corridor-16"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-163", "bedroom-163"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-163",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-164", "corridor-16"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-164", "bedroom-164"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-164",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-17", "corridor-17"],
+      "at": [4.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-17", "corridor-18"],
+      "at": [3.6, 5],
+      "level": "f18"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-17", "corridor-17"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-17", "corridor-17"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-17",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-171", "corridor-17"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-171", "bedroom-171"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-171",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-172", "corridor-17"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-172", "bedroom-172"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-172",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-173", "corridor-17"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-173", "bedroom-173"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-173",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-174", "corridor-17"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-174", "bedroom-174"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-174",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-18", "corridor-18"],
+      "at": [1.5, 5]
+    },
+    {
+      "kind": "door",
+      "rooms": ["stairs-18", "corridor-19"],
+      "at": [0.6, 5],
+      "level": "f19"
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-18", "corridor-18"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-18", "corridor-18"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-18",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-181", "corridor-18"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-181", "bedroom-181"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-181",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-182", "corridor-18"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-182", "bedroom-182"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-182",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-183", "corridor-18"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-183", "bedroom-183"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-183",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-184", "corridor-18"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-184", "bedroom-184"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-184",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    },
+    {
+      "kind": "open",
+      "rooms": ["lift-19", "corridor-19"],
+      "at": [9, 5],
+      "width": 2.4
+    },
+    {
+      "kind": "door",
+      "rooms": ["studio-19", "corridor-19"],
+      "at": [18, 5]
+    },
+    {
+      "kind": "window",
+      "room": "studio-19",
+      "side": "north",
+      "at": 18,
+      "width": 3
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-191", "corridor-19"],
+      "at": [3, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-191", "bedroom-191"],
+      "at": [1.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-191",
+      "side": "south",
+      "at": 3,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-192", "corridor-19"],
+      "at": [9, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-192", "bedroom-192"],
+      "at": [7.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-192",
+      "side": "south",
+      "at": 9,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-193", "corridor-19"],
+      "at": [15, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-193", "bedroom-193"],
+      "at": [13.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-193",
+      "side": "south",
+      "at": 15,
+      "width": 1.6
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-194", "corridor-19"],
+      "at": [21, 7]
+    },
+    {
+      "kind": "door",
+      "rooms": ["living-194", "bedroom-194"],
+      "at": [19.2, 11]
+    },
+    {
+      "kind": "window",
+      "room": "bedroom-194",
+      "side": "south",
+      "at": 21,
+      "width": 1.6
+    }
+  ],
+  "stairs": [
+    {
+      "room": "stairs-0",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f0",
+      "to": "f1"
+    },
+    {
+      "room": "stairs-1",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f1",
+      "to": "f2"
+    },
+    {
+      "room": "stairs-2",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f2",
+      "to": "f3"
+    },
+    {
+      "room": "stairs-3",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f3",
+      "to": "f4"
+    },
+    {
+      "room": "stairs-4",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f4",
+      "to": "f5"
+    },
+    {
+      "room": "stairs-5",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f5",
+      "to": "f6"
+    },
+    {
+      "room": "stairs-6",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f6",
+      "to": "f7"
+    },
+    {
+      "room": "stairs-7",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f7",
+      "to": "f8"
+    },
+    {
+      "room": "stairs-8",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f8",
+      "to": "f9"
+    },
+    {
+      "room": "stairs-9",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f9",
+      "to": "f10"
+    },
+    {
+      "room": "stairs-10",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f10",
+      "to": "f11"
+    },
+    {
+      "room": "stairs-11",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f11",
+      "to": "f12"
+    },
+    {
+      "room": "stairs-12",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f12",
+      "to": "f13"
+    },
+    {
+      "room": "stairs-13",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f13",
+      "to": "f14"
+    },
+    {
+      "room": "stairs-14",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f14",
+      "to": "f15"
+    },
+    {
+      "room": "stairs-15",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f15",
+      "to": "f16"
+    },
+    {
+      "room": "stairs-16",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f16",
+      "to": "f17"
+    },
+    {
+      "room": "stairs-17",
+      "start": [4.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f17",
+      "to": "f18"
+    },
+    {
+      "room": "stairs-18",
+      "start": [1.5, 4.6],
+      "direction": "north",
+      "width": 1,
+      "run": 4.2,
+      "from": "f18",
+      "to": "f19"
+    }
+  ],
+  "elevators": [
+    {
+      "key": "lift",
+      "name": "Lift",
+      "stops": [
+        {
+          "room": "lobby",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-1",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-2",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-3",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-4",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-5",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-6",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-7",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-8",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-9",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-10",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-11",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-12",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-13",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-14",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-15",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-16",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-17",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-18",
+          "at": [11.2, 1],
+          "yaw": 0
+        },
+        {
+          "room": "lift-19",
+          "at": [11.2, 1],
+          "yaw": 0
+        }
+      ]
+    }
+  ],
+  "furniture": [
+    {
+      "key": "bed-01",
+      "room": "bedroom-01",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-02",
+      "room": "bedroom-02",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-03",
+      "room": "bedroom-03",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-04",
+      "room": "bedroom-04",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-1-sofa",
+      "room": "studio-1",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-11",
+      "room": "bedroom-11",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-12",
+      "room": "bedroom-12",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-13",
+      "room": "bedroom-13",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-14",
+      "room": "bedroom-14",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-2-sofa",
+      "room": "studio-2",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-21",
+      "room": "bedroom-21",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-22",
+      "room": "bedroom-22",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-23",
+      "room": "bedroom-23",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-24",
+      "room": "bedroom-24",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-3-sofa",
+      "room": "studio-3",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-31",
+      "room": "bedroom-31",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-32",
+      "room": "bedroom-32",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-33",
+      "room": "bedroom-33",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-34",
+      "room": "bedroom-34",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-4-sofa",
+      "room": "studio-4",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-41",
+      "room": "bedroom-41",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-42",
+      "room": "bedroom-42",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-43",
+      "room": "bedroom-43",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-44",
+      "room": "bedroom-44",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-5-sofa",
+      "room": "studio-5",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-51",
+      "room": "bedroom-51",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-52",
+      "room": "bedroom-52",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-53",
+      "room": "bedroom-53",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-54",
+      "room": "bedroom-54",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-6-sofa",
+      "room": "studio-6",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-61",
+      "room": "bedroom-61",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-62",
+      "room": "bedroom-62",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-63",
+      "room": "bedroom-63",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-64",
+      "room": "bedroom-64",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-7-sofa",
+      "room": "studio-7",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-71",
+      "room": "bedroom-71",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-72",
+      "room": "bedroom-72",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-73",
+      "room": "bedroom-73",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-74",
+      "room": "bedroom-74",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-8-sofa",
+      "room": "studio-8",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-81",
+      "room": "bedroom-81",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-82",
+      "room": "bedroom-82",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-83",
+      "room": "bedroom-83",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-84",
+      "room": "bedroom-84",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-9-sofa",
+      "room": "studio-9",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-91",
+      "room": "bedroom-91",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-92",
+      "room": "bedroom-92",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-93",
+      "room": "bedroom-93",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-94",
+      "room": "bedroom-94",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-10-sofa",
+      "room": "studio-10",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-101",
+      "room": "bedroom-101",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-102",
+      "room": "bedroom-102",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-103",
+      "room": "bedroom-103",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-104",
+      "room": "bedroom-104",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-11-sofa",
+      "room": "studio-11",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-111",
+      "room": "bedroom-111",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-112",
+      "room": "bedroom-112",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-113",
+      "room": "bedroom-113",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-114",
+      "room": "bedroom-114",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-12-sofa",
+      "room": "studio-12",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-121",
+      "room": "bedroom-121",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-122",
+      "room": "bedroom-122",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-123",
+      "room": "bedroom-123",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-124",
+      "room": "bedroom-124",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-13-sofa",
+      "room": "studio-13",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-131",
+      "room": "bedroom-131",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-132",
+      "room": "bedroom-132",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-133",
+      "room": "bedroom-133",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-134",
+      "room": "bedroom-134",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-14-sofa",
+      "room": "studio-14",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-141",
+      "room": "bedroom-141",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-142",
+      "room": "bedroom-142",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-143",
+      "room": "bedroom-143",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-144",
+      "room": "bedroom-144",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-15-sofa",
+      "room": "studio-15",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-151",
+      "room": "bedroom-151",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-152",
+      "room": "bedroom-152",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-153",
+      "room": "bedroom-153",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-154",
+      "room": "bedroom-154",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-16-sofa",
+      "room": "studio-16",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-161",
+      "room": "bedroom-161",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-162",
+      "room": "bedroom-162",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-163",
+      "room": "bedroom-163",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-164",
+      "room": "bedroom-164",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-17-sofa",
+      "room": "studio-17",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-171",
+      "room": "bedroom-171",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-172",
+      "room": "bedroom-172",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-173",
+      "room": "bedroom-173",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-174",
+      "room": "bedroom-174",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-18-sofa",
+      "room": "studio-18",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-181",
+      "room": "bedroom-181",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-182",
+      "room": "bedroom-182",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-183",
+      "room": "bedroom-183",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-184",
+      "room": "bedroom-184",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    },
+    {
+      "key": "studio-19-sofa",
+      "room": "studio-19",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [18, 1],
+      "rotation": 0
+    },
+    {
+      "key": "bed-191",
+      "room": "bedroom-191",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [3.6, 12.6]
+    },
+    {
+      "key": "bed-192",
+      "room": "bedroom-192",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [9.6, 12.6]
+    },
+    {
+      "key": "bed-193",
+      "room": "bedroom-193",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [15.6, 12.6]
+    },
+    {
+      "key": "bed-194",
+      "room": "bedroom-194",
+      "kind": "bed",
+      "label": "Bed",
+      "at": [21.6, 12.6]
+    }
+  ],
+  "spawns": [
+    {
+      "key": "entrance",
+      "room": "lobby",
+      "at": [9, 3.6],
+      "yaw": 0
+    }
+  ]
+}

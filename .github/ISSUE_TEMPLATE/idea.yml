@@ -1,0 +1,20 @@
+name: An idea
+description: Suggest something All the Spaces could do, or do better.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing it. Leave out anything about real people or places.
+  - type: textarea
+    id: what
+    attributes:
+      label: What you'd like
+      description: What you'd want to be able to do, and who it's for (members, Architects, whoever runs the server).
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What happens today, and what gets in the way.

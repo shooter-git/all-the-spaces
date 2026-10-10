@@ -1,0 +1,48 @@
+name: Something isn't working
+description: Report a bug in All the Spaces.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. **Security problems don't go here**: report them privately (see
+        [SECURITY.md](https://github.com/shooter-git/all-the-spaces/blob/main/SECURITY.md)).
+        Leave out passwords, invite links, setup codes and anything about real people or places.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      description: The steps, from opening the app, that lead to it.
+      placeholder: |
+        1. Open a space
+        2. Tap …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      description: For example "iPhone 15, Safari, installed as an app" or "Windows laptop, Firefox 141".
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Server version
+      description: The first line of `sudo ats-admin status` on the server (ask whoever runs it).
+      placeholder: "Version: v0.1.0"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Anything else
+      description: |
+        Relevant log lines (`sudo ats-admin logs server`), with anything private taken out.
+      render: text

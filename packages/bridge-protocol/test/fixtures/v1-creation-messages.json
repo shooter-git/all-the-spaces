@@ -1,0 +1,74 @@
+{
+  "$comment": "Every message a creation built with SDK 0.1.0 (protocol 1) can send, exactly as it sends them. Frozen: hosts must accept these for as long as such creations exist. Never edit; a new protocol version gets a file of its own. See docs/protocol-compat.md.",
+  "messages": [
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "hello", "sdkVersion": "0.1.0", "saveVersion": 1 }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "progress", "value": 0.5, "label": "Counting visits" }
+    },
+    { "ats": "bridge", "v": 1, "msg": { "type": "progress", "value": 1 } },
+    { "ats": "bridge", "v": 1, "msg": { "type": "ready" } },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "save:get", "scope": "personal", "key": "visits", "id": 1 }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": {
+        "type": "save:set",
+        "scope": "personal",
+        "key": "visits",
+        "value": 2,
+        "schemaVersion": 1,
+        "basedOn": null,
+        "id": 2
+      }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": {
+        "type": "save:set",
+        "scope": "shared",
+        "key": "board",
+        "value": { "cells": [1, 0, 2] },
+        "schemaVersion": 1,
+        "basedOn": 7,
+        "id": 3
+      }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "mp:send", "kind": "move", "body": { "x": 1, "y": 2 } }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "mp:send", "kind": "wave", "body": null, "to": "user-2" }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "mp:shared", "key": "turn", "value": "user-2", "id": 4 }
+    },
+    { "ats": "bridge", "v": 1, "msg": { "type": "ui:toast", "text": "Visit 2" } },
+    { "ats": "bridge", "v": 1, "msg": { "type": "ui:prefer-chat-minimized", "value": true } },
+    { "ats": "bridge", "v": 1, "msg": { "type": "request-fullscreen" } },
+    { "ats": "bridge", "v": 1, "msg": { "type": "request-exit" } },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "perf", "fps": 59.8, "frameMs": 21.4, "p50Ms": 16.6, "p95Ms": 18.9 }
+    },
+    { "ats": "bridge", "v": 1, "msg": { "type": "error", "message": "TypeError: x is undefined" } },
+    { "ats": "bridge", "v": 1, "msg": { "type": "pong", "n": 3 } }
+  ]
+}

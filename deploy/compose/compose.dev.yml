@@ -1,0 +1,133 @@
+# Local development infrastructure. The Node apps run on the host via `pnpm dev`.
+# Project name is always `ats-dev`; every port binds to loopback in the 45xxx block.
+name: ats-dev
+
+services:
+  postgres:
+    # Comes back by itself when Docker restarts (an update, say).
+    restart: unless-stopped
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_USER: ats
+      POSTGRES_DB: ats
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run pnpm dev:setup}
+    ports: ["127.0.0.1:${ATS_PORT_POSTGRES}:5432"]
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ats -d ats"]
+      interval: 5s
+      retries: 20
+
+  valkey:
+    # Comes back by itself when Docker restarts (an update, say).
+    restart: unless-stopped
+    image: valkey/valkey:9.1-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    # Keyspace notifications are required by Colyseus presence.
+    command: ["valkey-server", "--appendonly", "yes", "--notify-keyspace-events", "Kx"]
+    ports: ["127.0.0.1:${ATS_PORT_VALKEY}:6379"]
+    volumes: [valkey:/data]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  garage:
+    # Comes back by itself when Docker restarts (an update, say).
+    restart: unless-stopped
+    image: dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?run pnpm dev:setup}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?run pnpm dev:setup}
+    ports:
+      - "127.0.0.1:${ATS_PORT_S3}:3900"
+      - "127.0.0.1:${ATS_PORT_S3_ADMIN}:3903"
+    volumes:
+      - ./dev/garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+
+  # Voice chat (LiveKit, Apache-2.0, unmodified). Signalling goes through Caddy (/lk); audio flows
+  # straight between browsers and this server on the two RTC ports, which are the same inside and
+  # out (LiveKit tells browsers where to send it). Loopback only, unless `pnpm dev:tailnet on`
+  # publishes them on this machine's tailnet address.
+  livekit:
+    # Comes back by itself when Docker restarts (an update, say).
+    restart: unless-stopped
+    image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: ${ATS_PORT_VOICE_TCP:-45881}
+          udp_port: ${ATS_PORT_VOICE_UDP:-45882}
+          node_ip: ${ATS_VOICE_IP:-127.0.0.1}
+          use_external_ip: false
+        keys:
+          ${LIVEKIT_API_KEY:?run pnpm dev:setup}: ${LIVEKIT_API_SECRET:?run pnpm dev:setup}
+        logging:
+          level: warn
+    ports:
+      - "127.0.0.1:${ATS_PORT_VOICE:-45880}:7880"
+      - "${ATS_VOICE_IP:-127.0.0.1}:${ATS_PORT_VOICE_TCP:-45881}:${ATS_PORT_VOICE_TCP:-45881}"
+      - "${ATS_VOICE_IP:-127.0.0.1}:${ATS_PORT_VOICE_UDP:-45882}:${ATS_PORT_VOICE_UDP:-45882}/udp"
+
+  mailpit:
+    # Comes back by itself when Docker restarts (an update, say).
+    restart: unless-stopped
+    image: axllent/mailpit:v1.30@sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a
+    ports:
+      - "127.0.0.1:${ATS_PORT_MAIL_SMTP}:1025"
+      - "127.0.0.1:${ATS_PORT_MAIL_UI}:8025"
+
+  caddy:
+    # Comes back by itself when Docker restarts (an update, say).
+    restart: unless-stopped
+    image: caddy:2.11-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
+    environment:
+      ATS_APP_HOST: ${ATS_APP_HOST}
+      ATS_PLAY_HOST: ${ATS_PLAY_HOST}
+      ATS_PORT_WEB: ${ATS_PORT_WEB}
+      ATS_PORT_SERVER: ${ATS_PORT_SERVER}
+      ATS_PORT_REALTIME: ${ATS_PORT_REALTIME}
+      ATS_PORT_HTTP: ${ATS_PORT_HTTP}
+      ATS_PORT_VOICE: ${ATS_PORT_VOICE:-45880}
+      ATS_PORT_TAILNET_APP: ${ATS_PORT_TAILNET_APP:-45084}
+      ATS_TAILNET_APP_URL: ${ATS_TAILNET_APP_URL:-}
+      ATS_PORT_TAILNET_PLAY: ${ATS_PORT_TAILNET_PLAY:-45085}
+    # Host networking lets Caddy reach the dev servers on 127.0.0.1; the Caddyfile binds to
+    # loopback only, so nothing is exposed to the LAN.
+    network_mode: host
+    volumes:
+      - ./dev/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+  # The only way out of Architects' sandboxes (which live on the internal `sandbox` network,
+  # started by the supervisor): HTTPS to allow-listed hosts.
+  egress:
+    build:
+      context: ../..
+      dockerfile: images/egress/Dockerfile
+    image: ats-egress:dev
+    networks: [sandbox, outside]
+    environment:
+      EGRESS_SECRET: ${EGRESS_SECRET:-}
+    volumes:
+      - ../egress/allow.txt:/etc/egress/allow.txt:ro
+      - ../egress/deny.txt:/etc/egress/deny.txt:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+networks:
+  # No route to the internet or the host: only the egress proxy.
+  sandbox:
+    internal: true
+  outside: {}
+
+volumes:
+  postgres:
+  valkey:
+  garage-meta:
+  garage-data:
+  caddy-data:

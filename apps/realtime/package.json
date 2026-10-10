@@ -1,0 +1,31 @@
+{
+  "name": "@ats/realtime",
+  "private": true,
+  "version": "0.0.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=../../.env --watch src/main.ts",
+    "start": "node src/main.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "load-test": "node load/presence-load.ts",
+    "voice-check": "node load/voice-check.ts"
+  },
+  "dependencies": {
+    "@ats/shared": "workspace:*",
+    "@colyseus/core": "0.18.18",
+    "@colyseus/redis-driver": "0.18.4",
+    "@colyseus/redis-presence": "0.18.5",
+    "@colyseus/schema": "5.0.35",
+    "@colyseus/ws-transport": "0.18.4",
+    "livekit-server-sdk": "2.19.1",
+    "pino": "10.4.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@ats/space-builder": "workspace:*",
+    "@colyseus/sdk": "0.18.4",
+    "vitest": "5.0.3"
+  }
+}

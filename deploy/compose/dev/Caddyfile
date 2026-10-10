@@ -1,0 +1,59 @@
+# Dev routing. Plain HTTP on *.localhost is a secure context, so no certificates are needed.
+{
+	auto_https off
+	admin off
+	default_bind 127.0.0.1
+	http_port {$ATS_PORT_HTTP}
+}
+
+(app) {
+	handle /manifest.webmanifest {
+		reverse_proxy 127.0.0.1:{$ATS_PORT_SERVER}
+	}
+	handle /api/* {
+		reverse_proxy 127.0.0.1:{$ATS_PORT_SERVER}
+	}
+	handle /rt/* {
+		uri strip_prefix /rt
+		reverse_proxy 127.0.0.1:{$ATS_PORT_REALTIME}
+	}
+	# Voice chat signalling (LiveKit); the audio itself doesn't come through here.
+	handle_path /lk/* {
+		reverse_proxy 127.0.0.1:{$ATS_PORT_VOICE}
+	}
+	handle {
+		reverse_proxy 127.0.0.1:{$ATS_PORT_WEB}
+	}
+}
+
+# Cartridges and live previews (a separate origin): nothing else is served there.
+(play) {
+	@creations path /c/* /preview/*
+	handle @creations {
+		reverse_proxy 127.0.0.1:{$ATS_PORT_SERVER}
+	}
+	handle {
+		respond 404
+	}
+}
+
+http://{$ATS_APP_HOST}:{$ATS_PORT_HTTP} {
+	# While `pnpm dev:tailnet` is on, sign-ins only work at the tailnet address: go there.
+	@tailnet expression `{env.ATS_TAILNET_APP_URL} != ""`
+	redir @tailnet {env.ATS_TAILNET_APP_URL}{uri} 307
+	import app
+}
+
+http://{$ATS_PLAY_HOST}:{$ATS_PORT_HTTP} {
+	import play
+}
+
+# Phones on the tailnet (`pnpm dev:tailnet`): Tailscale Serve terminates HTTPS with a trusted
+# certificate and hands each origin to its own loopback port here, keeping the original Host.
+http://:{$ATS_PORT_TAILNET_APP} {
+	import app
+}
+
+http://:{$ATS_PORT_TAILNET_PLAY} {
+	import play
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@ats/supervisor",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The only part of All the Spaces that can start containers: a small, fixed set of sandbox operations.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=../../.env --watch src/main.ts",
+    "start": "node src/main.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ats/shared": "workspace:*",
+    "pino": "10.4.0",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2",
+    "vitest": "5.0.3"
+  }
+}

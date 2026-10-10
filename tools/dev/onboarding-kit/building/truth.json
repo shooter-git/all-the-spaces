@@ -1,0 +1,167 @@
+{
+  "name": "Three-floor building",
+  "spaceType": "building",
+  "floors": [
+    { "key": "ground", "name": "Ground floor", "elevation": 0, "height": 3.0 },
+    { "key": "first", "name": "First floor", "elevation": 3.3, "height": 3.0 },
+    { "key": "top", "name": "Top floor", "elevation": 6.6, "height": 3.0 }
+  ],
+  "rooms": [
+    { "key": "lobby", "name": "Lobby", "floor": "ground", "rect": [0, 0, 7, 5] },
+    { "key": "cafe", "name": "Café", "floor": "ground", "rect": [7, 0, 12, 5] },
+    {
+      "key": "stairs-1",
+      "name": "Stairs",
+      "floor": "ground",
+      "spansTo": "first",
+      "rect": [0, 5, 3, 10]
+    },
+    { "key": "studio", "name": "Studio", "floor": "ground", "rect": [3, 5, 12, 10] },
+    { "key": "flat-1", "name": "Flat 1", "floor": "first", "rect": [0, 0, 6, 5] },
+    { "key": "flat-2", "name": "Flat 2", "floor": "first", "rect": [6, 0, 12, 5] },
+    { "key": "landing", "name": "Landing", "floor": "first", "rect": [3, 5, 6, 10] },
+    { "key": "library", "name": "Library", "floor": "first", "rect": [6, 5, 9, 10] },
+    {
+      "key": "stairs-2",
+      "name": "Upper stairs",
+      "floor": "first",
+      "spansTo": "top",
+      "rect": [9, 5, 12, 10]
+    },
+    { "key": "loft", "name": "Loft", "floor": "top", "rect": [0, 0, 12, 5] },
+    { "key": "top-landing", "name": "Top landing", "floor": "top", "rect": [3, 5, 9, 10] },
+    {
+      "key": "terrace",
+      "name": "Roof terrace",
+      "floor": "top",
+      "rect": [0, 5, 3, 10],
+      "outdoor": true
+    }
+  ],
+  "openings": [
+    { "kind": "open", "rooms": ["lobby", "cafe"], "at": [7, 2.5], "width": 1.6 },
+    { "kind": "door", "rooms": ["lobby", "stairs-1"], "at": [1.5, 5] },
+    { "kind": "door", "rooms": ["lobby", "studio"], "at": [5, 5] },
+    { "kind": "door", "rooms": ["stairs-1", "landing"], "at": [3, 7.5], "level": "first" },
+    { "kind": "door", "rooms": ["landing", "flat-1"], "at": [4.5, 5] },
+    { "kind": "door", "rooms": ["landing", "library"], "at": [6, 7.5] },
+    { "kind": "door", "rooms": ["library", "flat-2"], "at": [7.5, 5] },
+    { "kind": "door", "rooms": ["library", "stairs-2"], "at": [9, 7.5] },
+    { "kind": "door", "rooms": ["stairs-2", "top-landing"], "at": [9, 7.5], "level": "top" },
+    { "kind": "door", "rooms": ["top-landing", "loft"], "at": [6, 5] },
+    { "kind": "door", "rooms": ["top-landing", "terrace"], "at": [3, 7.5] },
+    { "kind": "window", "room": "lobby", "side": "north", "at": 3.5, "width": 2.0 },
+    { "kind": "window", "room": "cafe", "side": "north", "at": 9.5, "width": 2.4 },
+    { "kind": "window", "room": "studio", "side": "south", "at": 7.5, "width": 3.0 },
+    { "kind": "window", "room": "flat-1", "side": "north", "at": 3, "width": 1.6 },
+    { "kind": "window", "room": "flat-2", "side": "north", "at": 9, "width": 1.6 },
+    { "kind": "window", "room": "library", "side": "south", "at": 7.5, "width": 1.2 },
+    { "kind": "window", "room": "loft", "side": "north", "at": 6, "width": 4.0 }
+  ],
+  "stairs": [
+    {
+      "room": "stairs-1",
+      "start": [1.5, 9.6],
+      "direction": "north",
+      "width": 1.0,
+      "run": 4.2,
+      "from": "ground",
+      "to": "first"
+    },
+    {
+      "room": "stairs-2",
+      "start": [10.5, 9.6],
+      "direction": "north",
+      "width": 1.0,
+      "run": 4.2,
+      "from": "first",
+      "to": "top"
+    }
+  ],
+  "elevators": [
+    {
+      "key": "lift",
+      "name": "Lift",
+      "stops": [
+        { "room": "studio", "at": [8.2, 9.1] },
+        { "room": "library", "at": [8.2, 9.1] },
+        { "room": "top-landing", "at": [8.2, 9.1] }
+      ]
+    }
+  ],
+  "furniture": [
+    {
+      "key": "cafe-counter",
+      "room": "cafe",
+      "kind": "counter",
+      "label": "Café counter",
+      "at": [11.68, 2.5],
+      "rotation": 270,
+      "size": [3.0, 0.95, 0.62]
+    },
+    {
+      "key": "cafe-table",
+      "room": "cafe",
+      "kind": "table",
+      "label": "Café table",
+      "at": [9, 2.2],
+      "size": [0.8, 0.75, 0.8]
+    },
+    {
+      "key": "lobby-plant",
+      "room": "lobby",
+      "kind": "plant",
+      "label": "Lobby plant",
+      "at": [0.4, 0.4]
+    },
+    {
+      "key": "studio-desk",
+      "room": "studio",
+      "kind": "desk",
+      "label": "Studio desk",
+      "at": [10.5, 9.6],
+      "rotation": 180
+    },
+    {
+      "key": "studio-shelf",
+      "room": "studio",
+      "kind": "shelf",
+      "label": "Studio shelf",
+      "at": [11.8, 6.6],
+      "rotation": 270
+    },
+    {
+      "key": "flat-1-sofa",
+      "room": "flat-1",
+      "kind": "sofa",
+      "label": "Sofa",
+      "at": [3, 4.5],
+      "rotation": 180
+    },
+    { "key": "flat-2-bed", "room": "flat-2", "kind": "bed", "label": "Bed", "at": [10.5, 1.2] },
+    {
+      "key": "library-shelf",
+      "room": "library",
+      "kind": "shelf",
+      "label": "Library shelf",
+      "at": [6.2, 8.6],
+      "rotation": 90
+    },
+    {
+      "key": "loft-rug",
+      "room": "loft",
+      "kind": "rug",
+      "label": "Loft rug",
+      "at": [6, 2.5],
+      "size": [3.0, 0.012, 2.0]
+    },
+    {
+      "key": "terrace-chair",
+      "room": "terrace",
+      "kind": "chair",
+      "label": "Terrace chair",
+      "at": [1.5, 8.5]
+    }
+  ],
+  "spawns": [{ "key": "front-door", "room": "lobby", "at": [3.5, 1.2], "yaw": 3.14159 }]
+}

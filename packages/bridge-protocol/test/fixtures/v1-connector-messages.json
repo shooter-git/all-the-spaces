@@ -1,0 +1,49 @@
+{
+  "$comment": "The connector messages a creation built with SDK 0.2.0 can send (protocol 1: added within version 1), exactly as it sends them. Frozen: hosts must accept these for as long as such creations exist. Never edit; see docs/protocol-compat.md.",
+  "messages": [
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "connector:status", "connector": "lanternfield-library", "id": 1 }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": { "type": "connector:link", "connector": "lanternfield-library", "id": 2 }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": {
+        "type": "connector:call",
+        "connector": "lanternfield-library",
+        "op": "listShelves",
+        "params": { "page": 1 },
+        "id": 3
+      }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": {
+        "type": "connector:call",
+        "connector": "lanternfield-library",
+        "op": "borrowBook",
+        "params": { "bookId": "42" },
+        "body": { "weeks": 2 },
+        "idempotencyKey": "borrow-42-1a2b3c4d",
+        "id": 4
+      }
+    },
+    {
+      "ats": "bridge",
+      "v": 1,
+      "msg": {
+        "type": "connector:call",
+        "connector": "lanternfield-library",
+        "op": "getMyLoans",
+        "id": 5
+      }
+    }
+  ]
+}

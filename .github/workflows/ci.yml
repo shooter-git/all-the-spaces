@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A pull request's newer push replaces its running checks. On main every commit gets its own run
+# (its own group), so each commit's result is kept.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        env:
+          POSTGRES_USER: ats
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ats" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit and integration tests
+        env:
+          TEST_DATABASE_URL: postgres://ats:ci-only-password@127.0.0.1:5432/postgres
+        run: pnpm test
+      - name: Creation checks in a real browser
+        env:
+          QA_BROWSER: "1"
+        run: |
+          pnpm --filter @ats/qa-browser exec playwright install --with-deps chromium webkit
+          pnpm --filter @ats/qa-browser test
+      - name: Build web app
+        run: pnpm --filter @ats/web build
+      # The built app's main pages on phones, portrait and landscape, light and dark; and touch in a
+      # space, on Chromium and WebKit (both installed with the creation checks above).
+      - name: Accessibility and touch on phones (axe, Playwright)
+        run: pnpm --filter @ats/web test:axe
+      - name: Dependency licences
+        run: node tools/check-licenses.mjs
+      - name: Shell scripts
+        run: docker run --rm -v "$PWD:/mnt:ro" koalaman/shellcheck:stable@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d -x /mnt/deploy/install/install.sh /mnt/deploy/install/ats-admin /mnt/deploy/install/test/run.sh
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Scan for committed secrets
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git /repo --config /repo/.gitleaks.toml --redact --verbose

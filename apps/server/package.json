@@ -1,0 +1,57 @@
+{
+  "name": "@ats/server",
+  "private": true,
+  "version": "0.0.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "auth:generate": "auth generate --config src/auth.cli.ts --output ../../packages/db/src/schema/auth.ts --yes",
+    "dev": "node --env-file=../../.env --watch src/main.ts",
+    "start": "node src/main.ts",
+    "setup-code": "node --env-file=../../.env src/cli/setup-code.ts",
+    "creation:publish": "node --env-file=../../.env src/cli/publish-creation.ts"
+  },
+  "dependencies": {
+    "@allthespaces/bridge-protocol": "workspace:*",
+    "@ats/api-types": "workspace:*",
+    "@ats/assets": "workspace:*",
+    "@ats/db": "workspace:*",
+    "@ats/qa": "workspace:*",
+    "@ats/shared": "workspace:*",
+    "@ats/space-builder": "workspace:*",
+    "@ats/space-format": "workspace:*",
+    "@ats/storage": "workspace:*",
+    "@better-auth/drizzle-adapter": "1.7.7",
+    "@better-auth/passkey": "1.7.7",
+    "@fastify/helmet": "13.1.1",
+    "@fastify/rate-limit": "11.2.0",
+    "@fastify/websocket": "11.3.1",
+    "better-auth": "1.7.7",
+    "bullmq": "6.3.11",
+    "drizzle-orm": "0.45.3",
+    "fastify": "5.12.5",
+    "fflate": "0.8.3",
+    "heic-decode": "2.1.0",
+    "ioredis": "5.11.1",
+    "nodemailer": "10.0.13",
+    "pino": "10.4.0",
+    "sharp": "0.35.5",
+    "web-push": "3.6.7",
+    "ws": "8.22.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@ats/qa-browser": "workspace:*",
+    "@types/nodemailer": "8.0.2",
+    "@types/web-push": "3.6.4",
+    "@types/ws": "8.18.2",
+    "auth": "1.7.7",
+    "postgres": "3.4.9",
+    "vitest": "5.0.3"
+  }
+}

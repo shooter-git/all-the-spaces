@@ -1,0 +1,27 @@
+# Dependencies & builds
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local data
+.data/
+/private/
+*.log
+.DS_Store
+
+# Python
+__pycache__/
+.venv/
+
+# Creation check reports (ats-qa check)
+qa-output/

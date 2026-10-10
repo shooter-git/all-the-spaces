@@ -1,0 +1,357 @@
+.studio-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-4);
+}
+.studio-grow {
+  flex: 1;
+  min-width: 0;
+}
+.studio-small {
+  font-size: 0.88rem;
+}
+.studio-build {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-3);
+}
+.studio-pulse {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ats-accent);
+  animation: studio-pulse 1.6s ease-in-out infinite;
+}
+@keyframes studio-pulse {
+  50% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-pulse {
+    animation: none;
+  }
+}
+.studio-dot {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ats-text-muted);
+  vertical-align: 1px;
+}
+.studio-dot--good,
+.studio-dot--pass {
+  background: var(--ats-success);
+}
+.studio-dot--ok,
+.studio-dot--warn {
+  background: #b98a3e;
+}
+.studio-dot--bad,
+.studio-dot--fail {
+  background: var(--ats-danger);
+}
+.studio-creation {
+  container: creation / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-3);
+  padding: var(--ats-space-4);
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-lg);
+  background: var(--ats-surface);
+}
+/* Everything under a card's head: what it follows, any open form, and its versions. */
+.studio-creation-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-3);
+}
+.studio-creation-head {
+  display: flex;
+  gap: var(--ats-space-3);
+  align-items: center;
+}
+/* A narrow card (a phone, or a column of the grid): the title keeps the width, and its buttons
+   sit on their own row under it. */
+@container creation (max-width: 440px) {
+  .studio-creation-head {
+    flex-wrap: wrap;
+  }
+  .studio-creation-head .studio-grow {
+    flex: 1 1 calc(100% - 96px - var(--ats-space-3));
+  }
+  .studio-creation-head .studio-icon-actions {
+    flex: 1 0 100%;
+    justify-content: flex-end;
+  }
+}
+.studio-creation-head h3 {
+  margin: 0;
+  font-family: var(--ats-font-display);
+  font-size: 1.1rem;
+}
+.studio-thumb {
+  flex: none;
+  width: 96px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-subtle);
+  border: 1px solid var(--ats-line);
+}
+.studio-versions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.studio-version {
+  padding: var(--ats-space-3) 0;
+  border-top: 1px solid var(--ats-line);
+}
+.studio-version-main {
+  display: flex;
+  gap: var(--ats-space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.studio-actions {
+  display: flex;
+  gap: var(--ats-space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.studio-tag {
+  display: inline-block;
+  font-size: 0.78rem;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ats-subtle);
+  color: var(--ats-text-muted);
+  vertical-align: 1px;
+}
+.studio-tag--live {
+  background: var(--ats-accent);
+  color: var(--ats-accent-text);
+}
+.studio-tag--candidate {
+  background: var(--ats-accent-soft);
+  color: var(--ats-accent);
+}
+.studio-confirm {
+  margin-top: var(--ats-space-3);
+  padding: var(--ats-space-3);
+  border-radius: var(--ats-radius);
+  background: var(--ats-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+}
+.studio-confirm p {
+  margin: 0;
+}
+
+/* The shelf: creations that aren't on anything */
+.studio-place {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.studio-place select {
+  max-width: 100%;
+}
+
+/* The report */
+.report-verdict {
+  font-size: 1.1rem;
+  margin: 0;
+}
+.report-verdict[data-ok="true"] {
+  color: var(--ats-success);
+}
+.report-verdict[data-ok="false"] {
+  color: var(--ats-danger);
+}
+.report-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ats-line);
+}
+.report-checks li {
+  display: flex;
+  gap: var(--ats-space-3);
+  padding: var(--ats-space-3) 0;
+  border-bottom: 1px solid var(--ats-line);
+}
+.report-checks .studio-dot {
+  margin-top: 7px;
+}
+.report-checks p {
+  margin: 2px 0 0;
+}
+.report-fix {
+  color: var(--ats-accent);
+}
+.report-shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--ats-space-3);
+}
+.report-shots figure {
+  margin: 0;
+}
+.report-shots img {
+  width: 100%;
+  border-radius: var(--ats-radius-sm);
+  border: 1px solid var(--ats-line);
+  background: var(--ats-surface);
+}
+.report-shots figcaption {
+  font-size: 0.82rem;
+  color: var(--ats-text-muted);
+}
+.report-numbers {
+  border-collapse: collapse;
+}
+.report-numbers th,
+.report-numbers td {
+  text-align: left;
+  font-weight: normal;
+  padding: 4px var(--ats-space-4) 4px 0;
+}
+.report-numbers th {
+  color: var(--ats-text-muted);
+}
+/* On narrow screens the actions wrap below the version's details instead of squeezing them. */
+.studio-version-main > .studio-grow {
+  flex: 1 1 240px;
+}
+.studio-version-main > .studio-actions {
+  flex: 1 0 auto;
+}
+/* What a version asks to use of connected services, approved as it goes live. */
+.studio-approval {
+  display: grid;
+  gap: var(--ats-space-3);
+  padding: var(--ats-space-3);
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-surface);
+}
+.studio-approval h4 {
+  margin: 0;
+}
+.studio-approval p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.studio-approval-ops {
+  margin: var(--ats-space-2) 0 0;
+  padding-left: 1.25em;
+  overflow-wrap: anywhere;
+}
+
+/* Creations that follow a repository */
+.studio-repo {
+  margin-top: var(--ats-space-2);
+  padding: var(--ats-space-2) var(--ats-space-3);
+  border-left: 2px solid var(--ats-accent);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+}
+/* Folded: one line, the repository's name and whether it's up to date, cut short if it's long. */
+.studio-repo-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ats-text-muted);
+}
+.studio-repo-line > svg,
+.studio-repo-line > strong {
+  flex: none;
+  color: var(--ats-text);
+}
+.studio-repo-status {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-repo-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ats-space-2);
+  overflow-wrap: anywhere;
+}
+.studio-repo-head > svg {
+  margin-top: 3px;
+  flex: none;
+}
+.studio-repo-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.studio-repo-choice {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--ats-space-3);
+}
+.studio-repo-choice legend {
+  padding: 0;
+  margin-bottom: 4px;
+}
+.studio-repo-choice label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The creations page uses the width it's given: cards side by side wherever two fit (a laptop, a
+   phone on its side), one column on a phone held upright. Cards in a row are the same height, and
+   each card's contents start under its own head, so unfolding one's earlier versions makes its
+   row's frames taller but moves nothing in its neighbours. (Not a subgrid: a card is a container
+   for its narrow layout, and a container can't be a subgrid.) */
+.creations-page {
+  max-width: 1480px;
+}
+.creations-page > header p {
+  max-width: 70ch;
+}
+.creations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+}
+/* The card's width, never its content's: a long line that's cut short (what a repository's last
+   commit says) would otherwise widen the column past the card, and the page with it. */
+.creations-grid > .studio-creation {
+  min-width: 0;
+}
+/* Wide screens: at most three across, each with room for its versions' details. */
+@media (min-width: 1200px) {
+  .creations-grid {
+    grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+  }
+}
+/* A version's long list of what it uses from connected services: the count, then the names. */
+.studio-uses summary {
+  cursor: pointer;
+}
+.studio-uses[open] {
+  overflow-wrap: anywhere;
+}

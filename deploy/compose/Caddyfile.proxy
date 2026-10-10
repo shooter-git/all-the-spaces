@@ -1,0 +1,26 @@
+# Behind another reverse proxy (install.sh --behind-proxy): that proxy handles HTTPS and passes
+# requests on over plain HTTP, to the one address compose.yml publishes this on (ATS_BIND, on
+# loopback). Same routes and headers as Caddyfile; the public addresses are still https://.
+{
+	# No certificates and no redirect to HTTPS: the proxy in front does both.
+	auto_https off
+	servers {
+		# Requests from these addresses (by default private networks and loopback: Docker hands
+		# this container connections from the host's proxy through its own network's gateway) may
+		# say who the visitor is in X-Forwarded-For, and that they used HTTPS in X-Forwarded-Proto.
+		# Strict: X-Forwarded-For is read from the right, skipping trusted addresses, so an address a
+		# visitor wrote there themselves is never taken for theirs.
+		trusted_proxies static {$ATS_TRUSTED_PROXIES}
+		trusted_proxies_strict
+	}
+}
+
+import routes.caddy
+
+http://{$ATS_APP_HOST} {
+	import app
+}
+
+http://{$ATS_PLAY_HOST} {
+	import play
+}

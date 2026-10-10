@@ -1,0 +1,20 @@
+{
+  "name": "@allthespaces/starter-creation",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A blank canvas for a new creation.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.2"
+  }
+}

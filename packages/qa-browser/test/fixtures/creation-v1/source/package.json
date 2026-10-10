@@ -1,0 +1,8 @@
+{
+  "name": "creation-v1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*"
+  }
+}

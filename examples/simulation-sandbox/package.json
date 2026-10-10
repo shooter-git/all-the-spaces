@@ -1,0 +1,22 @@
+{
+  "name": "@allthespaces/example-simulation-sandbox",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A tilting table everyone shares: drop marbles, tip it together, sink them in the pockets.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@allthespaces/portal": "workspace:*",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.2",
+    "@types/three": "0.186.0"
+  }
+}

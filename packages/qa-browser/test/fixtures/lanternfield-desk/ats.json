@@ -1,0 +1,12 @@
+{
+  "title": "Test: Lanternfield lending desk",
+  "sessionMode": "solo",
+  "budgetTier": "low",
+  "connectors": [
+    {
+      "id": "lanternfield-library",
+      "ops": ["listShelves", "getMyLoans", "borrowBook"],
+      "why": "Shows the club's shelves and your loans, and lets you borrow a book."
+    }
+  ]
+}

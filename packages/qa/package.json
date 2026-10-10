@@ -1,0 +1,23 @@
+{
+  "name": "@ats/qa",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The checks' pure parts: source snapshots, secrets, licences, reports and budgets. Building and playing a creation in a browser is @ats/qa-browser.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@allthespaces/bridge-protocol": "workspace:*",
+    "@allthespaces/portal": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

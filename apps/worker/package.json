@@ -1,0 +1,22 @@
+{
+  "name": "@ats/worker",
+  "private": true,
+  "version": "0.0.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=../../.env --watch src/main.ts",
+    "start": "node src/main.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ats/db": "workspace:*",
+    "@ats/shared": "workspace:*",
+    "bullmq": "6.3.11",
+    "pino": "10.4.0"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

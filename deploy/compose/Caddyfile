@@ -1,0 +1,18 @@
+# Production routing and TLS. Hostnames come from the installer-generated .env. (Behind another
+# reverse proxy, Caddyfile.proxy is used instead.)
+{
+	# Set by the installer: "email you@example.com" for Let's Encrypt notices, or "local_certs" in tests.
+	{$ATS_CADDY_GLOBAL}
+}
+
+import routes.caddy
+
+{$ATS_APP_HOST} {
+	{$ATS_TLS_DIRECTIVE}
+	import app
+}
+
+{$ATS_PLAY_HOST} {
+	{$ATS_TLS_DIRECTIVE}
+	import play
+}

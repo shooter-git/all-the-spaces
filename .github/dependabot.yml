@@ -1,0 +1,58 @@
+# Monthly updates for everything pinned: workflow actions (by commit), base and service images (by
+# digest) and npm packages. Minor and patch updates come grouped, one pull request per ecosystem;
+# major ones each get their own.
+#
+# Keep in step by hand: the workbench's Playwright image tag (images/workbench/Dockerfile) and
+# @ats/qa-browser's playwright version must match.
+#
+# Some major versions are a deliberate move, never a monthly bump (ignored below):
+# - Node: the images, CI, .nvmrc, engines and @types/node move together, to an LTS line. (Node 26's
+#   image also drops corepack, which the Dockerfiles use for pnpm.)
+# - Postgres: a new major can't open an existing server's data; it needs an upgrade path in the
+#   installer (dump and restore, or pg_upgrade) first.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories:
+      - /images/app
+      - /images/web
+      - /images/egress
+      - /images/workbench
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+    groups:
+      base-images:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker-compose
+    directory: /deploy/compose
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
+    groups:
+      service-images:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+    groups:
+      npm:
+        update-types: [minor, patch]

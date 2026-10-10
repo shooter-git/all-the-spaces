@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lending desk</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #f3ede2;
+        color: #2b2a2e;
+        font: 16px/1.4 system-ui, sans-serif;
+      }
+      main {
+        box-sizing: border-box;
+        height: 100%;
+        padding: 80px 20px 20px;
+        overflow-y: auto;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 22px;
+      }
+      ul {
+        margin: 0 0 16px;
+        padding-left: 20px;
+      }
+      button {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 8px;
+        background: #3f5b7c;
+        color: #fff;
+        font: inherit;
+      }
+      #borrow {
+        position: fixed;
+        left: 20px;
+        bottom: 20%;
+      }
+      #said {
+        min-height: 1.4em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Lending desk</h1>
+      <ul id="shelves"></ul>
+      <p id="loans"></p>
+      <p><button type="button" id="borrow">Borrow “Moss”</button></p>
+      <p id="said" aria-live="polite"></p>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
