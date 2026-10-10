@@ -82,7 +82,7 @@ services:
   caddy:
     # Comes back by itself when Docker restarts (an update, say).
     restart: unless-stopped
-    image: caddy:2.11-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
+    image: caddy:2.11-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
     environment:
       ATS_APP_HOST: ${ATS_APP_HOST}
       ATS_PLAY_HOST: ${ATS_PLAY_HOST}
