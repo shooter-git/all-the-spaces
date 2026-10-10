@@ -53,7 +53,7 @@ services:
   livekit:
     # Comes back by itself when Docker restarts (an update, say).
     restart: unless-stopped
-    image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
+    image: livekit/livekit-server:v1.13.8@sha256:ad961c9b4b064298cc08d618d772671f7c783e036001388079fa813929cc357e
     environment:
       LIVEKIT_CONFIG: |
         port: 7880
@@ -74,7 +74,7 @@ services:
   mailpit:
     # Comes back by itself when Docker restarts (an update, say).
     restart: unless-stopped
-    image: axllent/mailpit:v1.30@sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a
+    image: axllent/mailpit:v1.31@sha256:b68349e3a014b90c5610bfb26b2ae36f3892d7b8cf25ee140c6c71c98d2fcf48
     ports:
       - "127.0.0.1:${ATS_PORT_MAIL_SMTP}:1025"
       - "127.0.0.1:${ATS_PORT_MAIL_UI}:8025"
