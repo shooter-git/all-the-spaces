@@ -319,18 +319,25 @@ export async function spaceWorkspaceFiles(input: {
   name: string;
   spaceType: string;
   description: string;
-  inputs: { name: string; kind: 'plan' | 'photo'; note: string; data: Uint8Array }[];
+  inputs: (
+    | { name: string; kind: 'plan' | 'photo'; note: string; data: Uint8Array }
+    | { name: string; kind: 'pack'; note: string; files: Map<string, Uint8Array> }
+  )[];
   telemetry: boolean;
   /** Changing a place that's live: the plan it was built from (to start from). */
   current?: { plan: unknown | null; version: number };
 }): Promise<Map<string, Uint8Array>> {
   const files = new Map<string, Uint8Array>();
   const text = (s: string) => new TextEncoder().encode(s);
-  for (const i of input.inputs) files.set(`inputs/${i.name}.jpg`, i.data);
+  for (const i of input.inputs)
+    if (i.kind === 'pack')
+      for (const [path, data] of i.files) files.set(`inputs/${i.note}/${path}`, data);
+    else files.set(`inputs/${i.name}.jpg`, i.data);
   const listing = input.inputs
-    .map(
-      (i) =>
-        `- \`inputs/${i.name}.jpg\` — ${i.kind === 'plan' ? 'floor plan' : 'photo'}${i.note ? `: ${i.note}` : ''}`,
+    .map((i) =>
+      i.kind === 'pack'
+        ? `- \`inputs/${i.note}/\` — ${i.files.size} files the Architect gave together (photos and notes on them): read its README or manifest first`
+        : `- \`inputs/${i.name}.jpg\` — ${i.kind === 'plan' ? 'floor plan' : 'photo'}${i.note ? `: ${i.note}` : ''}`,
     )
     .join('\n');
   const words = input.description.trim() || '(No description.)';

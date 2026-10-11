@@ -19,8 +19,9 @@ const title = (p: AssistantPicture) => {
 };
 
 /**
- * What the assistant has drawn so far, newest first: rooms seen from their corners, and the
- * models it made, each from four sides. Tap one to see it larger. Nothing to read in a terminal.
+ * What the assistant has drawn so far, newest first: rooms seen from their corners, the models it
+ * made, each from four sides, and the place drawn from where photos of it were taken, beside
+ * them. Tap one to see it larger. Nothing to read in a terminal.
  */
 export function Pictures({
   workspaceId,
@@ -30,7 +31,7 @@ export function Pictures({
   pictures: AssistantPicture[] | null;
 }) {
   const [open, setOpen] = useState<AssistantPicture | null>(null);
-  const [kind, setKind] = useState<'all' | 'room' | 'model'>('all');
+  const [kind, setKind] = useState<'all' | AssistantPicture['kind']>('all');
   if (!pictures) return <p className="ats-muted pictures-empty">Looking…</p>;
   if (!pictures.length)
     return (
@@ -41,10 +42,11 @@ export function Pictures({
       </p>
     );
   const shown = pictures.filter((p) => kind === 'all' || p.kind === kind);
-  const rooms = pictures.filter((p) => p.kind === 'room').length;
+  // Only the kinds there are (a choice between them once there's more than one).
+  const kinds = new Set(pictures.map((p) => p.kind));
   return (
     <div className="pictures">
-      {rooms > 0 && rooms < pictures.length && (
+      {kinds.size > 1 && (
         <fieldset className="preview-devices pictures-kinds">
           <legend className="visually-hidden">Show</legend>
           {(
@@ -52,12 +54,15 @@ export function Pictures({
               ['all', 'All'],
               ['room', 'Rooms'],
               ['model', 'Models'],
+              ['match', 'Photo matches'],
             ] as const
-          ).map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
-              {label}
-            </button>
-          ))}
+          )
+            .filter(([k]) => k === 'all' || kinds.has(k))
+            .map(([k, label]) => (
+              <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
+                {label}
+              </button>
+            ))}
         </fieldset>
       )}
       <ul className="pictures-grid">
@@ -71,7 +76,10 @@ export function Pictures({
                 data-kind={p.kind}
               />
               <span className="pictures-caption">
-                <Icon name={p.kind === 'room' ? 'home' : 'box'} size={13} />
+                <Icon
+                  name={p.kind === 'room' ? 'home' : p.kind === 'match' ? 'camera' : 'box'}
+                  size={13}
+                />
                 {title(p)}
                 <span className="ats-muted"> · {ago(p.at)}</span>
               </span>

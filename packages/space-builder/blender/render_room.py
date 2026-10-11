@@ -5,6 +5,8 @@ Run by `ats space render` (headless, CPU only):
 
 input.json (metres, +Y up, as the builder writes it):
   cameras: [{name, position: [x,y,z], target: [x,y,z], lens}]
+           or, matching a photo, a horizontal field of view `fov` (degrees) instead of `lens`,
+           and `clipEnd` (metres) to see further than 100 m
   lights:  [{center: [x,y,z], size: [w, d], power: watts, color: [r,g,b]}]   ceiling lights
   hdri:    path to an HDR sky (optional), hdriRotation (radians)
   width, height, samples, engine ("CYCLES" | "BLENDER_EEVEE" | "BLENDER_WORKBENCH")
@@ -88,8 +90,14 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     for cam in data["cameras"]:
         camera = bpy.data.objects.new(cam["name"], bpy.data.cameras.new(cam["name"]))
-        camera.data.lens = cam.get("lens", 20)
+        if "fov" in cam:
+            camera.data.sensor_fit = "HORIZONTAL"
+            camera.data.angle = math.radians(cam["fov"])
+        else:
+            camera.data.lens = cam.get("lens", 20)
         camera.data.clip_start = 0.05
+        if "clipEnd" in cam:
+            camera.data.clip_end = cam["clipEnd"]
         scene.collection.objects.link(camera)
         camera.location = to_blender(cam["position"])
         target = to_blender(cam["target"])

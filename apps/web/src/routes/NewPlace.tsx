@@ -12,6 +12,7 @@ import {
   type SpaceType,
   startPlaceWorkspace,
   uploadInput,
+  uploadPack,
 } from '../lib/places.ts';
 import { type Assistant, loadAssistants, type Provider } from '../lib/workbench.ts';
 import './studio.css';
@@ -30,14 +31,15 @@ const TYPES: { value: SpaceType; label: string }[] = [
 ];
 
 /**
- * Adding a real place: its name, a floor plan, a few photos and a description. Then the
- * Architect's assistant builds it in a workspace, and the Architect reviews it before anyone
- * else can see it.
+ * Adding a real place: its name, a floor plan (or photos of the outside: a .zip of them with notes
+ * saying where each was taken), a few photos and a description. Then the Architect's assistant
+ * builds it in a workspace, and the Architect reviews it before anyone else can see it.
  */
 /** What the pickers offer: pictures of any common kind (iPhone HEIC too) and, for plans, PDFs. */
 const PHOTO_TYPES = 'image/*,.heic,.heif';
 const PLAN_TYPES = `${PHOTO_TYPES},application/pdf,.pdf`;
 const MAX_PLANS = 30;
+const MAX_PACKS = 10;
 
 export function NewPlace() {
   const navigate = useNavigate();
@@ -73,6 +75,7 @@ export function NewPlace() {
 
   const plans = inputs.filter((i) => i.kind === 'plan');
   const photos = inputs.filter((i) => i.kind === 'photo');
+  const packs = inputs.filter((i) => i.kind === 'pack');
   const chosen = provider || assistants[0]?.provider || '';
 
   const run = async (label: string, fn: () => Promise<void>) => {
@@ -124,6 +127,21 @@ export function NewPlace() {
         setInputs((list) => [...list.filter((i) => i.name !== name), { ...added, note: about }]);
       }
     });
+  /** A .zip of photos and notes on them: kept whole, what a place can't take left out. */
+  const addPack = (files: FileList | null) =>
+    run('pack', async () => {
+      if (!spaceId || !files) return;
+      const left: string[] = [];
+      for (const file of [...files]) {
+        const added = await uploadPack(spaceId, file);
+        setInputs((list) => [...list, { ...added, note: added.folder }]);
+        left.push(...added.left);
+      }
+      if (left.length)
+        setError(
+          `Left out (a place takes pictures and documents about it): ${left.slice(0, 6).join(', ')}${left.length > 6 ? ` and ${left.length - 6} more` : ''}.`,
+        );
+    });
   const remove = (name: string) =>
     run(`remove-${name}`, async () => {
       if (!spaceId) return;
@@ -149,8 +167,8 @@ export function NewPlace() {
           </div>
           <h1>Add your own place</h1>
           <p className="ats-muted">
-            Your AI assistant builds a 3D model of it from its floor plan. Nobody else sees anything
-            until you've checked it and chosen who can see each room.
+            Your AI assistant builds a 3D model of it from its floor plan, or from photos of it.
+            Nobody else sees anything until you've checked it and chosen who can see each room.
           </p>
         </header>
         {error && <Notice tone="error">{error}</Notice>}
@@ -196,7 +214,7 @@ export function NewPlace() {
           </Section>
         ) : (
           <>
-            <Section title="2. The floor plan">
+            <Section title="2. The floor plan, or photos of the outside">
               <p className="ats-muted">
                 A picture of the plan (a photo of a paper plan, or a screenshot from an estate
                 agent's listing) or the architect's PDF: each page of a PDF becomes a plan. Take
@@ -240,6 +258,50 @@ export function NewPlace() {
                       e.target.value = '';
                     }}
                     disabled={busy !== null || plans.length >= MAX_PLANS}
+                  />
+                </label>
+              </div>
+              <p className="ats-muted">
+                No floor plan? Photos of the outside will do, as a .zip: the building from every
+                side (street views are fine), a view from above, and notes on them (a README or a
+                manifest saying where each was taken from and what it shows). Your assistant builds
+                it from the outside in; inside, it makes its best guess and tells you which parts
+                are guesses.
+              </p>
+              {packs.length > 0 && (
+                <ul className="studio-packs">
+                  {packs.map((p) => (
+                    <li key={p.name}>
+                      <Icon name="folder" size={16} />
+                      <span className="studio-pack-name">
+                        {p.note}/{' '}
+                        <span className="ats-muted studio-small">
+                          {p.files ?? p.width} file{(p.files ?? p.width) === 1 ? '' : 's'}
+                        </span>
+                      </span>
+                      <IconButton
+                        icon="trash"
+                        tone="danger"
+                        label={`Remove ${p.note}`}
+                        onClick={() => void remove(p.name)}
+                        disabled={busy !== null}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="studio-actions-row">
+                <label className="ats-button ats-button--ghost studio-file">
+                  <Icon name="folder" size={16} />
+                  {busy === 'pack' ? 'Unpacking…' : 'Add a .zip of photos'}
+                  <input
+                    type="file"
+                    accept=".zip,application/zip"
+                    onChange={(e) => {
+                      void addPack(e.target.files);
+                      e.target.value = '';
+                    }}
+                    disabled={busy !== null || packs.length >= MAX_PACKS}
                   />
                 </label>
               </div>
@@ -297,7 +359,7 @@ export function NewPlace() {
 
             <Section title="5. Start">
               <p className="ats-muted">
-                While your assistant works, the floor plan and photos are sent to its maker (
+                While your assistant works, what you've added here is sent to its maker (
                 {chosen === 'codex' ? 'OpenAI' : 'Anthropic'}), as with anything you share with it.
                 Here, they're saved again without location or camera details, kept private to
                 Architects, and never shown in the space.
@@ -330,13 +392,16 @@ export function NewPlace() {
                 <Button
                   variant="primary"
                   onClick={() => void begin()}
-                  disabled={busy !== null || !understood || !plans.length || !chosen}
+                  disabled={busy !== null || !understood || !inputs.length || !chosen}
                 >
                   <Icon name="hammer" size={16} />
                   {busy === 'begin' ? 'Preparing the workspace…' : 'Start building'}
                 </Button>
-                {!plans.length && (
-                  <span className="ats-muted studio-small"> Add the floor plan first.</span>
+                {!inputs.length && (
+                  <span className="ats-muted studio-small">
+                    {' '}
+                    Add the floor plan, or photos, first.
+                  </span>
                 )}
               </div>
             </Section>

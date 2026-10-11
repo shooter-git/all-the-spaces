@@ -147,13 +147,12 @@ describe.skipIf(!adminUrl)('server flows', () => {
       ).toBe(415);
     });
 
-    it('starts a space workspace only once there is a floor plan', async () => {
+    it('starts a space workspace from its floor plan and photos', async () => {
       const start = () =>
         req('POST', `/api/spaces/${placeId}/workspace`, architectCookie, {
           provider: 'claude',
           description: 'Two bedrooms.',
         });
-      expect((await start()).statusCode).toBe(409);
       const sharp = (await import('sharp')).default;
       const plan = await sharp({
         create: { width: 800, height: 600, channels: 3, background: '#ffffff' },
@@ -284,7 +283,7 @@ describe.skipIf(!adminUrl)('server flows', () => {
       expect(res.json()).toEqual({
         path: 'uploads/site-photos/',
         typed: true,
-        input: null,
+        input: 'pack-1',
         files: 5,
         left: ['tool.exe'],
       });
@@ -313,13 +312,18 @@ describe.skipIf(!adminUrl)('server flows', () => {
         undefined,
       ]);
       expect((await sharp(files.get('reference/site-map.png')).metadata()).format).toBe('png');
-      // The folder is named in the terminal (pasted, never sent), and isn't kept with the place.
+      // The folder is named in the terminal (pasted, never sent), and kept with the place.
       expect(supCalls.findLast((c) => c.act === 'sandbox.paste')?.body).toEqual({
         text: '@uploads/site-photos/ ',
       });
-      expect(
-        (await req('GET', `/api/spaces/${placeId}/inputs`, architectCookie)).json().inputs.length,
-      ).toBe(inputsBefore);
+      const inputs = (await req('GET', `/api/spaces/${placeId}/inputs`, architectCookie)).json()
+        .inputs as { name: string; kind: string; note: string; files?: number }[];
+      expect(inputs.length).toBe(inputsBefore + 1);
+      expect(inputs.find((i) => i.name === 'pack-1')).toMatchObject({
+        kind: 'pack',
+        note: 'site-photos',
+        files: 5,
+      });
       const again = await req(
         'POST',
         `/api/workspaces/${placeWorkspace}/uploads/site-photos/mention?folder=1`,
@@ -342,6 +346,96 @@ describe.skipIf(!adminUrl)('server flows', () => {
       expect((await add('fake.zip', text('not a zip at all'))).statusCode).toBe(400);
       expect((await add('a.zip', zip({ 'a.md': text('a') }), memberCookie)).statusCode).toBe(404);
       expect(supCalls.filter((c) => c.act === 'workspace.uploadpack').length).toBe(packs);
+    });
+
+    it('sets up a place from photos of the outside, with no floor plan', async () => {
+      const { zipSync } = await import('fflate');
+      const sharp = (await import('sharp')).default;
+      const photo = await sharp({
+        create: { width: 320, height: 200, channels: 3, background: '#9aa4ad' },
+      })
+        .jpeg()
+        .toBuffer();
+      const created = await req('POST', `/api/groups/${groupId}/places`, architectCookie, {
+        name: 'The old mill',
+        spaceType: 'building',
+      });
+      const millId = created.json().spaceId as string;
+      const start = () =>
+        req('POST', `/api/spaces/${millId}/workspace`, architectCookie, { provider: 'claude' });
+      // Nothing to build it from yet.
+      const nothing = await start();
+      expect(nothing.statusCode).toBe(409);
+      expect(nothing.json().error).toBe('Add a floor plan, photos or a .zip of them first.');
+
+      const pack = Buffer.from(
+        zipSync({
+          'mill/README.md': Buffer.from('# The mill\n\nThree floors, brick.'),
+          'mill/manifest.json': Buffer.from('{"photos":[{"file":"north_FACE.jpg","heading":180}]}'),
+          'mill/north_FACE.jpg': photo,
+          'mill/notes.exe': Buffer.from('MZ'),
+        }),
+      );
+      const put = (file: string, body: Buffer, cookie = architectCookie) =>
+        req('PUT', `/api/spaces/${millId}/packs/${file}`, cookie, body, {
+          'content-type': 'application/zip',
+        });
+      const added = await put('Mill%20photos.zip', pack);
+      expect(added.statusCode).toBe(200);
+      expect(added.json()).toMatchObject({
+        name: 'pack-1',
+        kind: 'pack',
+        files: 3,
+        folder: 'mill',
+        left: ['notes.exe'],
+      });
+      // Only its Architects, only zips, and only what a place can take.
+      expect((await put('x.zip', pack, memberCookie)).statusCode).toBe(404);
+      expect((await put('x.txt', pack)).statusCode).toBe(415);
+      expect(
+        (await put('tools.zip', Buffer.from(zipSync({ 'a.exe': Buffer.from('MZ') })))).statusCode,
+      ).toBe(415);
+      // A second pack with the same folder gets its own.
+      expect((await put('again.zip', pack)).json()).toMatchObject({
+        name: 'pack-2',
+        folder: 'mill-2',
+      });
+      expect(
+        (await req('DELETE', `/api/spaces/${millId}/inputs/pack-2`, architectCookie)).json(),
+      ).toEqual({ ok: true });
+      expect(await storage.has(`inputs/${millId}/pack-2.zip`)).toBe(false);
+      expect(await storage.has(`inputs/${millId}/pack-1.zip`)).toBe(true);
+
+      const inputs = (await req('GET', `/api/spaces/${millId}/inputs`, architectCookie)).json()
+        .inputs;
+      expect(inputs).toEqual([
+        expect.objectContaining({ name: 'pack-1', kind: 'pack', note: 'mill', files: 3 }),
+      ]);
+
+      // Its workspace has the pack in inputs/, with every name kept, and a brief that says so.
+      const res = await start();
+      expect(res.statusCode).toBe(200);
+      const init = supCalls.findLast((c) => c.act === 'workspace.init')?.body?.files as Record<
+        string,
+        string
+      >;
+      expect(Object.keys(init)).toEqual(
+        expect.arrayContaining([
+          'inputs/mill/README.md',
+          'inputs/mill/manifest.json',
+          'inputs/mill/north_FACE.jpg',
+        ]),
+      );
+      expect(Buffer.from(init['inputs/mill/README.md'] as string, 'base64').toString()).toContain(
+        'Three floors, brick.',
+      );
+      const brief = Buffer.from(init['BRIEF.md'] as string, 'base64').toString();
+      expect(brief).toContain('`inputs/mill/` — 3 files the Architect gave together');
+      const [ws] = await db
+        .select()
+        .from(schema.workspaces)
+        .where(eq(schema.workspaces.id, res.json().id));
+      expect(ws?.brief).toBe('The old mill, from its photos.');
     });
 
     it('builds a candidate from a sound plan, for Architects to walk through first', async () => {
@@ -450,6 +544,7 @@ describe.skipIf(!adminUrl)('server flows', () => {
         pictures: [
           { path: 'preview/models/figure.png', bytes: 10, at: now - 60 },
           { path: 'preview/rooms/living-corner-1.png', bytes: 10, at: now - 5 },
+          { path: 'preview/match/north-face.png', bytes: 10, at: now - 30 },
           { path: 'preview/../plan.json', bytes: 10, at: now },
         ],
         models: [],
@@ -460,6 +555,7 @@ describe.skipIf(!adminUrl)('server flows', () => {
       // Newest first; nothing outside the assistant's picture folders.
       expect(seen.pictures.map((p: { path: string; kind: string }) => [p.path, p.kind])).toEqual([
         ['preview/rooms/living-corner-1.png', 'room'],
+        ['preview/match/north-face.png', 'match'],
         ['preview/models/figure.png', 'model'],
       ]);
       // Just built from this plan: nothing new to build.

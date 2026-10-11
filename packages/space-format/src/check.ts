@@ -1,4 +1,10 @@
-import { type PlanRoom, type SpacePlan, SpacePlan as SpacePlanSchema } from './plan.ts';
+import {
+  type PlanRoom,
+  type SpacePlan,
+  SpacePlan as SpacePlanSchema,
+  slopeAt,
+  structureCopies,
+} from './plan.ts';
 
 /**
  * Checks a space plan the way a careful person would before building it: everything fits, every
@@ -26,9 +32,12 @@ interface Edge {
   at: number;
 }
 
-/** The wall two rooms share (as seen from `a`), if any. */
+/**
+ * The wall two rooms share (as seen from `a`), if any. Rooms on different floors share one only
+ * where one of them reaches the other's floor: a stairwell, or a floor that slopes up to it.
+ */
 export function sharedWall(a: PlanRoom, b: PlanRoom): Edge | null {
-  if (a.floor !== b.floor && !a.spansTo && !b.spansTo) return null;
+  if (a.floor !== b.floor && !a.spansTo && !b.spansTo && !a.slope && !b.slope) return null;
   const [ax0, az0, ax1, az1] = a.rect;
   const [bx0, bz0, bx1, bz1] = b.rect;
   const overlap = (a0: number, a1: number, b0: number, b1: number) => {
@@ -120,13 +129,31 @@ export function checkPlan(input: unknown): { plan: SpacePlan | null; problems: P
         `${r.name} is only ${m(x1 - x0)} × ${m(z1 - z0)}.`,
         "A room's rect is [x0, z0, x1, z1] in metres, with x1 > x0 and z1 > z0.",
       );
-    else if (area(r) > 400)
+    else if (area(r) > (r.outdoor ? 4000 : 400))
       warn(
         `${r.name} is ${Math.round(area(r))} m², which is very large.`,
         'Check the scale (metres per pixel).',
       );
     if (r.spansTo && !floors.has(r.spansTo))
       error(`${r.name} continues up to a floor that doesn't exist ("${r.spansTo}").`);
+    if (r.slope) {
+      if (r.spansTo)
+        error(
+          `${r.name} slopes and is a stairwell.`,
+          'A sloping floor is its own ramp: leave out "spansTo" (and any stairs in it).',
+        );
+      const run = r.slope.toward === 'east' || r.slope.toward === 'west' ? x1 - x0 : z1 - z0;
+      if (run > 0 && r.slope.rise / run > 0.2)
+        warn(
+          `${r.name} climbs ${m(r.slope.rise)} over ${m(run)}, steeper than most ramps.`,
+          'Car ramps rarely climb more than 1 in 6, ramps for people 1 in 12. Check the rise, or lengthen the room.',
+        );
+    }
+    if (r.parapet !== undefined && !r.outdoor)
+      warn(
+        `${r.name} has a parapet but isn't outdoors.`,
+        'Only outdoor rooms have a low wall at their edge; indoor rooms have full walls.',
+      );
   }
   const list = [...rooms.values()];
   for (let i = 0; i < list.length; i++)
@@ -235,6 +262,17 @@ export function checkPlan(input: unknown): { plan: SpacePlan | null; problems: P
       );
     if (o.kind === 'door' && o.width < 0.6)
       warn(`The door between ${a.name} and ${b.name} is only ${m(o.width)} wide.`);
+    // Where a sloping floor meets another, they must be at the same height at the opening.
+    if ((a.slope || b.slope) && !o.level) {
+      const height = (r: PlanRoom) =>
+        (floors.get(r.floor)?.elevation ?? 0) + slopeAt(r, o.at[0], o.at[1]);
+      const [ha, hb] = [height(a), height(b)];
+      if (Math.abs(ha - hb) > 0.05)
+        error(
+          `The floors don't meet at the ${o.kind === 'door' ? 'door' : 'opening'} between ${a.name} and ${b.name}: ${a.name} is at ${m(ha)} there, ${b.name} at ${m(hb)}.`,
+          "Move the opening to where they're level, or change a floor's elevation or a slope's rise so they meet.",
+        );
+    }
     link(k1, k2);
   }
   for (const s of plan.stairs) {
@@ -256,6 +294,11 @@ export function checkPlan(input: unknown): { plan: SpacePlan | null; problems: P
       error(
         `The stairs in ${r.name} go from ${from.name} down to ${to.name}.`,
         '"from" is the lower floor and "to" the upper one; "direction" is the way you walk going up.',
+      );
+    if (r.slope)
+      error(
+        `${r.name} holds stairs but its floor slopes.`,
+        'Put stairs in a level stairwell; a sloping floor is a ramp of its own.',
       );
     // Stairs join the floors of their stairwell: a room on the lower floor that spans up to the
     // upper one (so it's open between them).
@@ -294,6 +337,58 @@ export function checkPlan(input: unknown): { plan: SpacePlan | null; problems: P
       if (!rooms.has(r)) error(`${e.name} stops at a room that doesn't exist ("${r}").`);
     for (let i = 1; i < stops.length; i++) link(stops[0] as string, stops[i] as string);
   }
+
+  // A sloping floor needs head room under whatever is above it.
+  for (const r of list) {
+    if (!r.slope) continue;
+    const base = floors.get(r.floor)?.elevation ?? 0;
+    for (const q of list) {
+      const above = floors.get(q.floor)?.elevation ?? 0;
+      if (q === r || above <= base) continue;
+      const ox0 = Math.max(r.rect[0], q.rect[0]);
+      const oz0 = Math.max(r.rect[1], q.rect[1]);
+      const ox1 = Math.min(r.rect[2], q.rect[2]);
+      const oz1 = Math.min(r.rect[3], q.rect[3]);
+      if (ox1 - ox0 <= EPS || oz1 - oz0 <= EPS) continue;
+      const highest = Math.max(
+        ...[
+          [ox0, oz0],
+          [ox1, oz0],
+          [ox0, oz1],
+          [ox1, oz1],
+        ].map(([x, z]) => base + slopeAt(r, x as number, z as number)),
+      );
+      if (highest + 2 > above - 0.12)
+        warn(
+          `${r.name} rises to ${m(highest)} under ${q.name} (whose floor is at ${m(above)}): not enough head room.`,
+          'Leave the space above a ramp open, or check its rise and the floor elevations.',
+        );
+    }
+  }
+
+  // ---- The building's structure ------------------------------------------------------------------
+  let copies = 0;
+  for (const s of plan.structure ?? []) {
+    const r = rooms.get(s.room);
+    const what = s.label ?? 'A piece of structure';
+    if (!r) {
+      error(`${what} is in a room that doesn't exist ("${s.room}").`);
+      continue;
+    }
+    const reach = Math.max(s.size[0], s.size[2]) / 2 + 0.05;
+    const outside = structureCopies(s).find(([x, z]) => !inside(r, x, z, reach));
+    if (outside)
+      error(
+        `${what} in ${r.name} is outside it (at ${m(outside[0])}, ${m(outside[1])}).`,
+        `Its "at" is the centre of its footprint (the first copy, with "repeat"); ${r.name} is [${r.rect.join(', ')}].`,
+      );
+    copies += s.repeat?.count ?? 1;
+  }
+  if (copies > 3000)
+    warn(
+      `The structure has ${copies} pieces, which will be slow to load.`,
+      'Keep to the ones people would notice (columns, beams, panels on the outside).',
+    );
 
   // ---- Furniture and where people start --------------------------------------------------------
   for (const f of plan.furniture) {

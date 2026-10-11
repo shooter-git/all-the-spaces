@@ -1,4 +1,5 @@
-import { Unzip, UnzipInflate } from 'fflate';
+import { Unzip, UnzipInflate, unzipSync, type Zippable, zipSync } from 'fflate';
+import { openPicture } from './pictures.ts';
 
 /**
  * A .zip the Architect adds to a workspace (a "pack"): photos, a README, a manifest, reference
@@ -14,7 +15,32 @@ export const PACK_LIMITS = {
   depth: 8,
 };
 
-export class PackError extends Error {}
+/** Why a zip can't be added (400, or 415 when nothing in it is something a place takes). */
+export class PackError extends Error {
+  readonly status: number;
+  constructor(message: string, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/**
+ * A plain, safe file name from whatever the Architect's file was called ("Kitchen Window
+ * (2).HEIC" → kitchen-window-2 + .heic): lower case letters, digits and dashes only.
+ */
+export function uploadName(original: string): { base: string; ext: string } {
+  const plain = original.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+  const dot = plain.lastIndexOf('.');
+  const rawExt = dot > 0 ? plain.slice(dot + 1) : '';
+  const ext = /^[a-z0-9]{1,10}$/.test(rawExt) ? rawExt : '';
+  const base =
+    (ext ? plain.slice(0, dot) : plain)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60)
+      .replace(/-+$/, '') || 'file';
+  return { base, ext };
+}
 
 /** A name kept as it is: letters, digits, dots, dashes and underscores. */
 const PLAIN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
@@ -121,3 +147,90 @@ export function arrangePack(
   }
   return { folder, files: arranged };
 }
+
+/** Pictures cleaned on the way in (others, like GIF and SVG, are kept as they are). */
+const PICTURE = /^(jpe?g|png|webp|heic|heif|avif|tiff?)$/;
+/** Pictures a pack keeps in their own format, cleaned (any other picture becomes a JPEG). */
+const KEEP_FORMAT: Record<string, 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff'> = {
+  jpg: 'jpeg',
+  jpeg: 'jpeg',
+  png: 'png',
+  webp: 'webp',
+  avif: 'avif',
+  tif: 'tiff',
+  tiff: 'tiff',
+};
+/** Besides pictures, what a place's pack may hold: documents about the place. */
+const PLACE_DOCUMENT = /^(pdf|md|markdown|txt|json|csv|tsv|ya?ml|geojson|kml|gif|svg)$/;
+
+/**
+ * One file from a pack as it's kept: a picture without its hidden details (where and on what it
+ * was taken), in its own format and under its own name where it can be (the pack's README or
+ * manifest names it). Null when a place's pack can't take it: a place takes pictures and
+ * documents about it, and a picture that can't be read is left out (a creation keeps it as it
+ * is).
+ */
+async function packFile(path: string, data: Buffer, place: boolean) {
+  const dot = path.lastIndexOf('.');
+  const ext = dot > path.lastIndexOf('/') + 1 ? path.slice(dot + 1).toLowerCase() : '';
+  if (PICTURE.test(ext)) {
+    try {
+      const img = (await openPicture(data, 100_000_000))
+        .rotate()
+        .resize({ width: 4096, height: 4096, fit: 'inside', withoutEnlargement: true });
+      const format = KEEP_FORMAT[ext];
+      if (format === 'jpeg' || !format)
+        return {
+          path: format ? path : `${path.slice(0, dot)}.jpg`,
+          data: await img.jpeg({ quality: 90, mozjpeg: true }).toBuffer(),
+        };
+      return { path, data: await img.toFormat(format).toBuffer() };
+    } catch {
+      return place ? null : { path, data };
+    }
+  }
+  return place && !PLACE_DOCUMENT.test(ext) ? null : { path, data };
+}
+
+/**
+ * A zip as it's kept: unpacked and arranged, its pictures cleaned, and what a place can't take
+ * left out (`left`). The folder is a plain name (lower case, digits and dashes).
+ */
+export async function preparePack(
+  body: Buffer,
+  zipName: string,
+  place: boolean,
+): Promise<{ folder: string; files: Map<string, Buffer>; left: string[]; bytes: number }> {
+  const arranged = arrangePack(unzipPack(body), zipName);
+  if (!arranged.files.size) throw new PackError('It’s empty.');
+  const files = new Map<string, Buffer>();
+  const left: string[] = [];
+  let bytes = 0;
+  for (const [path, data] of arranged.files) {
+    const kept = await packFile(path, data, place);
+    if (!kept || files.has(kept.path)) {
+      left.push(path);
+      continue;
+    }
+    files.set(kept.path, kept.data);
+    bytes += kept.data.length;
+  }
+  if (!files.size)
+    throw new PackError(
+      'Nothing in it could be added: a place takes pictures and documents about it (PDF, text, JSON…).',
+      415,
+    );
+  return { folder: uploadName(arranged.folder).base, files, left, bytes };
+}
+
+/** A prepared pack as one file to store (pictures as they are; text compressed). */
+export function zipPack(files: Map<string, Buffer>): Uint8Array {
+  const zippable: Zippable = {};
+  for (const [path, data] of files)
+    zippable[path] = [data, { level: /\.(jpe?g|png|webp|avif|gif|pdf)$/i.test(path) ? 0 : 6 }];
+  return zipSync(zippable);
+}
+
+/** A stored pack's files (made by `zipPack`, so trusted to be what it says). */
+export const unzipStored = (zip: Uint8Array) =>
+  new Map(Object.entries(unzipSync(zip)).filter(([path]) => !path.endsWith('/')));

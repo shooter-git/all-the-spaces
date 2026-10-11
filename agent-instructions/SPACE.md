@@ -3,11 +3,13 @@
 You're turning a real place into a 3D space for All the Spaces: the people who live or work there
 will walk around it together in their browsers, and objects in it become doorways to things made
 for them. **BRIEF.md** describes the place. `inputs/` has what the Architect gave you: floor plans
-(`plan-*.jpg`) and perhaps photos (`photo-*.jpg`, with notes in BRIEF.md).
+(`plan-*.jpg`), perhaps photos (`photo-*.jpg`, with notes in BRIEF.md), and perhaps a folder of
+photos with notes on them (a README, a manifest): with no floor plan, you build it **from the
+outside in** (below).
 
 You write one file: **`plan.json`**. The platform builds the 3D space from it (walls, doors,
 windows, furniture, lighting). Accuracy matters most: every wall should be within a few
-centimetres of the floor plan.
+centimetres of the floor plan, or, from photos, the place should match every one of them.
 
 ## How plan.json describes a place
 
@@ -33,6 +35,22 @@ centimetres of the floor plan.
   its own).
 - **Materials** for floors and walls: plaster, plaster-warm, paint-sage, paint-sky, oak, walnut,
   tile-light, tile-dark, concrete, carpet-stone (and fabric-/metal-/ceramic- for furniture).
+  Outside: asphalt, grass, brick, stone, concrete, glass; metal-green and metal-white (painted
+  steel), mesh and mesh-green (metal mesh you can see through).
+- **A floor that slopes** (a ramp, a sloping deck, a street on a hill): `"slope": {"toward":
+  "north", "rise": 3}` climbs 3 m from the floor's elevation, evenly, to the room's north edge.
+  Walls, ceiling, doors, furniture and people follow it. Where it meets another room, the floors
+  must be level at the opening (`ats space check` says if not). Keep the space above a ramp open.
+- **Outdoor edges**: an outdoor room has a 1.05 m low wall; `"parapet": 0` for none (open ground,
+  a street, a pavement), or the real height (a car park's deck edge, a balcony's solid front).
+- **`structure`**: the building's own fabric, as boxes people see and bump into but can't pick out:
+  `{"room": "deck-1", "label": "column", "at": [5, 8], "size": [0.5, 2.9, 0.5]}` (width along x,
+  height, depth along z; standing on the floor, or `"elevation"` above it), with `"material"`,
+  `"rotation"`, and `"repeat": {"count": 7, "step": [8, 0]}` for a row. Columns, beams, spandrel
+  panels, screens and their posts, fins, canopies.
+- **`site`**: where the place is on Earth, `{"lat": …, "lng": …, "bearing": …}`: the plan's origin
+  and the compass bearing its north (-z, the top of the drawing) faces. Set it with
+  `ats space site`; photos taken from known spots are then matched against the model.
 - **Spawns**: where people arrive (usually just inside the front door), with `"yaw"` in degrees.
 - Examples: `/opt/ats/samples/*/plan.json`. The schema: `/opt/ats/packages/space-format/src/plan.ts`.
 
@@ -52,7 +70,8 @@ centimetres of the floor plan.
 - **Lifts** go in `elevators`: a `key`, a `name` and `stops` (a room and a point on each floor,
   in the same spot on every floor, like a real shaft).
 - Outdoor areas (a garden, a balcony, a roof terrace) are rooms with `"outdoor": true`.
-- Look at `/opt/ats/samples/two-floor-building/plan.json`.
+- Look at `/opt/ats/samples/two-floor-building/plan.json`, and `/opt/ats/samples/sloping-site/`
+  for open decks, a ramp, a sloping street and structure.
 
 ## How to work
 
@@ -80,6 +99,55 @@ centimetres of the floor plan.
    by saying it's ready, which pictures to look at, and that they can press **Build it** to walk
    through it.
 
+## Working from the outside in
+
+With no floor plan, only photos of the outside (a folder in `inputs/` with a README or manifest,
+perhaps a view from above), build the place from the outside in:
+
+1. **Read the folder's README and manifest first.** They say what each picture shows, where it
+   was taken from and which way it looks, what to trust, and facts about the place (how many
+   floors, how high, what it's made of, where the entrances are). Follow them over guesses.
+2. **The footprint, from above.** Rooms are rectangles on the plan's axes, so turn the aerial view
+   (or site plan) until the building's main walls run straight across and down:
+   `ats space straighten inputs/<folder>/<aerial>.jpg 18` (degrees clockwise; negative the other
+   way) writes `preview/plan-<aerial>.png` and says the bearing that gives. Calibrate on that copy
+   (turned 0° if it's already straight, so the Architect sees it in the plan editor) as you would
+   a floor plan: `ats space scale` with its scale bar or a length you know (a parking bay is about
+   2.5 m wide, a traffic lane 3 to 3.5 m), and `ats space origin` at the building's top-left corner.
+3. **Put it on the map**: `ats space site LAT,LNG --at PX,PY --bearing B`, where PX,PY is a pixel
+   of the calibrated image whose latitude and longitude you know (the centre of a map screenshot
+   is where its link or the manifest says; a corner the README gives), or `--plan X,Z` a point in
+   metres.
+4. **Floors** from the photos taken straight on: count them, and take heights from the README or
+   by proportion (a door is about 2.1 m; a storey is about 2.7 m in a house, 3.5 to 4 m in an
+   office, 3 m in a car park). On a slope, floors keep their elevations and the ground around is
+   outdoor rooms (`"parapet": 0`) that `slope`, so each entrance meets the floor it opens onto.
+5. **The shell**: rooms on each floor covering the footprint, walls of the material the photos
+   show. Open-sided levels (car parks, galleries, loggias) are outdoor rooms with a `parapet` of
+   their real height. Then the openings on every face where the photos show them: entrances,
+   windows, open bays.
+6. **Structure**: the columns, beams, spandrels, screens and posts that give the building its
+   look, with `structure` (and `repeat` for rows).
+7. **Match every photo**: `ats space match inputs/<folder>/manifest.json` draws the model from where
+   each photo was taken, beside it and laid over it (`preview/match/`; the Architect sees them
+   under **Pictures**). Look at every one. Where edges show twice, something's off: the model (a
+   floor too high, a face too long, an opening in the wrong place), or the site (everything
+   shifted the same way: nudge its latitude, longitude or bearing), or the photo's lens
+   (everything too big or too small). When the manifest lacks something (a field of view, a camera
+   height) or has it wrong, write `match.json` in the workspace (the same format, your values, with paths from the workspace) and
+   match with that. Fix, and match again until they agree. `--quick` for a fast look, `--only 3,7`
+   for some.
+8. **Inside**, which the photos don't show: what's usual for this kind of building (a car park:
+   bays 2.5 by 5 m, aisles 6 to 7 m, a ramp between levels; an office: stairs, lifts and toilets
+   in a core), kept simple and consistent with every opening the photos show. Tell the Architect
+   plainly which parts are guesses, so they can correct them or add a floor plan.
+
+A manifest the tools read is a list (at its top, or as `images`, `photos` or `shots`) of photos,
+each with its `file` (or `filename`), where it was taken (`lat` and `lng`, or `at`: [x, z] in the
+plan), `heading` (degrees: 0 north, 90 east), and optionally `pitch` (degrees up), `fov` (the
+horizontal field of view in degrees; `vfov` for the vertical one) and `cameraHeight` (metres
+above the ground: 2.5 for street views). Anything else in it is notes for you.
+
 **Save as you go.** The workspace is its own git repository (only here: it has no remote, so
 never add one or push). Each time a change the Architect asked for works, and after each step of a
 bigger job, commit it, leaving out the plans and photos (they're private, and never kept in
@@ -97,9 +165,8 @@ its own names and folders): photos, perhaps an aerial view or a site plan, docum
 place. **Read its README or manifest first** (the `.md`, `.json` or `.txt` files at its top):
 they say what each picture shows, from where and which way it looks, and what to trust. Follow
 them over anything you'd guess from names, and use the pictures in the order and for the parts
-they give. An overhead view or site plan in it can be calibrated like a floor plan
-(`ats space scale … --image uploads/<folder>/<file>`). Unlike single pictures, a folder isn't
-kept with the place: what you learn from it belongs in plan.json and your models.
+they give, working from the outside in (above) when it's photos of the outside. The place keeps
+it: whoever changes the place next finds it in `inputs/<folder>/`.
 
 ## Furniture that looks real
 
@@ -160,6 +227,6 @@ written on things.
 
 ## Don't
 
-- Edit anything but `plan.json`, `models/` (your models and their scripts), and `trace.json`
-  (through `ats space`).
+- Edit anything but `plan.json`, `models/` (your models and their scripts), `match.json`, and
+  `trace.json` (through `ats space`).
 - Invent rooms or doors that aren't on the plan without saying so.

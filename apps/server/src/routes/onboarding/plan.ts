@@ -9,12 +9,13 @@ import { z } from 'zod';
 import { notFound, requireUser } from '../../access.ts';
 import { record } from '../../audit.ts';
 import type { AppContext } from '../../context.ts';
+import { unzipStored } from '../../packs.ts';
 import { loadSources, sourcesInWorkspaces } from '../../place-sources.ts';
 import { sendError } from '../../reply.ts';
 import { getStorage } from '../../storage.ts';
 import { spaceWorkspaceFiles } from '../../studio/files.ts';
 import { settingsFor } from '../../studio/settings.ts';
-import { inputKey, type OnboardingShared } from './shared.ts';
+import { inputKey, type OnboardingShared, packKey } from './shared.ts';
 
 const { spaceInputs, spaceVersions, workspaces } = schema;
 
@@ -94,8 +95,9 @@ export async function planRoutes(
                 open.map((w) => w.id),
               ),
             );
-      } else if (!inputs.some((i) => i.kind === 'plan'))
-        return sendError(reply, 409, 'Add at least one floor plan first.');
+      } else if (!inputs.length)
+        // A floor plan is best; photos of the outside (a pack with notes on them, say) will do.
+        return sendError(reply, 409, 'Add a floor plan, photos or a .zip of them first.');
       const settings = await settingsFor(db, space.groupId);
       const files = await spaceWorkspaceFiles({
         name: space.name,
@@ -104,12 +106,21 @@ export async function planRoutes(
         inputs: await Promise.all(
           inputs
             .sort((a, b) => a.name.localeCompare(b.name, 'en', { numeric: true }))
-            .map(async (i) => ({
-              name: i.name,
-              kind: i.kind,
-              note: i.note,
-              data: await storage.getBytes(inputKey(space.id, i.name)),
-            })),
+            .map(async (i) =>
+              i.kind === 'pack'
+                ? {
+                    name: i.name,
+                    kind: i.kind,
+                    note: i.note,
+                    files: unzipStored(await storage.getBytes(packKey(space.id, i.name))),
+                  }
+                : {
+                    name: i.name,
+                    kind: i.kind,
+                    note: i.note,
+                    data: await storage.getBytes(inputKey(space.id, i.name)),
+                  },
+            ),
         ),
         telemetry: settings.telemetry,
         ...(live ? { current: { plan: live.plan, version: live.number } } : {}),
@@ -126,7 +137,9 @@ export async function planRoutes(
           model: body.model || null,
           effort: isEffort(body.provider, body.effort) ? (body.effort as string) : null,
           title: space.name,
-          brief: body.description || `${space.name}, from its floor plan.`,
+          brief:
+            body.description ||
+            `${space.name}, from its ${inputs.some((i) => i.kind === 'plan') ? 'floor plan' : 'photos'}.`,
         })
         .returning();
       if (!ws) throw new Error('Workspace not created');

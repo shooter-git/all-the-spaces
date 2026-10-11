@@ -128,9 +128,10 @@ export const roomAccess = pgTable(
 );
 
 /**
- * What an Architect gave to build their place from: floor plans and photos. Re-encoded on upload
- * (no location or camera details), private to Architects, and only ever read by the Architect's
- * assistant: they never appear in the space.
+ * What an Architect gave to build their place from: floor plans, photos, and packs (a .zip of
+ * photos with notes on them, such as a README or a manifest, kept whole). Pictures are re-encoded
+ * on upload (no location or camera details); all are private to Architects, and only ever read by
+ * the Architect's assistant: they never appear in the space.
  */
 export const spaceInputs = pgTable(
   'space_inputs',
@@ -138,11 +139,18 @@ export const spaceInputs = pgTable(
     spaceId: uuid('space_id')
       .notNull()
       .references(() => spaces.id, { onDelete: 'cascade' }),
-    /** e.g. plan-1, photo-3 (the file is inputs/<name>.jpg in the workspace). */
+    /**
+     * e.g. plan-1, photo-3 (the file is inputs/<name>.jpg in the workspace), pack-1 (its files
+     * are in inputs/<note>/).
+     */
     name: text('name').notNull(),
-    kind: text('kind', { enum: ['plan', 'photo'] }).notNull(),
-    /** What it shows, in the Architect's words (e.g. "the kitchen, from the door"). */
+    kind: text('kind', { enum: ['plan', 'photo', 'pack'] }).notNull(),
+    /**
+     * What it shows, in the Architect's words (e.g. "the kitchen, from the door"); for a pack, its
+     * folder's name.
+     */
     note: text('note').notNull().default(''),
+    /** In pixels; for a pack, how many files it holds (and a height of 0). */
     width: integer('width').notNull(),
     height: integer('height').notNull(),
     bytes: integer('bytes').notNull(),

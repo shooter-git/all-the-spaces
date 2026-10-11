@@ -44,7 +44,7 @@ describe('walls', () => {
   });
 });
 
-describe.each(['studio-apartment', 'two-floor-building'])('%s sample', (name) => {
+describe.each(['studio-apartment', 'two-floor-building', 'sloping-site'])('%s sample', (name) => {
   it('builds a consistent, connected space of valid files', async () => {
     const { manifest, files } = await built(name);
     const rooms = new Map(manifest.rooms.map((r) => [r.key, r]));

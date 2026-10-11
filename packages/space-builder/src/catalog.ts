@@ -31,6 +31,8 @@ export const SURFACES: Partial<Record<MaterialName, TextureChoice>> = {
   'fabric-linen': { texture: 'rough_linen', ownColor: true },
   'fabric-indigo': { texture: 'rough_linen', ownColor: true },
   'fabric-moss': { texture: 'velour_velvet', ownColor: true },
+  brick: { texture: 'red_brick_03' },
+  stone: { texture: 'stacked_stone_wall' },
 };
 
 /** Floors use floor-specific textures (planks, not veneer). */
@@ -41,6 +43,10 @@ export const FLOORS: Partial<Record<MaterialName, TextureChoice>> = {
   'tile-dark': { texture: 'floor_tiles_06' },
   concrete: { texture: 'concrete_floor' },
   'carpet-stone': { texture: 'rough_linen', ownColor: true },
+  asphalt: { texture: 'asphalt_02' },
+  grass: { texture: 'leafy_grass' },
+  brick: { texture: 'red_brick_pavers' },
+  stone: { texture: 'precast_stone_paving' },
 };
 
 export interface ModelChoice {

@@ -509,6 +509,29 @@
   border: 1px solid var(--ats-line);
   background: var(--ats-subtle);
 }
+/* A .zip of photos added for a place: its folder and how many files */
+.studio-packs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ats-space-2);
+}
+.studio-packs li {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius-sm);
+  background: var(--ats-subtle);
+  min-width: 0;
+}
+.studio-pack-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 
 /* A place's plan in its workspace */
 .plan-view {

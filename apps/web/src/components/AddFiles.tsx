@@ -291,7 +291,7 @@ export function AddedFiles({
           {removing.folder
             ? `Remove ${removing.name}/ and the ${removing.files} file${removing.files === 1 ? '' : 's'} in it from this workspace? Your assistant won’t be able to look at them any more.`
             : `Remove ${removing.name} from this workspace? Your assistant won’t be able to look at it any more.`}
-          {place && !removing.folder && ' The place keeps its copy with its photos and plans.'}
+          {place && ' The place keeps its copy with its photos and plans.'}
         </Confirm>
       )}
     </div>

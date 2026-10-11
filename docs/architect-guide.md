@@ -13,7 +13,8 @@ publish it. You don't need to write code.
    agent's plan, or the architect's PDF (each page becomes a plan), with any measurements or
    scale bar readable. Pictures can be JPEG, PNG, WebP, HEIC (iPhone), AVIF, GIF or TIFF. For more than one floor, add a plan
    for each and say which floor it is; mark the stairs and any lift on each. Gardens, balconies
-   and roof terraces go on the plan of the floor they're on.
+   and roof terraces go on the plan of the floor they're on. **No floor plan?** Add a .zip of
+   photos of the outside instead (see "From photos of the outside" below).
 3. **Add photos** if you can (one or two per room, from a corner, in daylight, with private
    things out of view) and say which room they're of. They help your assistant match floors,
    walls and furniture, and never appear in the space.
@@ -39,10 +40,38 @@ Got a whole set, say photos from every side with a README or a manifest saying w
 shows? Add it as one **.zip** (up to 25 MB). It's unpacked into a folder of its own, every file
 keeping its name so the README still matches, and your assistant reads the README or manifest
 first. Pictures are cleaned like the others; text, JSON and PDF documents come too; anything else
-is left out (you're told what). A folder is for this workspace: it isn't kept with the place.
+is left out (you're told what). The place keeps it, like your other photos and plans: whoever
+changes the place next has it too.
 
 Until it's published, **Continue** on Home takes you back to it, and **Discard…** removes it along
 with its workspace, plans and photos.
+
+### From photos of the outside
+
+A building you can't get a floor plan for (a car park, a shop front, a public building) can be
+built from photos of the outside. Put them in one **.zip** (up to 25 MB), with:
+
+- **Photos of every side**, taken straight on and from the corners. Street views are fine.
+- **A view from above** (a satellite or aerial view with its scale bar), for the footprint.
+- **Notes**: a `README.md` with what you know (how many floors, how high, what it's made of, where
+  the entrances are, which photos to trust least), and ideally a `manifest.json` listing each
+  photo with where it was taken and which way it looks. Your assistant then draws its model from
+  exactly those spots and compares (it shows you these **photo matches** under **Pictures**).
+
+A manifest is a list of photos (at its top, or under `"images"` or `"photos"`), each like:
+
+```json
+{ "file": "03_east-face.jpg", "lat": 51.50072, "lng": -0.12462, "heading": 290, "pitch": 10, "fov": 90 }
+```
+
+`heading` is the compass direction the photo looks (0 north, 90 east), `pitch` how far up (0 is
+level), and `fov` its field of view across, in degrees (leave it out if you don't know). Instead of
+`lat` and `lng`, `"at": [x, z]` gives a spot in metres. Anything else in an entry (what it shows,
+the date) is notes for your assistant.
+
+Add the .zip in step 2, or later with **Add files**. Inside, the photos can't show it: your
+assistant makes its best guess for what's usual in that kind of building and tells you which
+parts are guesses, so you can correct them, or add a floor plan when you have one.
 
 With several floors, **Plan** has a tab for each, with its own drawing to check against. Stairs
 run between floors inside a stairwell, and a lift stops at a room on each floor it serves.

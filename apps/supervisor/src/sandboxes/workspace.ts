@@ -35,7 +35,7 @@ const gitIdentity = (name: string, email: string) => [
 
 /** Workspace files the Studio may read, and write (for the plan editor). */
 const READABLE =
-  /^(plan\.json|trace\.json|CLAUDE\.md|AGENTS\.md|preview\/((models|rooms)\/)?[\w.-]{1,80}\.png|models\/[A-Za-z0-9][\w-]{0,79}\.(glb|py))$/;
+  /^(plan\.json|trace\.json|CLAUDE\.md|AGENTS\.md|preview\/((models|rooms|match)\/)?[\w.-]{1,80}\.png|models\/[A-Za-z0-9][\w-]{0,79}\.(glb|py))$/;
 /** The plan (the Studio's editor), and the platform's instructions (kept up to date). */
 const WRITABLE = /^(plan\.json|CLAUDE\.md|AGENTS\.md|\.ats\/(CLAUDE|AGENTS)\.md\.before-update)$/;
 /** A file added to `uploads/`: a plain name (made so by the server) and its extension. */
@@ -412,7 +412,7 @@ export function createWorkspace(ctx: Containers) {
     },
 
     /**
-     * The assistant's pictures (model previews and room renders) and its models, with when each
+     * The assistant's pictures (model previews, room renders and photo matches) and its models, with when each
      * was last written (seconds): for the Studio to show, and to tell when a place has changed
      * since it was built. Works asleep too (the reader reads the volume either way).
      */
@@ -424,6 +424,7 @@ export function createWorkspace(ctx: Containers) {
             'find',
             '/workspace/preview/models',
             '/workspace/preview/rooms',
+            '/workspace/preview/match',
             '/workspace/models',
             '-maxdepth',
             '1',

@@ -32,10 +32,11 @@ const SUGGESTIONS = [
   'Run `ats qa` and fix everything it reports until it says Ready.',
   'Tell me, in plain words, what you built, how to use it on a phone and on a laptop, and what you’d improve next.',
 ];
-/** For a place being built from its floor plan. */
+/** For a place being built from its floor plan (or from photos of the outside). */
 const SPACE_SUGGESTIONS = [
-  'Read BRIEF.md and CLAUDE.md, look at the floor plan in inputs/, and write plan.json. Calibrate with `ats space scale` and `ats space origin`, then check with `ats space check` and `ats space overlay` until every wall lines up with the drawing.',
+  'Read BRIEF.md and CLAUDE.md, look at what’s in inputs/ (the floor plan, or photos of the outside and the notes on them), and write plan.json. Calibrate with `ats space scale` and `ats space origin`, then check with `ats space check` and `ats space overlay` until every wall lines up with the drawing.',
   'Look at preview/overlay.png: line every wall up with the floor plan, to within a few centimetres.',
+  'Draw the place from where each photo of the outside was taken (`ats space match` with the pack’s manifest) and make the model match every photo: its height, its floors, its openings and what it’s made of.',
   'Now furnish it from the photos and my description, with a real model for every piece: library models for everyday furniture, and your own made in Blender (`ats model build`) for anything personal. Then `ats space render` each room and compare it with the photos.',
   'Go through the photos room by room and make anything that doesn’t look like the real thing match it: model it in Blender with `ats model build`, check the preview against the photo, and render the room again.',
   'Tell me, in plain words, what you built and anything you weren’t sure of.',

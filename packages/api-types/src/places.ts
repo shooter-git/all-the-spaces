@@ -1,17 +1,30 @@
 export type SpaceType = 'apartment' | 'condo' | 'house' | 'office' | 'building' | 'other';
 
 /** A floor plan or photo added for a place. */
+/**
+ * A floor plan, a photo, or a pack (a .zip of photos with notes on them, kept whole: `note` is its
+ * folder, `files` how many it holds).
+ */
 export interface PlaceInput {
   name: string;
-  kind: 'plan' | 'photo';
+  kind: 'plan' | 'photo' | 'pack';
   note: string;
   width: number;
   height: number;
   bytes: number;
+  files?: number;
 }
 
 /** What adding a floor plan or photo answers (the note isn't sent back). */
 export type AddedInput = Omit<PlaceInput, 'note'>;
+
+/** What adding a pack answers: its folder, and what in it a place can't take (left out). */
+export type AddedPack = AddedInput & {
+  kind: 'pack';
+  files: number;
+  folder: string;
+  left: string[];
+};
 
 type Named = { key: string; name: string };
 type ObjectRef = { key: string; label: string; room: string };

@@ -253,9 +253,15 @@ function PlanEditor({
   const firstFloor = plan?.floors[0]?.key ?? '';
   const floor = chosen ?? firstFloor;
   const trace: FloorTrace | null = plan ? traceFor(traces, floor, firstFloor) : null;
-  const imageUrl = trace
-    ? inputUrl(spaceId, trace.image.replace(/^inputs\//, '').replace(/\.jpg$/, ''))
-    : null;
+  // The drawing: a floor plan the Architect gave (inputs/plan-1.jpg), or one the assistant made
+  // (an aerial view turned straight, preview/plan-aerial.png).
+  const imageUrl = !trace
+    ? null
+    : /^inputs\/(plan|photo)-\d+\.jpg$/.test(trace.image)
+      ? inputUrl(spaceId, trace.image.replace(/^inputs\//, '').replace(/\.jpg$/, ''))
+      : /^preview\/[\w.-]{1,64}\.png$/.test(trace.image)
+        ? workspaceFile(workspaceId, trace.image)
+        : null;
   // The floor's drawing, once its size is known.
   useEffect(() => {
     setSize(null);

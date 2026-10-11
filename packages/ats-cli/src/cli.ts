@@ -48,6 +48,17 @@ const HELP = `ats — for building a creation in All the Spaces
                               from two opposite corners at eye height: preview/rooms/.
                               Compare with the photos. Options: --corners 1,2,3,4, --quick
                               (a fast plain look), --samples 128 (less grain, slower)
+  ats space straighten <image> <degrees>
+                              Turn an aerial view (clockwise) until the building's walls run
+                              straight across and down: preview/plan-<image>.png, to calibrate.
+  ats space site LAT,LNG      Where the place is on Earth: the plan's origin, or with
+                              --plan X,Z (metres) or --at PX,PY (a pixel of the calibrated
+                              image) another point; --bearing DEG, the way its north faces.
+  ats space match <manifest.json>
+                              Draw the whole place from where each photo was taken, beside
+                              it and laid over it: preview/match/. Or one photo: <photo>
+                              --at LAT,LNG --heading DEG [--pitch DEG] [--fov DEG]. Options:
+                              --only 3,7, --quick
   ats model build <script.py> Make a 3D model with Blender: run a Blender Python script that
                               exports a .glb, check it, and draw it from four sides
                               (preview/models/). See \`ats model help\`.

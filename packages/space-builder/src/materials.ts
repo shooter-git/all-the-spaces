@@ -28,6 +28,14 @@ export const MATERIALS: Record<MaterialName, MaterialDef> = {
   paper: { color: '#f5f1ee', roughness: 0.9 },
   glass: { color: '#dfe9ef', roughness: 0.05, opacity: 0.25 },
   trim: { color: '#f1eee8', roughness: 0.45 },
+  asphalt: { color: '#4b4a4c', roughness: 0.95 },
+  grass: { color: '#6f8a52', roughness: 1 },
+  brick: { color: '#9a5b45', roughness: 0.9 },
+  stone: { color: '#b7ad9c', roughness: 0.85 },
+  'metal-green': { color: '#2f5b43', roughness: 0.45, metalness: 0.5 },
+  'metal-white': { color: '#e6e4df', roughness: 0.4, metalness: 0.4 },
+  mesh: { color: '#3a3b3e', roughness: 0.5, metalness: 0.6, opacity: 0.45 },
+  'mesh-green': { color: '#2f5b43', roughness: 0.5, metalness: 0.5, opacity: 0.45 },
 };
 
 export function hexToLinear(hex: string): [number, number, number] {
