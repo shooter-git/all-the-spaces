@@ -1,5 +1,14 @@
-import type { Doorway, MaterialName, PlanRoom, Side, SpacePlan } from '@ats/space-format';
-import type { MeshBuilder, V3 } from './geometry.ts';
+import {
+  type Doorway,
+  type MaterialName,
+  type PlanRoom,
+  type PlanStructure,
+  type Side,
+  type SpacePlan,
+  slopeAt,
+  structureCopies,
+} from '@ats/space-format';
+import type { MeshBuilder, SurfaceKey, V3 } from './geometry.ts';
 
 /** Each room owns the inner half of every wall around it, so rooms never share geometry. */
 export const HALF_WALL = 0.075;
@@ -43,11 +52,16 @@ export class PlanIndex {
     return r;
   }
 
-  /** Walking-surface height and ceiling height of a room. */
+  /** Walking-surface height and ceiling height of a room (where a sloping floor starts). */
   vertical(room: PlanRoom): { base: number; top: number } {
     const f = this.floor(room.floor);
     const topFloor = room.spansTo ? this.floor(room.spansTo) : f;
     return { base: f.elevation, top: topFloor.elevation + topFloor.height };
+  }
+
+  /** The height of a room's walking surface at a point (its floor's, unless it slopes). */
+  floorAt(room: PlanRoom, x: number, z: number): number {
+    return this.floor(room.floor).elevation + slopeAt(room, x, z);
   }
 
   /** The side of `a` that touches `b`, and the overlapping interval along it. */
@@ -75,12 +89,13 @@ export class PlanIndex {
       if (o.kind === 'window') {
         if (o.room !== room.key) continue;
         const { base } = this.vertical(room);
+        const floor = room.slope ? this.floorAt(room, ...wallPoint(room.rect, o.side, o.at)) : base;
         out.push({
           side: o.side,
           u0: o.at - o.width / 2,
           u1: o.at + o.width / 2,
-          v0: base + o.sill,
-          v1: base + o.sill + o.height,
+          v0: floor + o.sill,
+          v1: floor + o.sill + o.height,
           kind: 'window',
         });
         continue;
@@ -95,7 +110,9 @@ export class PlanIndex {
       const u1 = Math.min(edge.u1, along + o.width / 2);
       const base = o.level
         ? this.floor(o.level).elevation
-        : Math.max(this.floor(room.floor).elevation, this.floor(other.floor).elevation);
+        : room.slope || other.slope
+          ? Math.max(this.floorAt(room, ...o.at), this.floorAt(other, ...o.at))
+          : Math.max(this.floor(room.floor).elevation, this.floor(other.floor).elevation);
       out.push({
         side: edge.side,
         u0,
@@ -140,9 +157,10 @@ export class PlanIndex {
  * rooms someone may not see). Windows stay solid this far away.
  */
 export function buildStandIn(index: PlanIndex, room: PlanRoom, mesh: MeshBuilder) {
+  if (room.slope) return slopedStandIn(index, room, mesh);
   const [x0, z0, x1, z1] = room.rect;
   const { base, top } = index.vertical(room);
-  const wallTop = room.outdoor ? base + STAND_IN_PARAPET : top;
+  const wallTop = room.outdoor ? base + (room.parapet ?? STAND_IN_PARAPET) : top;
   const doorways = index.openings(room).filter((o) => o.kind !== 'window');
   mesh.box(room.floorMaterial, [x0, base - 0.12, z0], [x1, base, z1]);
   for (const side of ['north', 'south', 'east', 'west'] as const) {
@@ -169,9 +187,10 @@ export function buildArchitecture(
   solid: MeshBuilder,
   options: { glazing: boolean; trim?: boolean },
 ) {
+  if (room.slope) return slopedArchitecture(index, room, visual, solid, options);
   const [x0, z0, x1, z1] = room.rect;
   const { base, top } = index.vertical(room);
-  const wallTop = room.outdoor ? base + PARAPET : top;
+  const wallTop = room.outdoor ? base + (room.parapet ?? PARAPET) : top;
   const openings = index.openings(room);
   const wallMat = room.wallMaterial;
 
@@ -227,6 +246,151 @@ export function buildArchitecture(
       if (options.glazing) visual.box('glass', min, max);
       solid.box('concrete', min, max);
     }
+  }
+}
+
+/**
+ * A room whose floor slopes: the same slab, walls, ceiling and openings as a level one, each
+ * following the floor (walls and ceiling keep their height above it). No trim: a ramp, a sloping
+ * deck or a street doesn't have skirting boards.
+ */
+function slopedArchitecture(
+  index: PlanIndex,
+  room: PlanRoom,
+  visual: MeshBuilder,
+  solid: MeshBuilder,
+  options: { glazing: boolean },
+) {
+  const [x0, z0, x1, z1] = room.rect;
+  const { base, top } = index.vertical(room);
+  const height = room.outdoor ? (room.parapet ?? PARAPET) : top - base;
+  const lift = (x: number, z: number) => index.floorAt(room, x, z);
+  const both = (
+    key: SurfaceKey,
+    a: [number, number],
+    b: [number, number],
+    lo: number,
+    hi: number,
+  ) => {
+    alongFloor(visual, key, a, b, lo, hi, lift);
+    alongFloor(solid, 'concrete', a, b, lo, hi, lift);
+  };
+  both(`floor:${room.floorMaterial}`, [x0, z0], [x1, z1], -SLAB, 0);
+  if (!room.outdoor)
+    alongFloor(visual, 'plaster', [x0, z0], [x1, z1], height, height + CEILING, lift);
+  const openings = index.openings(room);
+  for (const side of ['north', 'south', 'east', 'west'] as const) {
+    if (room.outdoor && touchesIndoorRoom(index, room, side)) continue;
+    const along: [number, number] = side === 'north' || side === 'south' ? [x0, x1] : [z0, z1];
+    // Openings measured from the floor where they are, so they cut the wall that follows it.
+    const mine = openings
+      .filter((o) => o.side === side)
+      .map((o) => {
+        const floor = lift(...wallPoint(room.rect, side, (o.u0 + o.u1) / 2));
+        return { ...o, v0: o.v0 - floor, v1: o.v1 - floor };
+      });
+    for (const seg of wallSegments(along, [0, height], mine)) {
+      const [min, max] = wallBox(side, room.rect, seg);
+      both(room.wallMaterial, [min[0], min[2]], [max[0], max[2]], seg.v0, seg.v1);
+    }
+    for (const o of mine) {
+      if (o.kind !== 'window') continue;
+      const [min, max] = wallBox(side, room.rect, { u0: o.u0, u1: o.u1, v0: 0, v1: 0 }, 0.004);
+      if (options.glazing)
+        alongFloor(visual, 'glass', [min[0], min[2]], [max[0], max[2]], o.v0, o.v1, lift);
+      alongFloor(solid, 'concrete', [min[0], min[2]], [max[0], max[2]], o.v0, o.v1, lift);
+    }
+  }
+}
+
+/** A sloping room's stand-in: its floor and walls, following the slope, doorways open. */
+function slopedStandIn(index: PlanIndex, room: PlanRoom, mesh: MeshBuilder) {
+  const [x0, z0, x1, z1] = room.rect;
+  const { base, top } = index.vertical(room);
+  const height = room.outdoor ? (room.parapet ?? STAND_IN_PARAPET) : top - base;
+  const lift = (x: number, z: number) => index.floorAt(room, x, z);
+  alongFloor(mesh, room.floorMaterial, [x0, z0], [x1, z1], -0.12, 0, lift);
+  const doorways = index.openings(room).filter((o) => o.kind !== 'window');
+  for (const side of ['north', 'south', 'east', 'west'] as const) {
+    if (room.outdoor && touchesIndoorRoom(index, room, side)) continue;
+    const along: [number, number] = side === 'north' || side === 'south' ? [x0, x1] : [z0, z1];
+    const mine = doorways
+      .filter((o) => o.side === side)
+      .map((o) => {
+        const floor = lift(...wallPoint(room.rect, side, (o.u0 + o.u1) / 2));
+        return { ...o, v0: o.v0 - floor, v1: o.v1 - floor };
+      });
+    for (const seg of wallSegments(along, [0, height], mine)) {
+      const [min, max] = wallBox(side, room.rect, seg, STAND_IN_WALL);
+      alongFloor(mesh, room.wallMaterial, [min[0], min[2]], [max[0], max[2]], seg.v0, seg.v1, lift);
+    }
+  }
+}
+
+/**
+ * A box over the footprint [x0, z0]–[x1, z1] whose bottom and top are `lo` and `hi` metres above
+ * a sloping floor (`lift` gives its height at a point). Its faces stay flat: the floor is a plane.
+ */
+function alongFloor(
+  mesh: MeshBuilder,
+  material: SurfaceKey,
+  [x0, z0]: [number, number],
+  [x1, z1]: [number, number],
+  lo: number,
+  hi: number,
+  lift: (x: number, z: number) => number,
+) {
+  const at = (x: number, z: number, h: number): V3 => [x, lift(x, z) + h, z];
+  const c = [
+    at(x0, z0, lo),
+    at(x1, z0, lo),
+    at(x1, z0, hi),
+    at(x0, z0, hi),
+    at(x0, z1, lo),
+    at(x1, z1, lo),
+    at(x1, z1, hi),
+    at(x0, z1, hi),
+  ];
+  const q = (i: number, j: number, k: number, l: number) =>
+    mesh.quad(material, c[i] as V3, c[j] as V3, c[k] as V3, c[l] as V3);
+  // The same faces, in the same order, as MeshBuilder.box.
+  q(4, 5, 6, 7);
+  q(1, 0, 3, 2);
+  q(5, 1, 2, 6);
+  q(0, 4, 7, 3);
+  q(3, 7, 6, 2);
+  q(0, 1, 5, 4);
+}
+
+/** The point on a room's wall at `u` along it (x for north and south walls, z for east and west). */
+function wallPoint(rect: PlanRoom['rect'], side: Side, u: number): [number, number] {
+  const [x0, z0, x1, z1] = rect;
+  return {
+    north: [u, z0] as [number, number],
+    south: [u, z1] as [number, number],
+    east: [x1, u] as [number, number],
+    west: [x0, u] as [number, number],
+  }[side];
+}
+
+/**
+ * The building's own structure in a room (columns, beams, panels, screens): boxes standing on its
+ * floor, solid to walk into, part of the room's architecture (so nothing is picked out through
+ * them, and they take its baked light).
+ */
+export function buildStructure(
+  index: PlanIndex,
+  room: PlanRoom,
+  s: PlanStructure,
+  visual: MeshBuilder,
+  solid: MeshBuilder,
+) {
+  const [w, h, d] = s.size;
+  const angle = (s.rotation * Math.PI) / 180;
+  for (const [x, z] of structureCopies(s)) {
+    const transform = { angle, origin: [x, index.floorAt(room, x, z) + s.elevation, z] as V3 };
+    visual.box(s.material, [-w / 2, 0, -d / 2], [w / 2, h, d / 2], transform);
+    solid.box('concrete', [-w / 2, 0, -d / 2], [w / 2, h, d / 2], transform);
   }
 }
 

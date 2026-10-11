@@ -222,7 +222,7 @@ const STAGES: Record<DraftStage, { title: string; next: string; button: string; 
   {
     details: {
       title: 'Being set up',
-      next: 'Add its floor plan, then press Start building.',
+      next: 'Add its floor plan or photos, then press Start building.',
       button: 'Continue',
       icon: 'edit',
     },
@@ -523,7 +523,8 @@ function SpacesSection({
               <strong>Add your own place</strong>
               <span>
                 Your AI assistant builds a 3D model of your home or workplace from its floor plan
-                and a few photos. You check it, and share each room only with the people you choose.
+                and a few photos, or from photos of the outside. You check it, and share each room
+                only with the people you choose.
               </span>
             </button>
           </li>

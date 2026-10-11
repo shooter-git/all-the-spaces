@@ -8,9 +8,16 @@ import {
   type Room,
   type SpaceManifest,
   SpacePlan,
+  slopeAt,
   validateManifest,
 } from '@ats/space-format';
-import { buildArchitecture, buildStairs, buildStandIn, PlanIndex } from './architecture.ts';
+import {
+  buildArchitecture,
+  buildStairs,
+  buildStandIn,
+  buildStructure,
+  PlanIndex,
+} from './architecture.ts';
 import { BakeError, type BakeRunner, type BakeSettings, bakeRoom, ceilingLights } from './bake.ts';
 import { DEFAULT_HDRI, modelFor } from './catalog.ts';
 import { buildFurniture, furnitureSize, furnitureTransform, isObstacle } from './furniture.ts';
@@ -137,6 +144,8 @@ function roomBuilder(plan: SpacePlan, options: BuildOptions) {
     buildArchitecture(index, room, arch, collision, { glazing: true, trim: true });
     for (const s of plan.stairs.filter((st) => st.room === room.key))
       buildStairs(index, s, arch, collision, 'oak');
+    for (const s of plan.structure ?? [])
+      if (s.room === room.key) buildStructure(index, room, s, arch, collision);
     const nodes: GlbNode[] = [{ name: 'architecture', mesh: arch }];
     const models: PlacedModel[] = [];
     /** The furniture's shapes, for casting shadows in the lighting bake. */
@@ -144,6 +153,8 @@ function roomBuilder(plan: SpacePlan, options: BuildOptions) {
 
     for (const item of plan.furniture.filter((f) => f.room === room.key)) {
       const extras = { objectKey: item.key, label: item.label, kind: item.kind };
+      // Where it stands (on a sloping floor, the floor's height there).
+      const floor = room.slope ? index.floorAt(room, item.at[0], item.at[1]) : base;
       // A model chosen for this piece: its own size, scaled evenly into `size` if one is given.
       const chosen = item.model ? sourceOf(item.model) : null;
       const own = item.model && chosen ? await sizeOf(item.model) : null;
@@ -156,7 +167,7 @@ function roomBuilder(plan: SpacePlan, options: BuildOptions) {
             )
           : 1;
         const [mw, mh, md] = [own[0] * scale, own[1] * scale, own[2] * scale];
-        const y = item.mountHeight !== undefined ? base + item.mountHeight - mh / 2 : base;
+        const y = item.mountHeight !== undefined ? floor + item.mountHeight - mh / 2 : floor;
         const angle = (item.rotation * Math.PI) / 180;
         const origin: V3 = [item.at[0], y, item.at[1]];
         objects.push({ key: item.key, label: item.label, kind: item.kind, position: origin });
@@ -183,7 +194,7 @@ function roomBuilder(plan: SpacePlan, options: BuildOptions) {
         console.warn(`Model ${item.model} for ${item.label} unavailable, using a simple shape.`);
 
       const [w, h, d] = furnitureSize(item);
-      const transform = furnitureTransform(item, base);
+      const transform = furnitureTransform(item, floor);
       objects.push({
         key: item.key,
         label: item.label,
@@ -226,7 +237,7 @@ function roomBuilder(plan: SpacePlan, options: BuildOptions) {
         }
       } else {
         const mesh = new MeshBuilder();
-        buildFurniture(mesh, item, base, true);
+        buildFurniture(mesh, item, floor, true);
         nodes.push({ name: `object:${item.key}`, mesh, extras });
         blockers.append(mesh);
       }
@@ -323,7 +334,14 @@ export async function buildSpace(input: unknown, options: BuildOptions = {}): Pr
     const baked = await bakeRoom(
       made.arch,
       made.blockers,
-      { rect: room.rect, base, top, outdoor: room.outdoor, doorways: made.doorways },
+      {
+        rect: room.rect,
+        base,
+        top,
+        outdoor: room.outdoor,
+        doorways: made.doorways,
+        ...(room.slope ? { lift: (x: number, z: number) => slopeAt(room, x, z) } : {}),
+      },
       { ...bake, run: runBake },
     );
     let lightmap: Room['lightmap'];
@@ -354,6 +372,9 @@ export async function buildSpace(input: unknown, options: BuildOptions = {}): Pr
     const { nodes, models, lod2, collision, used, doorways, objects, placed } = made;
     const { base, top } = index.vertical(room);
     const [x0, z0, x1, z1] = room.rect;
+    // A sloping floor: its middle, and how high it climbs.
+    const mid = room.slope ? index.floorAt(room, (x0 + x1) / 2, (z0 + z1) / 2) : base;
+    const rise = room.slope?.rise ?? 0;
     const lod0 = storeChunk(
       await writeChunk(nodes, models, library, { detail: FULL_DETAIL }),
       used,
@@ -378,7 +399,7 @@ export async function buildSpace(input: unknown, options: BuildOptions = {}): Pr
       name: room.name,
       isOutdoor: room.outdoor,
       floorMaterial: room.floorMaterial,
-      bounds: { min: [x0, base, z0], max: [x1, top, z1] },
+      bounds: { min: [x0, base, z0], max: [x1, room.slope ? top + rise : top, z1] },
       neighbors: [...new Set(doorways.flatMap((d) => (d.to ? [d.to] : [])))].sort(),
       doorways,
       lods: {
@@ -387,7 +408,7 @@ export async function buildSpace(input: unknown, options: BuildOptions = {}): Pr
         lod2: lod2Ref,
       },
       collision: collisionRef,
-      labelPosition: [(x0 + x1) / 2, base + Math.min(2.3, top - base - 0.2), (z0 + z1) / 2],
+      labelPosition: [(x0 + x1) / 2, mid + Math.min(2.3, top - base - 0.2), (z0 + z1) / 2],
       ...(lightmap ? { lightmap } : {}),
       objects,
       sounds: roomSounds(plan, room, placed),
@@ -436,7 +457,7 @@ export async function buildSpace(input: unknown, options: BuildOptions = {}): Pr
 
   const at = (roomKey: string, xz: [number, number]): V3 => [
     xz[0],
-    index.vertical(index.room(roomKey)).base,
+    index.floorAt(index.room(roomKey), xz[0], xz[1]),
     xz[1],
   ];
   const manifest: SpaceManifest = {
@@ -496,7 +517,7 @@ export async function previewRoom(input: unknown, roomKey: string, options: Buil
     );
   const b = roomBuilder(plan, { ...options, bake: null });
   const { nodes, models, placed } = await b.assemble(room);
-  const { base, top } = b.index.vertical(room);
+  const { top } = b.index.vertical(room);
   const [x0, z0, x1, z1] = room.rect;
   const glb = await writePreview(nodes, models, b.library);
 
@@ -518,7 +539,7 @@ export async function previewRoom(input: unknown, roomKey: string, options: Buil
     footprints.every((f) => Math.hypot(x - f.x, z - f.z) > f.r + 0.3);
   // From the corners, just inside the room, looking across it; a corner that's taken by
   // furniture steps in towards the middle until the view is clear.
-  const eye = base + 1.6;
+  const floorAt = (x: number, z: number) => b.index.floorAt(room, x, z);
   const inset = Math.min(0.35, (x1 - x0) / 4, (z1 - z0) / 4);
   const [cx, cz] = [(x0 + x1) / 2, (z0 + z1) / 2];
   const corner = (name: string, x: number, z: number) => {
@@ -528,8 +549,9 @@ export async function previewRoom(input: unknown, roomKey: string, options: Buil
       pz = z + (cz - z) * t;
     }
     // Looking towards the opposite corner (through the middle), at the height of a table top.
-    const target: V3 = [2 * cx - px, base + 1.0, 2 * cz - pz];
-    return { name, position: [px, eye, pz] as V3, target, lens: 16 };
+    const [tx, tz] = [2 * cx - px, 2 * cz - pz];
+    const target: V3 = [tx, floorAt(tx, tz) + 1.0, tz];
+    return { name, position: [px, floorAt(px, pz) + 1.6, pz] as V3, target, lens: 16 };
   };
   const cameras = [
     corner('corner-1', x0 + inset, z0 + inset),
@@ -541,9 +563,28 @@ export async function previewRoom(input: unknown, roomKey: string, options: Buil
     glb,
     name: room.name,
     cameras,
-    lights: room.outdoor ? [] : ceilingLights(x0, z0, x1, z1, top),
+    lights: room.outdoor
+      ? []
+      : ceilingLights(x0, z0, x1, z1, top, room.slope ? (x, z) => slopeAt(room, x, z) : undefined),
     models: b.stats.models,
   };
+}
+
+/**
+ * The whole place as a single .glb (every room with its structure, furniture and models), to draw
+ * from outside: from where photos of the real building were taken (`ats space match`).
+ */
+export async function previewSite(input: unknown, options: BuildOptions = {}) {
+  const plan = SpacePlan.parse(input);
+  const b = roomBuilder(plan, { ...options, bake: null });
+  const nodes: GlbNode[] = [];
+  const models: PlacedModel[] = [];
+  for (const room of plan.rooms) {
+    const made = await b.assemble(room);
+    nodes.push(...made.nodes);
+    models.push(...made.models);
+  }
+  return { glb: await writePreview(nodes, models, b.library), plan, index: b.index };
 }
 
 /** `run`, at most `n` at once: the rest wait their turn, first come, first served. */

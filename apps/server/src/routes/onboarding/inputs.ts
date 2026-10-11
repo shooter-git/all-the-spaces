@@ -1,4 +1,4 @@
-import type { AddedInput, PlaceInput, Sent } from '@ats/api-types';
+import type { AddedInput, AddedPack, PlaceInput, Sent } from '@ats/api-types';
 import { schema } from '@ats/db';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -7,18 +7,21 @@ import { z } from 'zod';
 import { isArchitect, notFound, requireUser } from '../../access.ts';
 import { record } from '../../audit.ts';
 import type { AppContext } from '../../context.ts';
+import { PackError, preparePack } from '../../packs.ts';
 import { openPicture } from '../../pictures.ts';
 import { sendError } from '../../reply.ts';
 import { chunkKey } from '../../spaces.ts';
 import { getStorage } from '../../storage.ts';
-import { inputKey, LIMITS, type OnboardingShared } from './shared.ts';
+import { inputKey, keepPack, LIMITS, type OnboardingShared, packKey } from './shared.ts';
 
 const { commissions, creations, spaces, spaceInputs, workspaces } = schema;
 
-const INPUT_NAME = /^(plan|photo)-\d{1,2}$/;
+/** What's added for a place: a floor plan or a photo (a picture each), or a pack. */
+const INPUT_NAME = /^(plan|photo|pack)-\d{1,2}$/;
+const PICTURE_NAME = /^(plan|photo)-\d{1,2}$/;
 const SPACE_TYPES = ['apartment', 'condo', 'house', 'office', 'building', 'other'] as const;
 
-/** A new place (or discarding one), and the floor plans and photos given for it. */
+/** A new place (or discarding one), and the floor plans, photos and packs given for it. */
 export async function inputRoutes(
   app: FastifyInstance,
   ctx: AppContext,
@@ -139,7 +142,7 @@ export async function inputRoutes(
         if (!me) return;
         const space = await ownSpace(me.id, req.params.spaceId);
         const name = req.params.name;
-        if (!space || !INPUT_NAME.test(name)) return notFound(reply);
+        if (!space || !PICTURE_NAME.test(name)) return notFound(reply);
         const kind: 'plan' | 'photo' = name.startsWith('plan') ? 'plan' : 'photo';
         const existing = await db
           .select()
@@ -198,13 +201,64 @@ export async function inputRoutes(
     );
   });
 
+  // A pack: a .zip of photos with notes on them (a README, a manifest saying what each shows),
+  // unpacked and kept whole, its files keeping their names. Enough to start from without a plan.
+  await app.register(async (scope) => {
+    scope.addContentTypeParser(
+      ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
+      { parseAs: 'buffer', bodyLimit: 25 * 1024 * 1024 },
+      (_req, body, done) => done(null, body),
+    );
+    scope.put<{ Params: { spaceId: string; file: string } }>(
+      '/api/spaces/:spaceId/packs/:file',
+      async (req, reply) => {
+        const me = await requireUser(ctx, req, reply);
+        if (!me) return;
+        const space = await ownSpace(me.id, req.params.spaceId);
+        if (!space) return notFound(reply);
+        const file = req.params.file;
+        if (!/\.zip$/i.test(file) || !Buffer.isBuffer(req.body))
+          return sendError(reply, 415, 'Send a .zip of photos (and notes on them).');
+        let pack: Awaited<ReturnType<typeof preparePack>>;
+        try {
+          pack = await preparePack(req.body, file, true);
+        } catch (err) {
+          if (err instanceof PackError)
+            return sendError(reply, err.status, `${file}: ${err.message}`);
+          throw err;
+        }
+        const kept = await keepPack(ctx, space.id, pack);
+        if (!kept) return sendError(reply, 413, `Up to ${LIMITS.pack} .zip files per place.`);
+        await record(db, {
+          groupId: space.groupId,
+          actorUserId: me.id,
+          action: 'place.pack',
+          target: space.id,
+          metadata: { input: kept.name, files: pack.files.size, bytes: kept.bytes },
+        });
+        return {
+          name: kept.name,
+          kind: 'pack',
+          width: pack.files.size,
+          height: 0,
+          bytes: kept.bytes,
+          files: pack.files.size,
+          folder: kept.folder,
+          left: pack.left,
+        } satisfies AddedPack;
+      },
+    );
+  });
+
   app.get<{ Params: { spaceId: string } }>('/api/spaces/:spaceId/inputs', async (req, reply) => {
     const me = await requireUser(ctx, req, reply);
     if (!me) return;
     const space = await ownSpace(me.id, req.params.spaceId);
     if (!space) return notFound(reply);
     reply.header('cache-control', 'private, no-store');
-    const inputs = await db.select().from(spaceInputs).where(eq(spaceInputs.spaceId, space.id));
+    const inputs = (
+      await db.select().from(spaceInputs).where(eq(spaceInputs.spaceId, space.id))
+    ).map((i) => (i.kind === 'pack' ? { ...i, files: i.width } : i));
     return { inputs: inputs satisfies Sent<PlaceInput>[] };
   });
 
@@ -214,7 +268,7 @@ export async function inputRoutes(
       const me = await requireUser(ctx, req, reply);
       if (!me) return;
       const space = await ownSpace(me.id, req.params.spaceId);
-      if (!space || !INPUT_NAME.test(req.params.name)) return notFound(reply);
+      if (!space || !PICTURE_NAME.test(req.params.name)) return notFound(reply);
       try {
         const bytes = await (await getStorage(ctx)).getBytes(inputKey(space.id, req.params.name));
         return reply
@@ -234,7 +288,8 @@ export async function inputRoutes(
       if (!me) return;
       const space = await ownSpace(me.id, req.params.spaceId);
       if (!space || !INPUT_NAME.test(req.params.name)) return notFound(reply);
-      await (await getStorage(ctx)).delete(inputKey(space.id, req.params.name)).catch(() => {});
+      const key = req.params.name.startsWith('pack-') ? packKey : inputKey;
+      await (await getStorage(ctx)).delete(key(space.id, req.params.name)).catch(() => {});
       await db
         .delete(spaceInputs)
         .where(and(eq(spaceInputs.spaceId, space.id), eq(spaceInputs.name, req.params.name)));

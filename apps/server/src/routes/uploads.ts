@@ -6,13 +6,13 @@ import { z } from 'zod';
 import { notFound, requireUser } from '../access.ts';
 import { record } from '../audit.ts';
 import type { AppContext } from '../context.ts';
-import { arrangePack, PackError, unzipPack } from '../packs.ts';
+import { PackError, preparePack, uploadName } from '../packs.ts';
 import { openPicture } from '../pictures.ts';
 import { sendError } from '../reply.ts';
 import { membershipsFor } from '../session.ts';
 import { getStorage } from '../storage.ts';
 import { type Supervisor, SupervisorError } from '../studio/supervisor.ts';
-import { inputKey, LIMITS } from './onboarding.ts';
+import { inputKey, keepPack, LIMITS } from './onboarding.ts';
 
 const { spaceInputs, workspaces } = schema;
 
@@ -20,38 +20,8 @@ export const MAX_UPLOAD = 25 * 1024 * 1024;
 
 /** Pictures we clean on the way in (others, like GIF and SVG, are kept as they are). */
 const PICTURE = /^(jpe?g|png|webp|heic|heif|avif|tiff?)$/;
-/** Pictures a pack keeps in their own format, cleaned (any other picture becomes a JPEG). */
-const KEEP_FORMAT: Record<string, 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff'> = {
-  jpg: 'jpeg',
-  jpeg: 'jpeg',
-  png: 'png',
-  webp: 'webp',
-  avif: 'avif',
-  tif: 'tiff',
-  tiff: 'tiff',
-};
-/** Besides pictures, what a place's pack may hold: documents about the place. */
-const PLACE_DOCUMENT = /^(pdf|md|markdown|txt|json|csv|tsv|ya?ml|geojson|kml|gif|svg)$/;
 /** A name a file in uploads/ can have (the ones this route gives). */
 const UPLOADED = /^[a-z0-9][a-z0-9_-]{0,79}(\.[a-z0-9]{1,10})?$/;
-
-/**
- * A plain, safe file name from whatever the Architect's file was called ("Kitchen Window
- * (2).HEIC" → kitchen-window-2 + .heic): lower case letters, digits and dashes only.
- */
-export function uploadName(original: string): { base: string; ext: string } {
-  const plain = original.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
-  const dot = plain.lastIndexOf('.');
-  const rawExt = dot > 0 ? plain.slice(dot + 1) : '';
-  const ext = /^[a-z0-9]{1,10}$/.test(rawExt) ? rawExt : '';
-  const base =
-    (ext ? plain.slice(0, dot) : plain)
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 60)
-      .replace(/-+$/, '') || 'file';
-  return { base, ext };
-}
 
 /**
  * Adding files to a workspace while the assistant works: they go into its `uploads/` folder, and
@@ -83,38 +53,9 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
   };
 
   /**
-   * One file from a pack as it's kept: a picture without its hidden details (where and on what it
-   * was taken), in its own format and under its own name where it can be (the pack's README or
-   * manifest names it). Null when a place's pack can't take it: a place takes pictures and
-   * documents about it, and a picture that can't be read is left out (a creation keeps it as it
-   * is).
-   */
-  const packFile = async (path: string, data: Buffer, place: boolean) => {
-    const dot = path.lastIndexOf('.');
-    const ext = dot > path.lastIndexOf('/') + 1 ? path.slice(dot + 1).toLowerCase() : '';
-    if (PICTURE.test(ext)) {
-      try {
-        const img = (await openPicture(data, 100_000_000))
-          .rotate()
-          .resize({ width: 4096, height: 4096, fit: 'inside', withoutEnlargement: true });
-        const format = KEEP_FORMAT[ext];
-        if (format === 'jpeg' || !format)
-          return {
-            path: format ? path : `${path.slice(0, dot)}.jpg`,
-            data: await img.jpeg({ quality: 90, mozjpeg: true }).toBuffer(),
-          };
-        return { path, data: await img.toFormat(format).toBuffer() };
-      } catch {
-        return place ? null : { path, data };
-      }
-    }
-    return place && !PLACE_DOCUMENT.test(ext) ? null : { path, data };
-  };
-
-  /**
    * A .zip added to a workspace: unpacked into one folder in uploads/, its files keeping their
-   * names (pictures cleaned), and the folder named in the terminal. A place doesn't keep a pack
-   * with its photos and plans: it's for this workspace.
+   * names (pictures cleaned), and the folder named in the terminal. A place keeps it too (as it
+   * keeps single pictures), so whoever changes the place next has it.
    */
   const addPack = async (
     reply: FastifyReply,
@@ -124,42 +65,23 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
     body: Buffer,
     supervisor: Supervisor,
   ) => {
-    let arranged: ReturnType<typeof arrangePack>;
+    const place = ws.kind === 'space';
+    let pack: Awaited<ReturnType<typeof preparePack>>;
     try {
-      arranged = arrangePack(unzipPack(body), zipName);
+      pack = await preparePack(body, zipName, place);
     } catch (err) {
-      if (err instanceof PackError) return sendError(reply, 400, `${zipName}: ${err.message}`);
+      if (err instanceof PackError)
+        return sendError(reply, err.status, `${zipName}: ${err.message}`);
       throw err;
     }
-    const place = ws.kind === 'space';
-    const files: { path: string; data: string }[] = [];
-    const left: string[] = [];
-    const taken = new Set<string>();
-    let bytes = 0;
-    for (const [path, data] of arranged.files) {
-      const kept = await packFile(path, data, place);
-      if (!kept || taken.has(kept.path)) {
-        left.push(path);
-        continue;
-      }
-      taken.add(kept.path);
-      bytes += kept.data.length;
-      files.push({ path: kept.path, data: kept.data.toString('base64') });
-    }
-    if (!files.length)
-      return sendError(
-        reply,
-        arranged.files.size ? 415 : 400,
-        arranged.files.size
-          ? `Nothing in ${zipName} could be added: a place takes pictures and documents about it (PDF, text, JSON…).`
-          : `${zipName} is empty.`,
-      );
+    const files = [...pack.files].map(([path, data]) => ({ path, data: data.toString('base64') }));
     try {
       const r = await supervisor.call<{ name: string; running: boolean }>(
         'workspace.uploadpack',
         { ws: ws.id },
-        { folder: uploadName(arranged.folder).base, files },
+        { folder: pack.folder, files },
       );
+      const kept = place && ws.spaceId ? await keepPack(ctx, ws.spaceId, pack) : null;
       const typed = r.running
         ? (
             await supervisor.call<{ ok: boolean }>(
@@ -178,9 +100,20 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
         actorUserId: me.id,
         action: 'workspace.upload',
         target: ws.id,
-        metadata: { bytes, files: files.length, pack: true },
+        metadata: {
+          bytes: pack.bytes,
+          files: files.length,
+          pack: true,
+          ...(kept ? { input: kept.name } : {}),
+        },
       });
-      return { path: `uploads/${r.name}/`, typed, input: null, files: files.length, left };
+      return {
+        path: `uploads/${r.name}/`,
+        typed,
+        input: kept?.name ?? null,
+        files: files.length,
+        left: pack.left,
+      };
     } catch (err) {
       return sandboxSaid(reply, err);
     }

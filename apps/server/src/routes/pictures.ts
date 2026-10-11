@@ -13,8 +13,11 @@ import { SupervisorError } from '../studio/supervisor.ts';
 
 const { spaceVersions, workspaces } = schema;
 
-/** A picture the assistant made: a model's four views, or a room drawn from a corner. */
-const PICTURE = /^preview\/(models|rooms)\/[\w.-]{1,80}\.png$/;
+/**
+ * A picture the assistant made: a model's four views, a room drawn from a corner, or the place
+ * drawn beside a photo of it (`ats space match`).
+ */
+const PICTURE = /^preview\/(models|rooms|match)\/[\w.-]{1,80}\.png$/;
 
 interface Listing {
   pictures: { path: string; bytes: number; at: number }[];
@@ -68,7 +71,11 @@ export async function pictureRoutes(app: FastifyInstance, ctx: AppContext) {
         .sort((a, b) => b.at - a.at)
         .map((p) => ({
           path: p.path,
-          kind: p.path.startsWith('preview/rooms/') ? ('room' as const) : ('model' as const),
+          kind: p.path.startsWith('preview/rooms/')
+            ? ('room' as const)
+            : p.path.startsWith('preview/match/')
+              ? ('match' as const)
+              : ('model' as const),
           name: (p.path.split('/').pop() ?? '').replace(/\.png$/, ''),
           at: Math.round(p.at * 1000),
         })) satisfies AssistantPicture[];

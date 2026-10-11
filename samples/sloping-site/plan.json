@@ -1,0 +1,131 @@
+{
+  "name": "Sloping site",
+  "spaceType": "building",
+  "floors": [
+    { "key": "lower", "name": "Lower deck", "elevation": 0, "height": 3 },
+    { "key": "upper", "name": "Upper deck", "elevation": 3, "height": 3 }
+  ],
+  "rooms": [
+    {
+      "key": "lower-deck",
+      "name": "Lower deck",
+      "floor": "lower",
+      "rect": [0, 0, 40, 24],
+      "outdoor": true,
+      "floorMaterial": "concrete",
+      "wallMaterial": "concrete",
+      "parapet": 1
+    },
+    {
+      "key": "turn",
+      "name": "Turn",
+      "floor": "lower",
+      "rect": [40, 20, 48, 24],
+      "outdoor": true,
+      "floorMaterial": "concrete",
+      "wallMaterial": "concrete",
+      "parapet": 1
+    },
+    {
+      "key": "ramp",
+      "name": "Ramp",
+      "floor": "lower",
+      "rect": [40, 4, 48, 20],
+      "outdoor": true,
+      "floorMaterial": "concrete",
+      "wallMaterial": "concrete",
+      "parapet": 1,
+      "slope": { "toward": "north", "rise": 3 }
+    },
+    {
+      "key": "landing",
+      "name": "Landing",
+      "floor": "upper",
+      "rect": [40, 0, 48, 4],
+      "outdoor": true,
+      "floorMaterial": "concrete",
+      "wallMaterial": "concrete",
+      "parapet": 1
+    },
+    {
+      "key": "upper-deck",
+      "name": "Upper deck",
+      "floor": "upper",
+      "rect": [0, 0, 40, 24],
+      "outdoor": true,
+      "floorMaterial": "concrete",
+      "wallMaterial": "concrete",
+      "parapet": 1
+    },
+    {
+      "key": "street",
+      "name": "Street",
+      "floor": "lower",
+      "rect": [-10, 24, 60, 34],
+      "outdoor": true,
+      "floorMaterial": "asphalt",
+      "parapet": 0,
+      "slope": { "toward": "south", "rise": 1 }
+    }
+  ],
+  "openings": [
+    {
+      "kind": "open",
+      "rooms": ["lower-deck", "street"],
+      "at": [20, 24],
+      "width": 6,
+      "height": 2.4
+    },
+    { "kind": "open", "rooms": ["lower-deck", "turn"], "at": [40, 22], "width": 3.8 },
+    { "kind": "open", "rooms": ["turn", "ramp"], "at": [44, 20], "width": 7.5, "height": 2.4 },
+    { "kind": "open", "rooms": ["ramp", "landing"], "at": [44, 4], "width": 7.5, "height": 2.4 },
+    { "kind": "open", "rooms": ["landing", "upper-deck"], "at": [40, 2], "width": 3.6 }
+  ],
+  "stairs": [],
+  "furniture": [
+    {
+      "key": "pay-machine",
+      "room": "lower-deck",
+      "kind": "box",
+      "label": "Pay machine",
+      "at": [24, 22.5],
+      "size": [0.6, 1.6, 0.4],
+      "material": "metal-dark"
+    },
+    { "key": "bench", "room": "street", "kind": "chair", "label": "Bench", "at": [30, 32] }
+  ],
+  "structure": [
+    {
+      "room": "lower-deck",
+      "label": "column",
+      "at": [5, 8],
+      "size": [0.5, 2.88, 0.5],
+      "repeat": { "count": 7, "step": [5, 0] }
+    },
+    {
+      "room": "lower-deck",
+      "label": "column",
+      "at": [5, 16],
+      "size": [0.5, 2.88, 0.5],
+      "repeat": { "count": 7, "step": [5, 0] }
+    },
+    {
+      "room": "upper-deck",
+      "label": "mesh screen",
+      "at": [2, 23.8],
+      "size": [3.6, 1.5, 0.04],
+      "elevation": 1,
+      "material": "mesh-green",
+      "repeat": { "count": 10, "step": [4, 0] }
+    },
+    {
+      "room": "upper-deck",
+      "label": "screen post",
+      "at": [0.1, 23.8],
+      "size": [0.1, 2.5, 0.1],
+      "material": "metal-green",
+      "repeat": { "count": 11, "step": [3.98, 0] }
+    }
+  ],
+  "spawns": [{ "key": "street", "room": "street", "at": [20, 29], "yaw": 0 }]
+}

@@ -6,6 +6,10 @@ import { z } from 'zod';
  *
  * Coordinates are metres on the ground plane: x grows east, z grows south. Rooms are rectangles
  * for now (most real rooms are; L-shaped spaces are two rooms joined by an open opening).
+ *
+ * Everything added since the first version is optional, and a plan without it builds exactly as
+ * it did: where a place is on Earth (`site`), floors that slope (`slope`), outdoor edges of any
+ * height (`parapet`), and the building's own structure (`structure`: columns, beams, panels).
  */
 
 const XZ = z.tuple([z.number(), z.number()]);
@@ -35,6 +39,17 @@ export const MaterialName = z.enum([
   'glass',
   /** Painted skirting boards, window frames and door casings. */
   'trim',
+  // Outside: streets, ground and the building's own fabric.
+  'asphalt',
+  'grass',
+  'brick',
+  'stone',
+  /** Painted steel (railings, posts, frames). */
+  'metal-green',
+  'metal-white',
+  /** Metal mesh you can see through (screens, fences, guards). */
+  'mesh',
+  'mesh-green',
 ]);
 export type MaterialName = z.infer<typeof MaterialName>;
 
@@ -57,6 +72,17 @@ export const PlanRoom = z.object({
   spansTo: z.string().optional(),
   floorMaterial: MaterialName.default('oak'),
   wallMaterial: MaterialName.default('plaster'),
+  /**
+   * A floor that slopes (a ramp, a sloping deck, ground that falls away): it climbs `rise` metres
+   * from the floor's elevation, evenly across the room, up to its `toward` edge. Walls, ceiling,
+   * doors and furniture follow it.
+   */
+  slope: z.object({ toward: Side, rise: z.number().positive() }).optional(),
+  /**
+   * Outdoors: how high the low wall around the edge is (1.05 m when left out; 0 for none, as for
+   * open ground, a street or a pavement).
+   */
+  parapet: z.number().nonnegative().optional(),
 });
 export type PlanRoom = z.infer<typeof PlanRoom>;
 
@@ -152,6 +178,43 @@ export const PlanFurniture = z.object({
 });
 export type PlanFurniture = z.infer<typeof PlanFurniture>;
 
+/**
+ * Part of the building itself, not furniture: a column, a beam, a wall panel, a screen, a post.
+ * People bump into it and see it, but can't pick it out (nothing lives on it). A box, standing on
+ * its room's floor unless `elevation` lifts it.
+ */
+export const PlanStructure = z.object({
+  /** The room it belongs to (it's shown and hidden with that room). */
+  room: z.string(),
+  /** What it is, in a word or two ("column", "spandrel", "mesh screen"), for people reading. */
+  label: z.string().optional(),
+  /** Centre of its footprint. */
+  at: XZ,
+  /** [width along x, height, depth along z], before rotation. */
+  size: z.tuple([z.number().positive(), z.number().positive(), z.number().positive()]),
+  /** Height of its bottom above the room's floor (beams and panels hang higher). */
+  elevation: z.number().default(0),
+  /** Rotation around the vertical axis in degrees. */
+  rotation: z.number().default(0),
+  material: MaterialName.default('concrete'),
+  /** Copies in a row (a line of columns, a run of panels): `count` in all, each `step` [dx, dz] from the last. */
+  repeat: z.object({ count: z.number().int().min(1).max(500), step: XZ }).optional(),
+});
+export type PlanStructure = z.infer<typeof PlanStructure>;
+
+/**
+ * Where a place is on Earth, so photos taken from known spots (street views, a survey) can be
+ * matched against it: the latitude and longitude of the plan's origin (x = 0, z = 0), and the
+ * compass bearing the plan's north (-z, the top of the drawing) faces (0 when the drawing is
+ * north-up; 90 when its top faces east).
+ */
+export const PlanSite = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  bearing: z.number().min(-360).max(360).default(0),
+});
+export type PlanSite = z.infer<typeof PlanSite>;
+
 export const SpacePlan = z.object({
   name: z.string(),
   spaceType: z.enum(['apartment', 'condo', 'house', 'office', 'building', 'other']),
@@ -169,8 +232,62 @@ export const SpacePlan = z.object({
     )
     .default([]),
   furniture: z.array(PlanFurniture).default([]),
+  structure: z.array(PlanStructure).optional(),
+  site: PlanSite.optional(),
   spawns: z
     .array(z.object({ key: z.string(), room: z.string(), at: XZ, yaw: z.number().default(0) }))
     .min(1),
 });
 export type SpacePlan = z.infer<typeof SpacePlan>;
+
+/** How far a room's floor has climbed at a point (0 for a level floor). */
+export function slopeAt(room: Pick<PlanRoom, 'rect' | 'slope'>, x: number, z: number): number {
+  if (!room.slope) return 0;
+  const [x0, z0, x1, z1] = room.rect;
+  const t = {
+    east: (x - x0) / (x1 - x0),
+    west: (x1 - x) / (x1 - x0),
+    south: (z - z0) / (z1 - z0),
+    north: (z1 - z) / (z1 - z0),
+  }[room.slope.toward];
+  return room.slope.rise * Math.min(1, Math.max(0, t));
+}
+
+/** Every copy of a piece of structure: its centre. */
+export function structureCopies(s: PlanStructure): [number, number][] {
+  const count = s.repeat?.count ?? 1;
+  const [dx, dz] = s.repeat?.step ?? [0, 0];
+  return Array.from({ length: count }, (_, i) => [s.at[0] + dx * i, s.at[1] + dz * i]);
+}
+
+const EARTH = 6_371_008.8;
+/**
+ * A place on Earth as a point in the plan (metres; x east of the origin along the plan's x, z
+ * along its z), for a site. Exact enough across a few kilometres.
+ */
+export function planPoint(site: PlanSite, lat: number, lng: number): [number, number] {
+  const rad = Math.PI / 180;
+  const east = (lng - site.lng) * rad * EARTH * Math.cos(site.lat * rad);
+  const north = (lat - site.lat) * rad * EARTH;
+  const b = site.bearing * rad;
+  // The plan's north (-z) faces `bearing`; its east (+x) faces `bearing` + 90°.
+  return [east * Math.cos(b) - north * Math.sin(b), -(east * Math.sin(b) + north * Math.cos(b))];
+}
+
+/** A point in the plan as latitude and longitude (the inverse of `planPoint`). */
+export function earthPoint(site: PlanSite, x: number, z: number): [number, number] {
+  const rad = Math.PI / 180;
+  const b = site.bearing * rad;
+  const east = x * Math.cos(b) - z * Math.sin(b);
+  const north = -x * Math.sin(b) - z * Math.cos(b);
+  return [
+    site.lat + north / (EARTH * rad),
+    site.lng + east / (EARTH * rad * Math.cos(site.lat * rad)),
+  ];
+}
+
+/** A compass heading (degrees) as a direction in the plan, [dx, dz]. */
+export function planDirection(site: Pick<PlanSite, 'bearing'>, heading: number): [number, number] {
+  const a = ((heading - site.bearing) * Math.PI) / 180;
+  return [Math.sin(a), -Math.cos(a)];
+}

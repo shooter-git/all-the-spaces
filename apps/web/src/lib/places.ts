@@ -1,5 +1,6 @@
 import type {
   AddedInput,
+  AddedPack,
   PlaceInput,
   PlaceVersion,
   PlanProblem,
@@ -11,6 +12,7 @@ import { api } from './api.ts';
 
 export type {
   AddedInput,
+  AddedPack,
   PlaceInput,
   PlaceVersion,
   PlanProblem,
@@ -41,6 +43,23 @@ export async function uploadInput(spaceId: string, name: string, file: File, not
   const body = (await res.json().catch(() => ({}))) as { error?: string };
   if (!res.ok) throw new Error(body.error ?? "That picture couldn't be added.");
   return body as AddedInput;
+}
+
+/**
+ * Adds a pack: a .zip of photos with notes on them (a README, a manifest), unpacked and kept whole
+ * with the place, its files keeping their names. `left` is what in it a place can't take.
+ */
+export async function uploadPack(spaceId: string, file: File) {
+  const res = await fetch(`/api/spaces/${spaceId}/packs/${encodeURIComponent(file.name)}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'content-type': 'application/zip' },
+    body: file,
+  });
+  const body = (await res.json().catch(() => ({}))) as { error?: string };
+  if (res.status === 413 && !body.error) throw new Error(`${file.name} is over 25 MB.`);
+  if (!res.ok) throw new Error(body.error ?? `${file.name} couldn't be added.`);
+  return body as AddedPack;
 }
 
 export const removeInput = (spaceId: string, name: string) =>

@@ -247,6 +247,8 @@ export async function bakeRoom(
     top: number;
     outdoor: boolean;
     doorways: Doorway[];
+    /** A sloping floor's climb at a point (its ceiling follows it). */
+    lift?: (x: number, z: number) => number;
   },
   settings: BakeSettings,
 ): Promise<BakeResult> {
@@ -279,7 +281,7 @@ export async function bakeRoom(
   const input: BakeInput = {
     receiver: { positions, faces, faceGroup, groups },
     occluders: flatten(occluders),
-    lights: room.outdoor ? [] : ceilingLights(x0, z0, x1, z1, room.top),
+    lights: room.outdoor ? [] : ceilingLights(x0, z0, x1, z1, room.top, room.lift),
     hdri: settings.hdriPath ?? null,
     hdriStrength: 1,
     // Aligns Blender's sky with three.js's so sunlight falls the same way in both.
@@ -402,19 +404,25 @@ async function encodeLightmap(rgba: Float32Array, width: number, height: number)
 }
 
 /** Soft ceiling lights on a ~3 m grid, like a well-lit home or office. */
-export function ceilingLights(x0: number, z0: number, x1: number, z1: number, top: number) {
+export function ceilingLights(
+  x0: number,
+  z0: number,
+  x1: number,
+  z1: number,
+  top: number,
+  /** Under a sloping ceiling: how far it has climbed at a point. */
+  lift?: (x: number, z: number) => number,
+) {
   const nx = Math.max(1, Math.round((x1 - x0) / 3));
   const nz = Math.max(1, Math.round((z1 - z0) / 3));
   const cellArea = ((x1 - x0) / nx) * ((z1 - z0) / nz);
   const lights = [];
   for (let i = 0; i < nx; i++) {
     for (let j = 0; j < nz; j++) {
+      const x = x0 + ((i + 0.5) * (x1 - x0)) / nx;
+      const z = z0 + ((j + 0.5) * (z1 - z0)) / nz;
       lights.push({
-        center: [
-          x0 + ((i + 0.5) * (x1 - x0)) / nx,
-          top - 0.03,
-          z0 + ((j + 0.5) * (z1 - z0)) / nz,
-        ] as V3,
+        center: [x, top - 0.03 + (lift ? lift(x, z) : 0), z] as V3,
         size: [0.7, 0.7] as [number, number],
         power: 7 * cellArea,
         color: [1.0, 0.93, 0.84] as V3,

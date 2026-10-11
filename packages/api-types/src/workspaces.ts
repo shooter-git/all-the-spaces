@@ -76,10 +76,13 @@ export interface CheckResult {
   passed: number;
 }
 
-/** A picture the assistant made: a model from four sides, or a room drawn from a corner. */
+/**
+ * A picture the assistant made: a model from four sides, a room drawn from a corner, or the place
+ * drawn from where a photo of it was taken, beside the photo (a match).
+ */
 export interface AssistantPicture {
   path: string;
-  kind: 'room' | 'model';
+  kind: 'room' | 'model' | 'match';
   name: string;
   /** When it was drawn (ms). */
   at: number;

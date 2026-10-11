@@ -7,7 +7,7 @@ import { planRoutes } from './onboarding/plan.ts';
 import { publishRoutes } from './onboarding/publish.ts';
 import { onboardingShared } from './onboarding/shared.ts';
 
-export { inputKey, LIMITS } from './onboarding/shared.ts';
+export { inputKey, keepPack, LIMITS, packKey } from './onboarding/shared.ts';
 
 /**
  * Setting up a real place: the Architect gives floor plans, photos and a description; their
