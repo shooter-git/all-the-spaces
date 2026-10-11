@@ -8,7 +8,35 @@ with an AI coding assistant and then stay there for everyone.
 
 It's free, open source, and runs on your own server.
 
+![Two people in a 3D living room in the browser; a phone beside it shows the space's chat](docs/images/a-space-together.jpg)
+
 > **Status:** early (0.x). Expect rough edges, and breaking changes between releases until v1.0.
+
+## What it looks like
+
+**Any object can be a doorway.** Point at something and it says what it opens. Its door tells you
+what's inside; go in together with whoever else is there, or on your own.
+
+![Pointing at a coffee table shows "Click to open Sky islands"; its door card; inside the game](docs/images/objects-are-doorways.jpg)
+
+**Creations can be anything.** A platformer, mini golf, a campsite to wander at night. The
+Architect builds each one with their AI assistant and free (CC0) models and skies, and every
+version is checked on phones, tablets and laptops before it goes live.
+
+![Three creations: a platformer above the clouds, a mini golf course with a windmill, and a campfire by a lake at night](docs/images/creations.jpg)
+
+**Places of any size**, from a studio flat to a building with several floors, built by the
+Architect's assistant from a floor plan and a few photos.
+
+![Rooms of a two-floor building: an open office, a terrace and a lobby](docs/images/places.jpg)
+
+**The Studio, for Architects.** Members ask for things; the Architect builds them with their own AI
+coding assistant in a sealed workspace, with a live preview at phone and laptop sizes.
+
+![A Studio workspace with its terminal and a live preview, and the queue of members' requests](docs/images/studio.jpg)
+
+<sub>The pictures show an invented household on a development server; the creations were made for
+them.</sub>
 
 ## Install on a server
 
