@@ -67,3 +67,44 @@ describe('ats-space on a building with several floors', { timeout: 30_000 }, () 
       expect((await stat(join(dir, 'preview', f))).size).toBeGreaterThan(1000);
   });
 });
+
+describe('ats-space from the outside in', { timeout: 30_000 }, () => {
+  let dir = '';
+  const ats = (...args: string[]) =>
+    run(process.execPath, ['--experimental-strip-types', cli, '--dir', dir, ...args]);
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'ats-space-outside-'));
+    await copyFile(join(kit, 'plan-1-ground-floor.jpg'), join(dir, 'aerial.jpg'));
+    await writeFile(
+      join(dir, 'plan.json'),
+      JSON.stringify({ name: 'Shop', spaceType: 'building', floors: [], rooms: [], spawns: [] }),
+    );
+  });
+  afterAll(() => rm(dir, { recursive: true, force: true }));
+
+  it('turns an aerial view straight, and says the bearing and where its pixels land', async () => {
+    const { stdout } = await ats('straighten', 'aerial.jpg', '-20', '--mark', '10,10');
+    expect(stdout).toContain('faces a compass bearing of 20.0°');
+    const turned = await readFile(join(dir, 'preview/plan-aerial.png'));
+    expect(turned.length).toBeGreaterThan(0);
+    // The marked corner pixel, turned 20° anticlockwise about the middle of the picture.
+    const sharp = (await import('sharp')).default;
+    const before = await sharp(join(dir, 'aerial.jpg')).metadata();
+    const after = await sharp(turned).metadata();
+    const a = (-20 * Math.PI) / 180;
+    const [dx, dy] = [10 - (before.width ?? 0) / 2, 10 - (before.height ?? 0) / 2];
+    const x = Math.round(dx * Math.cos(a) - dy * Math.sin(a) + (after.width ?? 0) / 2);
+    const y = Math.round(dx * Math.sin(a) + dy * Math.cos(a) + (after.height ?? 0) / 2);
+    expect(stdout).toContain(`Pixel 10,10 of aerial.jpg is at ${x},${y}`);
+  });
+
+  it('puts the plan on the map from a point of it, south of the equator and west too', async () => {
+    await ats('site', '-33.8568,151.2153', '--plan', '10,0', '--bearing', '-30');
+    const { site } = JSON.parse(await readFile(join(dir, 'plan.json'), 'utf8'));
+    expect(site.bearing).toBe(-30);
+    const { planPoint } = await import('@ats/space-format');
+    const [x, z] = planPoint(site, -33.8568, 151.2153);
+    expect(x).toBeCloseTo(10, 1);
+    expect(z).toBeCloseTo(0, 1);
+  });
+});

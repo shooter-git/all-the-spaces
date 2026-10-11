@@ -338,29 +338,33 @@ export function checkPlan(input: unknown): { plan: SpacePlan | null; problems: P
     for (let i = 1; i < stops.length; i++) link(stops[0] as string, stops[i] as string);
   }
 
-  // A sloping floor needs head room under whatever is above it.
+  // A sloping floor needs head room under whatever is above it (and a floor above that slopes,
+  // over whatever is below): measured where they overlap, each at its own height there.
+  const heightAt = (r: PlanRoom, x: number, z: number) =>
+    (floors.get(r.floor)?.elevation ?? 0) + slopeAt(r, x, z);
   for (const r of list) {
-    if (!r.slope) continue;
     const base = floors.get(r.floor)?.elevation ?? 0;
     for (const q of list) {
       const above = floors.get(q.floor)?.elevation ?? 0;
-      if (q === r || above <= base) continue;
+      if (q === r || above <= base || (!r.slope && !q.slope)) continue;
       const ox0 = Math.max(r.rect[0], q.rect[0]);
       const oz0 = Math.max(r.rect[1], q.rect[1]);
       const ox1 = Math.min(r.rect[2], q.rect[2]);
       const oz1 = Math.min(r.rect[3], q.rect[3]);
       if (ox1 - ox0 <= EPS || oz1 - oz0 <= EPS) continue;
-      const highest = Math.max(
-        ...[
-          [ox0, oz0],
-          [ox1, oz0],
-          [ox0, oz1],
-          [ox1, oz1],
-        ].map(([x, z]) => base + slopeAt(r, x as number, z as number)),
-      );
-      if (highest + 2 > above - 0.12)
+      // Both floors are planes, so the least head room is at a corner of where they overlap.
+      const corners = [
+        [ox0, oz0],
+        [ox1, oz0],
+        [ox0, oz1],
+        [ox1, oz1],
+      ] as const;
+      const tight = corners
+        .map(([x, z]) => ({ low: heightAt(r, x, z), high: heightAt(q, x, z) }))
+        .reduce((a, b) => (b.high - b.low < a.high - a.low ? b : a));
+      if (tight.high - tight.low < 2 + 0.12)
         warn(
-          `${r.name} rises to ${m(highest)} under ${q.name} (whose floor is at ${m(above)}): not enough head room.`,
+          `${r.name} rises to ${m(tight.low)} under ${q.name} (whose floor is at ${m(tight.high)} there): not enough head room.`,
           'Leave the space above a ramp open, or check its rise and the floor elevations.',
         );
     }
