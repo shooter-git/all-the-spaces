@@ -268,23 +268,21 @@ describe.skipIf(!adminUrl)('server flows', () => {
         await req('GET', `/api/spaces/${placeId}/inputs`, architectCookie)
       ).json().inputs.length;
       const res = await add(
-        'Garage%20pack.zip',
+        'Site%20photos.zip',
         zip({
-          'garage-imagery/README.md': text('# The garage\n\nStart with 01.'),
-          'garage-imagery/manifest.json': text(
-            '{"images":[{"filename":"01_aerial_UNCONFIRMED.jpg"}]}',
-          ),
-          'garage-imagery/01_aerial_UNCONFIRMED.jpg': photo,
-          'garage-imagery/reference/parking map.png': await sharp(photo).png().toBuffer(),
-          'garage-imagery/reference/study.pdf': text('%PDF-1.4'),
-          'garage-imagery/tool.exe': text('MZ'),
-          'garage-imagery/.DS_Store': text('junk'),
-          '__MACOSX/garage-imagery/._README.md': text('junk'),
+          'site-photos/README.md': text('# The house\n\nStart with 01.'),
+          'site-photos/manifest.json': text('{"images":[{"filename":"01_Overhead_North-up.jpg"}]}'),
+          'site-photos/01_Overhead_North-up.jpg': photo,
+          'site-photos/reference/site map.png': await sharp(photo).png().toBuffer(),
+          'site-photos/reference/study.pdf': text('%PDF-1.4'),
+          'site-photos/tool.exe': text('MZ'),
+          'site-photos/.DS_Store': text('junk'),
+          '__MACOSX/site-photos/._README.md': text('junk'),
         }),
       );
       expect(res.statusCode).toBe(200);
       expect(res.json()).toEqual({
-        path: 'uploads/garage-imagery/',
+        path: 'uploads/site-photos/',
         typed: true,
         input: null,
         files: 5,
@@ -294,19 +292,19 @@ describe.skipIf(!adminUrl)('server flows', () => {
         folder: string;
         files: { path: string; data: string }[];
       };
-      expect(written.folder).toBe('garage-imagery');
+      expect(written.folder).toBe('site-photos');
       const files = new Map(written.files.map((f) => [f.path, Buffer.from(f.data, 'base64')]));
       // Names kept as the README and manifest give them (made plain only where they must be).
       expect([...files.keys()].sort()).toEqual([
-        '01_aerial_UNCONFIRMED.jpg',
+        '01_Overhead_North-up.jpg',
         'README.md',
         'manifest.json',
-        'reference/parking-map.png',
+        'reference/site-map.png',
         'reference/study.pdf',
       ]);
-      expect(files.get('README.md')?.toString()).toBe('# The garage\n\nStart with 01.');
+      expect(files.get('README.md')?.toString()).toBe('# The house\n\nStart with 01.');
       // Pictures lose their hidden details, and keep their format.
-      const meta = await sharp(files.get('01_aerial_UNCONFIRMED.jpg')).metadata();
+      const meta = await sharp(files.get('01_Overhead_North-up.jpg')).metadata();
       expect([meta.format, meta.width, meta.height, meta.exif, meta.orientation]).toEqual([
         'jpeg',
         300,
@@ -314,22 +312,22 @@ describe.skipIf(!adminUrl)('server flows', () => {
         undefined,
         undefined,
       ]);
-      expect((await sharp(files.get('reference/parking-map.png')).metadata()).format).toBe('png');
+      expect((await sharp(files.get('reference/site-map.png')).metadata()).format).toBe('png');
       // The folder is named in the terminal (pasted, never sent), and isn't kept with the place.
       expect(supCalls.findLast((c) => c.act === 'sandbox.paste')?.body).toEqual({
-        text: '@uploads/garage-imagery/ ',
+        text: '@uploads/site-photos/ ',
       });
       expect(
         (await req('GET', `/api/spaces/${placeId}/inputs`, architectCookie)).json().inputs.length,
       ).toBe(inputsBefore);
       const again = await req(
         'POST',
-        `/api/workspaces/${placeWorkspace}/uploads/garage-imagery/mention?folder=1`,
+        `/api/workspaces/${placeWorkspace}/uploads/site-photos/mention?folder=1`,
         architectCookie,
       );
       expect(again.json()).toEqual({ typed: true });
       expect(supCalls.findLast((c) => c.act === 'sandbox.paste')?.body).toEqual({
-        text: '@uploads/garage-imagery/ ',
+        text: '@uploads/site-photos/ ',
       });
 
       // Loose files at a zip's top go in a folder named after it.

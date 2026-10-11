@@ -210,11 +210,11 @@ run('the supervisor, with Docker', () => {
     });
     const pack = [packed('README.md', 'read me first'), packed('ref/01_Aerial.jpg', 'jpeg')];
     expect(
-      (await call('workspace.uploadpack', { ws }, { folder: 'garage', files: pack })).body,
-    ).toEqual({ name: 'garage', running: true });
+      (await call('workspace.uploadpack', { ws }, { folder: 'photos', files: pack })).body,
+    ).toEqual({ name: 'photos', running: true });
     expect(
-      (await call('workspace.uploadpack', { ws }, { folder: 'garage', files: pack })).body,
-    ).toEqual({ name: 'garage-2', running: true });
+      (await call('workspace.uploadpack', { ws }, { folder: 'photos', files: pack })).body,
+    ).toEqual({ name: 'photos-2', running: true });
     for (const files of [
       [packed('../x.md', 'x')],
       [packed('/etc/x.md', 'x')],
@@ -224,7 +224,7 @@ run('the supervisor, with Docker', () => {
       expect(
         (await call('workspace.uploadpack', { ws }, { folder: 'bad', files })).status,
       ).not.toBe(200);
-    const read = await exec(container, ['cat', '/workspace/uploads/garage/ref/01_Aerial.jpg']);
+    const read = await exec(container, ['cat', '/workspace/uploads/photos/ref/01_Aerial.jpg']);
     expect(read.stdout.toString()).toBe('jpeg');
     expect(
       (await call('workspace.uploads', { ws })).body.files.map(
@@ -232,16 +232,16 @@ run('the supervisor, with Docker', () => {
       ),
     ).toEqual([
       ['plan-2.txt', undefined, undefined],
-      ['garage', 2, true],
-      ['garage-2', 2, true],
+      ['photos', 2, true],
+      ['photos-2', 2, true],
     ]);
     // ...and is removed whole.
-    expect((await call('workspace.unupload', { ws }, { name: 'garage-2' })).body).toEqual({
+    expect((await call('workspace.unupload', { ws }, { name: 'photos-2' })).body).toEqual({
       ok: true,
     });
     expect(
       (await call('workspace.uploads', { ws })).body.files.map((f: { name: string }) => f.name),
-    ).toEqual(['plan-2.txt', 'garage']);
+    ).toEqual(['plan-2.txt', 'photos']);
     // ...and its path is pasted into the terminal, never run (a line break can't get through).
     expect(
       (await call('sandbox.paste', { ws }, { text: 'echo pasted-$((6*7)) uploads/plan-2.txt\r\n' }))
