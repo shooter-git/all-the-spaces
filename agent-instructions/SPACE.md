@@ -142,6 +142,15 @@ perhaps a view from above), build the place from the outside in:
    in a core), kept simple and consistent with every opening the photos show. Tell the Architect
    plainly which parts are guesses, so they can correct them or add a floor plan.
 
+Photos from Google Street View or Maps often come with their links, which say where each was
+taken: `@LAT,LNG,…a,…y,…h,…t` is the spot, its altitude in metres (`a`; differences between
+photos show how the ground slopes), the **vertical** field of view (`y`: use it as `vfov`), the
+heading (`h`) and the tilt (`t`; the pitch is `t` minus 90). A map screenshot's link gives the
+latitude and longitude of its middle: `ats space straighten` says where that lands in the turned
+copy (`--mark X,Y` for another pixel), for `ats space site --at`. Street-view cars carry their
+cameras about 2.5 m up; photospheres people upload are held by hand (about 1.6 m), and their
+positions and headings are less reliable.
+
 A manifest the tools read is a list (at its top, or as `images`, `photos` or `shots`) of photos,
 each with its `file` (or `filename`), where it was taken (`lat` and `lng`, or `at`: [x, z] in the
 plan), `heading` (degrees: 0 north, 90 east), and optionally `pitch` (degrees up), `fov` (the

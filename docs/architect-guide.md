@@ -65,7 +65,9 @@ A manifest is a list of photos (at its top, or under `"images"` or `"photos"`), 
 ```
 
 `heading` is the compass direction the photo looks (0 north, 90 east), `pitch` how far up (0 is
-level), and `fov` its field of view across, in degrees (leave it out if you don't know). Instead of
+level), and `fov` its field of view across, in degrees (leave it out if you don't know; for a
+Street View screenshot, the number before `y` in its link is the field of view top to bottom: give
+it as `"vfov"`). Instead of
 `lat` and `lng`, `"at": [x, z]` gives a spot in metres. Anything else in an entry (what it shows,
 the date) is notes for your assistant.
 

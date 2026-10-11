@@ -76,6 +76,41 @@ describe('places built from the outside in', () => {
     );
   });
 
+  it('lets ramps stack, one a floor above the other, climbing the same way', () => {
+    const p = sample('sloping-site');
+    p.floors.push({ key: 'top', name: 'Top deck', elevation: 6, height: 3 });
+    p.rooms.push(
+      {
+        key: 'ramp-2',
+        name: 'Second ramp',
+        floor: 'upper',
+        rect: [40, 4, 48, 20],
+        outdoor: true,
+        slope: { toward: 'north', rise: 3 },
+      },
+      {
+        key: 'top-landing',
+        name: 'Top landing',
+        floor: 'top',
+        rect: [40, 0, 48, 4],
+        outdoor: true,
+      },
+    );
+    p.openings.push(
+      { kind: 'open', rooms: ['ramp-2', 'top-landing'], at: [44, 4], width: 6 },
+      { kind: 'open', rooms: ['ramp-2', 'upper-deck'], at: [40, 19.9], width: 0.2 },
+    );
+    // 3 m above each other all the way up: plenty of head room.
+    expect(messages(p).filter((x) => x.includes('head room'))).toEqual([]);
+    // Turned the other way, the upper one comes down onto the lower one's top.
+    p.rooms[p.rooms.length - 2].slope.toward = 'south';
+    expect(messages(p)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^warning: Ramp rises to .* under Second ramp/),
+      ]),
+    );
+  });
+
   it('keeps structure inside its room, and warns about a parapet indoors', () => {
     const p = sample('sloping-site');
     p.structure.push({

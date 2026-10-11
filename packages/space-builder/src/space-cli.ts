@@ -52,6 +52,7 @@ const OPTIONS = {
   fov: { type: 'string' },
   'camera-height': { type: 'string' },
   only: { type: 'string' },
+  mark: { type: 'string' },
   dir: { type: 'string', default: process.cwd() },
 } as const;
 /**
@@ -261,13 +262,28 @@ async function main() {
         .slice(0, 60)}.png`,
     );
     await mkdir(join(dir, 'preview'), { recursive: true });
-    await sharp(await readFile(join(dir, image)))
-      .rotate(turn, { background: '#ffffff' })
-      .png()
-      .toFile(join(dir, out));
+    const source = sharp(await readFile(join(dir, image)));
+    const { width = 0, height = 0 } = await source.metadata();
+    await source.rotate(turn, { background: '#ffffff' }).png().toFile(join(dir, out));
     const bearing = ((-turn % 360) + 360) % 360;
+    // Where a pixel of the original lands in the turned picture (turned about its middle, on a
+    // canvas just big enough for it).
+    const a = (turn * Math.PI) / 180;
+    const [w2, h2] = [
+      Math.abs(width * Math.cos(a)) + Math.abs(height * Math.sin(a)),
+      Math.abs(width * Math.sin(a)) + Math.abs(height * Math.cos(a)),
+    ];
+    const moved = ([x, y]: [number, number]) => {
+      const [dx, dy] = [x - width / 2, y - height / 2];
+      return [
+        dx * Math.cos(a) - dy * Math.sin(a) + w2 / 2,
+        dx * Math.sin(a) + dy * Math.cos(a) + h2 / 2,
+      ].map((n) => Math.round(n));
+    };
+    const mark = values.mark ? point(values.mark) : ([width / 2, height / 2] as [number, number]);
+    const where = moved(mark).join(',');
     console.log(
-      `Turned ${image} ${turn}° clockwise: ${out}. Calibrate on it (ats space scale … --image ${out}).\nIf ${image} was north-up (as maps and aerial views are), the top of ${out} faces a compass bearing of ${bearing.toFixed(1)}°: that's the site's bearing (ats space site LAT,LNG --bearing ${bearing.toFixed(1)}).`,
+      `Turned ${image} ${turn}° clockwise: ${out}. Calibrate on it (ats space scale … --image ${out}).\nIf ${image} was north-up (as maps and aerial views are), the top of ${out} faces a compass bearing of ${bearing.toFixed(1)}°: that's the site's bearing (ats space site LAT,LNG --bearing ${bearing.toFixed(1)}).\n${values.mark ? `Pixel ${mark.join(',')}` : `The middle (${mark.map(Math.round).join(',')})`} of ${image} is at ${where} in ${out}: a map's link gives the latitude and longitude of its middle (ats space site LAT,LNG --at ${where}). --mark X,Y for another pixel.`,
     );
   } else if (command === 'site') {
     const [lat, lng] = point(rest[0]);
@@ -343,7 +359,7 @@ async function main() {
         .map((w) => w.trim())
         .filter(Boolean);
       shots = shots.filter((s, i) =>
-        wanted.some((w) => String(i + 1) === w || basename(s.file).includes(w)),
+        wanted.some((w) => String(i + 1) === w || basename(s.file).startsWith(w)),
       );
     }
     if (!shots.length) throw new Error('No photos to match (each needs a position and a heading).');
