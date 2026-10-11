@@ -41,6 +41,10 @@ const WRITABLE = /^(plan\.json|CLAUDE\.md|AGENTS\.md|\.ats\/(CLAUDE|AGENTS)\.md\
 /** A file added to `uploads/`: a plain name (made so by the server) and its extension. */
 const UPLOAD_NAME = /^([a-z0-9][a-z0-9_-]{0,79})(\.[a-z0-9]{1,10})?$/;
 const MAX_UPLOAD = 26 * 1024 * 1024;
+/** A file's path in a pack's folder (an unpacked .zip): plain names, a few folders deep. */
+const PACK_PATH = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}(\/[A-Za-z0-9][A-Za-z0-9._-]{0,99}){0,7}$/;
+const PACK_FILES = 1000;
+const MAX_PACK = 220 * 1024 * 1024;
 /** Changed files listed at most (a workspace that makes thousands lists the first). */
 const MAX_CHANGED = 2000;
 /** Bytes of names read at most. */
@@ -455,29 +459,46 @@ export function createWorkspace(ctx: Containers) {
       };
     },
 
-    /** What's in an awake workspace's `uploads/` folder (plain names only), oldest first. */
+    /**
+     * What's in an awake workspace's `uploads/` folder (plain names only), oldest first: files, and
+     * folders (a pack, an unpacked .zip) with how many files they hold and their size.
+     */
     async listUploads(ws: string) {
       const container = sandboxName(ws);
       if (!(await status(container)).running) return { files: [] };
       const r = await exec(
         container,
-        ['find', '/workspace/uploads', '-maxdepth', '1', '-type', 'f', '-printf', '%f\t%s\t%T@\n'],
+        // When each came in (its change time: a pack's files keep the times they had in it).
+        ['find', '/workspace/uploads', '-mindepth', '1', '-type', 'f', '-printf', '%P\t%s\t%C@\n'],
         { limit: 256 * 1024 },
       );
       if (r.code !== 0) return { files: [] }; // nothing added yet
-      const files = r.stdout
+      const found = new Map<string, { name: string; bytes: number; at: number; files?: number }>();
+      for (const [path, bytes, at] of r.stdout
         .toString()
         .split('\n')
-        .map((line) => line.split('\t'))
-        .filter(([name]) => name && UPLOAD_NAME.test(name))
-        .map(([name, bytes, at]) => ({
-          name: name as string,
-          bytes: Number(bytes),
-          at: Number(at),
-        }))
+        .map((line) => line.split('\t'))) {
+        const [name, ...inside] = (path ?? '').split('/');
+        if (!name || !UPLOAD_NAME.test(name) || !at) continue;
+        const entry = found.get(name) ?? {
+          name,
+          bytes: 0,
+          at: 0,
+          ...(inside.length ? { files: 0 } : {}),
+        };
+        entry.bytes += Number(bytes);
+        entry.at = Math.max(entry.at, Number(at));
+        if (entry.files !== undefined) entry.files++;
+        found.set(name, entry);
+      }
+      const files = [...found.values()]
         .sort((a, b) => a.at - b.at || a.name.localeCompare(b.name))
         .slice(-200)
-        .map((f) => ({ ...f, at: Math.round(f.at) }));
+        .map((f) => ({
+          ...f,
+          at: Math.round(f.at),
+          ...(f.files !== undefined ? { folder: true } : {}),
+        }));
       return { files };
     },
 
@@ -533,12 +554,15 @@ export function createWorkspace(ctx: Containers) {
       return r.code === 0 ? r.stdout : null;
     },
 
-    /** Removes one file from a workspace's `uploads/` folder (nothing else can go this way). */
+    /**
+     * Removes one file, or one pack's folder, from a workspace's `uploads/` folder (nothing else
+     * can go this way).
+     */
     async removeUpload(ws: string, name: string) {
       if (!UPLOAD_NAME.test(name)) throw new Error('Not allowed');
-      // The name goes in as an argument, never into the script.
+      // The name goes in as an argument, never into the script. A link is removed, not followed.
       const remove = (container: string) =>
-        exec(container, ['sh', '-c', 'rm -f -- "/workspace/uploads/$1"', 'sh', name]);
+        exec(container, ['sh', '-c', 'rm -rf -- "/workspace/uploads/$1"', 'sh', name]);
       const running = (await status(sandboxName(ws))).running;
       const r = running ? await remove(sandboxName(ws)) : await withHelper(ws, true, remove);
       return { ok: r.code === 0 };
@@ -562,6 +586,42 @@ export function createWorkspace(ctx: Containers) {
       const running = (await status(sandboxName(ws))).running;
       const r = running ? await write(sandboxName(ws)) : await withHelper(ws, true, write);
       if (r.code !== 0) throw new Error('Could not add the file (is the workspace full?)');
+      return { name: r.stdout.toString(), running };
+    },
+
+    /**
+     * Adds a pack (a .zip the Architect gave, unpacked by the server) to the workspace's `uploads/`
+     * folder as one new folder, its files keeping their paths in it, and returns the folder's name
+     * (a free one: an existing folder is never added to or replaced).
+     */
+    async uploadPack(ws: string, folder: string, files: { path: string; data: Buffer }[]) {
+      const bytes = files.reduce((n, f) => n + f.data.length, 0);
+      const paths = new Set(files.map((f) => f.path));
+      if (
+        !UPLOAD_NAME.test(folder) ||
+        !files.length ||
+        files.length > PACK_FILES ||
+        bytes > MAX_PACK ||
+        paths.size !== files.length ||
+        files.some((f) => !PACK_PATH.test(f.path))
+      )
+        throw new Error('Not allowed');
+      // A file and a folder can't have the same path.
+      for (const p of paths)
+        for (let cut = p.indexOf('/'); cut > 0; cut = p.indexOf('/', cut + 1))
+          if (paths.has(p.slice(0, cut))) throw new Error('Not allowed');
+      // Unpacked out of sight, then put in place whole. The name goes in as an argument.
+      const script =
+        'mkdir -p /workspace/uploads && cd /workspace/uploads && n="$1" && i=2 && ' +
+        'while [ -e "$n" ] || [ -e ".$n.part" ]; do n="$1-$i"; i=$((i+1)); done && ' +
+        'mkdir ".$n.part" && tar -x -C ".$n.part" -f - && mv ".$n.part" "$n" && printf %s "$n"';
+      const write = (container: string) =>
+        exec(container, ['sh', '-c', script, 'sh', folder], {
+          stdin: pack(new Map(files.map((f) => [f.path, f.data]))),
+        });
+      const running = (await status(sandboxName(ws))).running;
+      const r = running ? await write(sandboxName(ws)) : await withHelper(ws, true, write);
+      if (r.code !== 0) throw new Error('Could not add the files (is the workspace full?)');
       return { name: r.stdout.toString(), running };
     },
 

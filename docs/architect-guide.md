@@ -35,6 +35,12 @@ workspace page): pictures and PDFs, up to 25 MB each. They're cleaned like the o
 with the place, and their names are typed into the terminal for you to send with a word or two
 ("this is the hallway").
 
+Got a whole set, say photos from every side with a README or a manifest saying what each one
+shows? Add it as one **.zip** (up to 25 MB). It's unpacked into a folder of its own, every file
+keeping its name so the README still matches, and your assistant reads the README or manifest
+first. Pictures are cleaned like the others; text, JSON and PDF documents come too; anything else
+is left out (you're told what). A folder is for this workspace: it isn't kept with the place.
+
 Until it's published, **Continue** on Home takes you back to it, and **Discard…** removes it along
 with its workspace, plans and photos.
 
@@ -144,7 +150,8 @@ Open the workspace and press **Wake it**, then **Start Claude Code** (or Codex).
   them ("use this as the sky") and press Enter. They're listed above the terminal under **Added
   files**: tap one to put its name in the terminal again, or its bin to remove it (a place keeps
   its copy with its photos and plans). Photos lose their location and camera
-  details on the way in. Uploads aren't published as they are: your assistant copies in what the creation
+  details on the way in. A **.zip** is unpacked into a folder of its own, its files keeping their
+  names and folders (so a README or manifest in it still matches), and listed as that folder. Uploads aren't published as they are: your assistant copies in what the creation
   uses.
 - **Carry on** picks up your last conversation after a break.
 - **Checkpoints.** Your assistant saves its work as it goes (a commit in the workspace's own

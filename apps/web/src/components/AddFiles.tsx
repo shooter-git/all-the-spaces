@@ -10,7 +10,8 @@ import {
   uploadToWorkspace,
 } from '../lib/workbench.ts';
 
-const PLACE_TYPES = 'image/*,.heic,.heif,application/pdf,.pdf';
+const PLACE_TYPES = 'image/*,.heic,.heif,application/pdf,.pdf,.zip,application/zip';
+const isZip = (f: File) => /\.zip$/i.test(f.name);
 const isPicture = (f: File) => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name);
 /** A picture whose name says it's a drawing of the place, not a photo of it. */
 const looksLikePlan = (f: File) => /plan|floor|blueprint|layout|drawing/i.test(f.name);
@@ -19,7 +20,8 @@ const looksLikePlan = (f: File) => /plan|floor|blueprint|layout|drawing/i.test(f
  * Adding files to a workspace while the assistant works: a button, or dropping them anywhere on
  * the page. They go into `uploads/`, and their paths are pasted into the terminal for the
  * Architect to send with their own words (C9). A place takes pictures and PDFs (each page a
- * plan); a creation takes anything.
+ * plan); a creation takes anything. A .zip (photos with a README or a manifest saying what each
+ * is, say) is unpacked into a folder of its own, its files keeping their names.
  */
 export function AddFiles({
   workspaceId,
@@ -48,7 +50,7 @@ export function AddFiles({
       const items: { file: File; as?: 'plan' | 'photo' }[] = [];
       for (const file of files) {
         if (file.size > MAX_UPLOAD) problems.push(`${file.name} is over 25 MB.`);
-        else if (!place) items.push({ file });
+        else if (!place || isZip(file)) items.push({ file });
         else if (isPdf(file)) {
           // One picture per page (each usually a floor), as when the place was set up.
           setProgress(`Reading ${file.name}…`);
@@ -59,7 +61,7 @@ export function AddFiles({
           }
         } else if (isPicture(file))
           items.push({ file, as: looksLikePlan(file) ? 'plan' : 'photo' });
-        else problems.push(`${file.name}: a place takes pictures and PDFs.`);
+        else problems.push(`${file.name}: a place takes pictures, PDFs and .zip files.`);
       }
       for (const [i, { file, as }] of items.entries()) {
         setProgress(items.length > 1 ? `Adding ${i + 1} of ${items.length}…` : 'Adding…');
@@ -67,6 +69,10 @@ export function AddFiles({
           const r = await uploadToWorkspace(workspaceId, file, as);
           added.push(r.path.replace(/^uploads\//, ''));
           typed &&= r.typed;
+          if (r.left?.length)
+            problems.push(
+              `Left out of ${file.name} (a place takes pictures and documents about it): ${namesOf(r.left)}.`,
+            );
         } catch (e) {
           problems.push((e as Error).message);
         }
@@ -129,8 +135,8 @@ export function AddFiles({
         busy={progress !== null}
         title={
           place
-            ? 'Add photos or plans (pictures or PDFs) for your assistant to look at'
-            : 'Add files for your assistant to look at or use'
+            ? 'Add photos or plans (pictures, PDFs, or a .zip of them with notes) for your assistant to look at'
+            : 'Add files (or a .zip of them) for your assistant to look at or use'
         }
       >
         <Icon name="upload" size={16} />
@@ -152,8 +158,11 @@ export function AddFiles({
         <div className="workspace-drop" aria-hidden="true">
           <div className="workspace-drop-card">
             <Icon name="upload" size={28} />
-            <strong>Drop to add {place ? 'pictures or PDFs' : 'files'}</strong>
-            <span>They go into uploads/, and their names into the terminal for you to send.</span>
+            <strong>Drop to add {place ? 'pictures, PDFs or a .zip' : 'files'}</strong>
+            <span>
+              They go into uploads/ (a .zip unpacked into a folder), and their names into the
+              terminal for you to send.
+            </span>
           </div>
         </div>
       )}
@@ -175,9 +184,9 @@ const sizeOf = (bytes: number) =>
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 /**
- * The files added to a workspace (what's in its uploads/ folder), newest last. Tapping one puts
- * its name in the terminal again, for the Architect to send with their words; each can be
- * removed.
+ * The files added to a workspace (what's in its uploads/ folder, a .zip as its folder), newest
+ * last. Tapping one puts its name in the terminal again, for the Architect to send with their
+ * words; each can be removed.
  */
 export function AddedFiles({
   workspaceId,
@@ -196,10 +205,10 @@ export function AddedFiles({
   onProblem: (message: string) => void;
 }) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [removing, setRemoving] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<UploadedFile | null>(null);
   const [busy, setBusy] = useState(false);
   const row = useRef<HTMLUListElement>(null);
-  const remove = async (name: string) => {
+  const remove = async ({ name }: UploadedFile) => {
     setBusy(true);
     try {
       await removeUpload(workspaceId, name);
@@ -240,26 +249,33 @@ export function AddedFiles({
         <span className="workspace-uploads-label">Added files</span>
         <ul ref={row} aria-label="Added files">
           {files.map((f) => (
-            <li key={f.name} data-removing={removing === f.name || undefined}>
+            <li key={f.name} data-removing={removing?.name === f.name || undefined}>
               <button
                 type="button"
-                title={`uploads/${f.name} · ${sizeOf(f.bytes)}. Tap to put its name in the terminal again.`}
+                title={
+                  f.folder
+                    ? `uploads/${f.name}/ · ${f.files} file${f.files === 1 ? '' : 's'}, ${sizeOf(f.bytes)}. Tap to put its name in the terminal again.`
+                    : `uploads/${f.name} · ${sizeOf(f.bytes)}. Tap to put its name in the terminal again.`
+                }
                 onClick={() =>
-                  mentionUpload(workspaceId, f.name).then(
-                    (r) => onMentioned(f.name, r.typed),
+                  mentionUpload(workspaceId, f.name, f.folder).then(
+                    (r) => onMentioned(f.folder ? `${f.name}/` : f.name, r.typed),
                     (e: Error) => onProblem(e.message),
                   )
                 }
               >
-                <Icon name={PICTURE_NAME.test(f.name) ? 'image' : 'fileText'} size={14} />
-                <span>{f.name}</span>
+                <Icon
+                  name={f.folder ? 'folder' : PICTURE_NAME.test(f.name) ? 'image' : 'fileText'}
+                  size={14}
+                />
+                <span>{f.folder ? `${f.name}/` : f.name}</span>
               </button>
               <IconButton
                 icon="trash"
                 label={`Remove ${f.name}`}
                 tone="danger"
                 className="workspace-uploads-remove"
-                onClick={() => setRemoving(f.name)}
+                onClick={() => setRemoving(f)}
               />
             </li>
           ))}
@@ -272,9 +288,10 @@ export function AddedFiles({
           onConfirm={() => void remove(removing)}
           onCancel={() => setRemoving(null)}
         >
-          Remove {removing} from this workspace? Your assistant won’t be able to look at it any
-          more.
-          {place && ' The place keeps its copy with its photos and plans.'}
+          {removing.folder
+            ? `Remove ${removing.name}/ and the ${removing.files} file${removing.files === 1 ? '' : 's'} in it from this workspace? Your assistant won’t be able to look at them any more.`
+            : `Remove ${removing.name} from this workspace? Your assistant won’t be able to look at it any more.`}
+          {place && !removing.folder && ' The place keeps its copy with its photos and plans.'}
         </Confirm>
       )}
     </div>

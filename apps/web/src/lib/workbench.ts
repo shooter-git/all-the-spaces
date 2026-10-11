@@ -78,7 +78,8 @@ export const MAX_UPLOAD = 25 * 1024 * 1024;
 
 /**
  * Adds a file to the workspace's `uploads/` folder; the server pastes its path into the terminal
- * (never sent). For a place, `as` says whether a picture is a plan or a photo.
+ * (never sent). For a place, `as` says whether a picture is a plan or a photo. A .zip is unpacked
+ * into a folder of its own, its files keeping their names: `left` is what a place couldn't take.
  */
 export async function uploadToWorkspace(id: string, file: File, as?: 'plan' | 'photo') {
   const res = await fetch(
@@ -97,7 +98,7 @@ export async function uploadToWorkspace(id: string, file: File, as?: 'plan' | 'p
   };
   if (res.status === 413) throw new Error(`${file.name} is over 25 MB.`);
   if (!res.ok) throw new Error(body.error ?? `${file.name} couldn't be added.`);
-  return body as { path: string; typed: boolean };
+  return body as { path: string; typed: boolean; files?: number; left?: string[] };
 }
 
 /**
@@ -120,14 +121,15 @@ export const listChanges = (id: string) => api<ChangedFiles>(`/api/workspaces/${
 /** What's in one workspace file: its text, or a picture. */
 export const viewFile = (id: string, path: string) =>
   api<FileView>(`/api/workspaces/${id}/files/view?path=${encodeURIComponent(path)}`);
-/** Removes an added file from the workspace. */
+/** Removes an added file (or a pack's folder, with everything in it) from the workspace. */
 export const removeUpload = (id: string, name: string) =>
   api(`/api/workspaces/${id}/uploads/${encodeURIComponent(name)}`, { method: 'DELETE' });
-/** Puts an added file's name in the terminal again (never sent). */
-export const mentionUpload = (id: string, name: string) =>
-  api<{ typed: boolean }>(`/api/workspaces/${id}/uploads/${encodeURIComponent(name)}/mention`, {
-    method: 'POST',
-  });
+/** Puts an added file's (or a pack's folder's) name in the terminal again (never sent). */
+export const mentionUpload = (id: string, name: string, folder = false) =>
+  api<{ typed: boolean }>(
+    `/api/workspaces/${id}/uploads/${encodeURIComponent(name)}/mention${folder ? '?folder=1' : ''}`,
+    { method: 'POST' },
+  );
 
 export const loadPreview = (id: string) =>
   api<{
