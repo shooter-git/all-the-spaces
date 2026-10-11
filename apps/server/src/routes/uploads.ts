@@ -6,11 +6,12 @@ import { z } from 'zod';
 import { notFound, requireUser } from '../access.ts';
 import { record } from '../audit.ts';
 import type { AppContext } from '../context.ts';
+import { arrangePack, PackError, unzipPack } from '../packs.ts';
 import { openPicture } from '../pictures.ts';
 import { sendError } from '../reply.ts';
 import { membershipsFor } from '../session.ts';
 import { getStorage } from '../storage.ts';
-import { SupervisorError } from '../studio/supervisor.ts';
+import { type Supervisor, SupervisorError } from '../studio/supervisor.ts';
 import { inputKey, LIMITS } from './onboarding.ts';
 
 const { spaceInputs, workspaces } = schema;
@@ -19,6 +20,18 @@ export const MAX_UPLOAD = 25 * 1024 * 1024;
 
 /** Pictures we clean on the way in (others, like GIF and SVG, are kept as they are). */
 const PICTURE = /^(jpe?g|png|webp|heic|heif|avif|tiff?)$/;
+/** Pictures a pack keeps in their own format, cleaned (any other picture becomes a JPEG). */
+const KEEP_FORMAT: Record<string, 'jpeg' | 'png' | 'webp' | 'avif' | 'tiff'> = {
+  jpg: 'jpeg',
+  jpeg: 'jpeg',
+  png: 'png',
+  webp: 'webp',
+  avif: 'avif',
+  tif: 'tiff',
+  tiff: 'tiff',
+};
+/** Besides pictures, what a place's pack may hold: documents about the place. */
+const PLACE_DOCUMENT = /^(pdf|md|markdown|txt|json|csv|tsv|ya?ml|geojson|kml|gif|svg)$/;
 /** A name a file in uploads/ can have (the ones this route gives). */
 const UPLOADED = /^[a-z0-9][a-z0-9_-]{0,79}(\.[a-z0-9]{1,10})?$/;
 
@@ -69,6 +82,110 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
     throw err;
   };
 
+  /**
+   * One file from a pack as it's kept: a picture without its hidden details (where and on what it
+   * was taken), in its own format and under its own name where it can be (the pack's README or
+   * manifest names it). Null when a place's pack can't take it: a place takes pictures and
+   * documents about it, and a picture that can't be read is left out (a creation keeps it as it
+   * is).
+   */
+  const packFile = async (path: string, data: Buffer, place: boolean) => {
+    const dot = path.lastIndexOf('.');
+    const ext = dot > path.lastIndexOf('/') + 1 ? path.slice(dot + 1).toLowerCase() : '';
+    if (PICTURE.test(ext)) {
+      try {
+        const img = (await openPicture(data, 100_000_000))
+          .rotate()
+          .resize({ width: 4096, height: 4096, fit: 'inside', withoutEnlargement: true });
+        const format = KEEP_FORMAT[ext];
+        if (format === 'jpeg' || !format)
+          return {
+            path: format ? path : `${path.slice(0, dot)}.jpg`,
+            data: await img.jpeg({ quality: 90, mozjpeg: true }).toBuffer(),
+          };
+        return { path, data: await img.toFormat(format).toBuffer() };
+      } catch {
+        return place ? null : { path, data };
+      }
+    }
+    return place && !PLACE_DOCUMENT.test(ext) ? null : { path, data };
+  };
+
+  /**
+   * A .zip added to a workspace: unpacked into one folder in uploads/, its files keeping their
+   * names (pictures cleaned), and the folder named in the terminal. A place doesn't keep a pack
+   * with its photos and plans: it's for this workspace.
+   */
+  const addPack = async (
+    reply: FastifyReply,
+    me: { id: string },
+    ws: typeof workspaces.$inferSelect,
+    zipName: string,
+    body: Buffer,
+    supervisor: Supervisor,
+  ) => {
+    let arranged: ReturnType<typeof arrangePack>;
+    try {
+      arranged = arrangePack(unzipPack(body), zipName);
+    } catch (err) {
+      if (err instanceof PackError) return sendError(reply, 400, `${zipName}: ${err.message}`);
+      throw err;
+    }
+    const place = ws.kind === 'space';
+    const files: { path: string; data: string }[] = [];
+    const left: string[] = [];
+    const taken = new Set<string>();
+    let bytes = 0;
+    for (const [path, data] of arranged.files) {
+      const kept = await packFile(path, data, place);
+      if (!kept || taken.has(kept.path)) {
+        left.push(path);
+        continue;
+      }
+      taken.add(kept.path);
+      bytes += kept.data.length;
+      files.push({ path: kept.path, data: kept.data.toString('base64') });
+    }
+    if (!files.length)
+      return sendError(
+        reply,
+        arranged.files.size ? 415 : 400,
+        arranged.files.size
+          ? `Nothing in ${zipName} could be added: a place takes pictures and documents about it (PDF, text, JSON…).`
+          : `${zipName} is empty.`,
+      );
+    try {
+      const r = await supervisor.call<{ name: string; running: boolean }>(
+        'workspace.uploadpack',
+        { ws: ws.id },
+        { folder: uploadName(arranged.folder).base, files },
+      );
+      const typed = r.running
+        ? (
+            await supervisor.call<{ ok: boolean }>(
+              'sandbox.paste',
+              { ws: ws.id },
+              { text: mention(ws, `${r.name}/`) },
+            )
+          ).ok
+        : false;
+      await db
+        .update(workspaces)
+        .set({ lastActivityAt: new Date() })
+        .where(eq(workspaces.id, ws.id));
+      await record(db, {
+        groupId: ws.groupId,
+        actorUserId: me.id,
+        action: 'workspace.upload',
+        target: ws.id,
+        metadata: { bytes, files: files.length, pack: true },
+      });
+      return { path: `uploads/${r.name}/`, typed, input: null, files: files.length, left };
+    } catch (err) {
+      return sandboxSaid(reply, err);
+    }
+  };
+
   /** What's been added (while the workspace is awake). */
   app.get<{ Params: { id: string } }>('/api/workspaces/:id/uploads', async (req, reply) => {
     const me = await requireUser(ctx, req, reply);
@@ -87,7 +204,10 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
     }
   });
 
-  /** Removes an added file from the workspace (a place keeps its copy with its photos and plans). */
+  /**
+   * Removes an added file, or a pack's folder, from the workspace (a place keeps its copy of a
+   * picture with its photos and plans).
+   */
   app.delete<{ Params: { id: string; name: string } }>(
     '/api/workspaces/:id/uploads/:name',
     async (req, reply) => {
@@ -117,8 +237,8 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
     },
   );
 
-  /** Names an added file in the terminal again (pasted, never sent: C9). */
-  app.post<{ Params: { id: string; name: string } }>(
+  /** Names an added file (or pack's folder) in the terminal again (pasted, never sent: C9). */
+  app.post<{ Params: { id: string; name: string }; Querystring: { folder?: string } }>(
     '/api/workspaces/:id/uploads/:name/mention',
     async (req, reply) => {
       const me = await requireUser(ctx, req, reply);
@@ -131,7 +251,7 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
         const r = await ctx.supervisor.call<{ ok: boolean }>(
           'sandbox.paste',
           { ws: ws.id },
-          { text: mention(ws, req.params.name) },
+          { text: mention(ws, req.query.folder ? `${req.params.name}/` : req.params.name) },
         );
         return { typed: r.ok };
       } catch (err) {
@@ -162,6 +282,8 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
         reply.header('cache-control', 'private, no-store');
 
         const { base, ext } = uploadName(req.params.name);
+        // A zip by its name (a Word document or a model is a zip inside too, and stays whole).
+        if (ext === 'zip') return addPack(reply, me, ws, req.params.name, req.body, ctx.supervisor);
         const picture =
           PICTURE.test(ext) || String(req.headers['content-type']).startsWith('image/');
         let data: Buffer = req.body;

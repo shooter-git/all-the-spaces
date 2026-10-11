@@ -353,6 +353,24 @@ describe.skipIf(!adminUrl)('server flows', () => {
       expect(
         (await add('a.bin', Buffer.alloc(26 * 1024 * 1024), 'application/zip')).statusCode,
       ).toBe(413);
+      // A .zip is unpacked whole (a creation takes anything); a Word document stays as it is.
+      const { zipSync } = await import('fflate');
+      const pack = Buffer.from(
+        zipSync({
+          'sounds/README.md': Buffer.from('jump'),
+          'sounds/jump.ogg': Buffer.from('OggS'),
+        }),
+      );
+      expect((await add('sounds.zip', pack, 'application/zip')).json()).toEqual({
+        path: 'uploads/sounds/',
+        typed: true,
+        input: null,
+        files: 2,
+        left: [],
+      });
+      expect((await add('notes.docx', pack, 'application/octet-stream')).json().path).toBe(
+        'uploads/notes.docx',
+      );
       expect((await add('a.txt', 'x', 'text/plain', memberCookie)).statusCode).toBe(404);
 
       // What's been added, and naming one in the terminal again (pasted, not sent).

@@ -157,6 +157,15 @@ export function createSupervisorServer(
         String(b.name ?? ''),
         Buffer.from(String(b.data ?? ''), 'base64'),
       ),
+    'workspace.uploadpack': (t, b) =>
+      sandboxes.uploadPack(
+        need(t.ws, 'ws'),
+        String(b.folder ?? ''),
+        (Array.isArray(b.files) ? b.files : []).map((f: { path?: unknown; data?: unknown }) => ({
+          path: String(f?.path ?? ''),
+          data: Buffer.from(String(f?.data ?? ''), 'base64'),
+        })),
+      ),
     'sandbox.check': held((t) => sandboxes.check(need(t.ws, 'ws'))),
     'sandbox.run': held((t, b) => sandboxes.runFixed(need(t.ws, 'ws'), String(b.what ?? ''))),
     'workspace.read': async (t, b) => {

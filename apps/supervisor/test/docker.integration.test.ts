@@ -203,6 +203,45 @@ run('the supervisor, with Docker', () => {
     expect(
       (await call('workspace.uploads', { ws })).body.files.map((f: { name: string }) => f.name),
     ).toEqual(['plan-2.txt']);
+    // A pack (an unpacked .zip) goes in whole as a new folder, its files keeping their paths...
+    const packed = (path: string, text: string) => ({
+      path,
+      data: Buffer.from(text).toString('base64'),
+    });
+    const pack = [packed('README.md', 'read me first'), packed('ref/01_Aerial.jpg', 'jpeg')];
+    expect(
+      (await call('workspace.uploadpack', { ws }, { folder: 'photos', files: pack })).body,
+    ).toEqual({ name: 'photos', running: true });
+    expect(
+      (await call('workspace.uploadpack', { ws }, { folder: 'photos', files: pack })).body,
+    ).toEqual({ name: 'photos-2', running: true });
+    for (const files of [
+      [packed('../x.md', 'x')],
+      [packed('/etc/x.md', 'x')],
+      [packed('.hidden', 'x')],
+      [packed('a', 'x'), packed('a/b', 'x')],
+    ])
+      expect(
+        (await call('workspace.uploadpack', { ws }, { folder: 'bad', files })).status,
+      ).not.toBe(200);
+    const read = await exec(container, ['cat', '/workspace/uploads/photos/ref/01_Aerial.jpg']);
+    expect(read.stdout.toString()).toBe('jpeg');
+    expect(
+      (await call('workspace.uploads', { ws })).body.files.map(
+        (f: { name: string; files?: number; folder?: true }) => [f.name, f.files, f.folder],
+      ),
+    ).toEqual([
+      ['plan-2.txt', undefined, undefined],
+      ['photos', 2, true],
+      ['photos-2', 2, true],
+    ]);
+    // ...and is removed whole.
+    expect((await call('workspace.unupload', { ws }, { name: 'photos-2' })).body).toEqual({
+      ok: true,
+    });
+    expect(
+      (await call('workspace.uploads', { ws })).body.files.map((f: { name: string }) => f.name),
+    ).toEqual(['plan-2.txt', 'photos']);
     // ...and its path is pasted into the terminal, never run (a line break can't get through).
     expect(
       (await call('sandbox.paste', { ws }, { text: 'echo pasted-$((6*7)) uploads/plan-2.txt\r\n' }))

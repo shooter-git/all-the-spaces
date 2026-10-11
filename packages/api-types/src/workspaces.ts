@@ -85,12 +85,16 @@ export interface AssistantPicture {
   at: number;
 }
 
-/** A file added to a workspace's `uploads/` folder. */
+/** A file added to a workspace's `uploads/` folder, or a folder (a pack: an unpacked .zip). */
 export interface UploadedFile {
   name: string;
+  /** All together, for a folder. */
   bytes: number;
   /** When it was added (seconds). */
   at: number;
+  folder?: true;
+  /** How many files a folder holds. */
+  files?: number;
 }
 
 /** A file the assistant made, changed or removed since the workspace started (its name only). */

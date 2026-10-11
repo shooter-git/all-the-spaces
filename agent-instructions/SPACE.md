@@ -92,6 +92,15 @@ also saves a checkpoint each time the workspace goes to sleep.
 arrives as one picture per page), and they name them in their message. Look at them as you do
 the ones in `inputs/`.
 
+**A folder in `uploads/`** is a set of files the Architect added together (a .zip, unpacked with
+its own names and folders): photos, perhaps an aerial view or a site plan, documents about the
+place. **Read its README or manifest first** (the `.md`, `.json` or `.txt` files at its top):
+they say what each picture shows, from where and which way it looks, and what to trust. Follow
+them over anything you'd guess from names, and use the pictures in the order and for the parts
+they give. An overhead view or site plan in it can be calibrated like a floor plan
+(`ats space scale … --image uploads/<folder>/<file>`). Unlike single pictures, a folder isn't
+kept with the place: what you learn from it belongs in plan.json and your models.
+
 ## Furniture that looks real
 
 People should recognise their own place. Don't settle for simple shapes: you have Blender

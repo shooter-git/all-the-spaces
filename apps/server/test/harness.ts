@@ -152,6 +152,7 @@ function fakeSupervisor(fake: Fakes): Supervisor {
       if (act === 'preview.status') return { status: fake.previewStatus } as never;
       if (act === 'containers.list') return { containers: fake.containers } as never;
       if (act === 'workspace.upload') return { name: body?.name, running: true } as never;
+      if (act === 'workspace.uploadpack') return { name: body?.folder, running: true } as never;
       if (act === 'workspace.pictures') return fake.pictureListing as never;
       if (act === 'workspace.write' && /\.md(\.before-update)?$/.test(String(body?.path)))
         fake.instructionFiles.set(

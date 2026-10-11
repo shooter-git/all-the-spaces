@@ -82,7 +82,10 @@ creation uses into `public/` and load it with the SDK's loaders. Run Blender job
 
 **Files the Architect adds** while you work land in `uploads/` (a picture, a sketch, a sound, a
 document), and the Architect names them in their message. Look at them as they ask. To use one
-in the creation, copy it into the project (e.g. `src/assets/`): `uploads/` isn't published.
+in the creation, copy it into the project (e.g. `src/assets/`): `uploads/` isn't published. A
+folder in `uploads/` is a .zip they added, unpacked with its own names and folders: read its
+README or manifest first (the `.md`, `.json` or `.txt` files at its top), which says what each
+file is and where it goes.
 
 ## Quality bar
 

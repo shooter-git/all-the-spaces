@@ -248,6 +248,102 @@ describe.skipIf(!adminUrl)('server flows', () => {
       );
     });
 
+    it('unpacks a .zip into a place’s workspace: one folder, its names kept, pictures cleaned', async () => {
+      const sharp = (await import('sharp')).default;
+      const { zipSync } = await import('fflate');
+      const photo = await sharp({
+        create: { width: 400, height: 300, channels: 3, background: '#a0b0c0' },
+      })
+        .withMetadata({ orientation: 6 })
+        .withExifMerge({ IFD0: { Make: 'PhoneCo' } })
+        .jpeg()
+        .toBuffer();
+      const text = (s: string) => Buffer.from(s);
+      const zip = (files: Record<string, Uint8Array>) => Buffer.from(zipSync(files));
+      const add = (name: string, body: Buffer, cookie = architectCookie) =>
+        req('PUT', `/api/workspaces/${placeWorkspace}/uploads/${name}`, cookie, body, {
+          'content-type': 'application/zip',
+        });
+      const inputsBefore = (
+        await req('GET', `/api/spaces/${placeId}/inputs`, architectCookie)
+      ).json().inputs.length;
+      const res = await add(
+        'Site%20photos.zip',
+        zip({
+          'site-photos/README.md': text('# The house\n\nStart with 01.'),
+          'site-photos/manifest.json': text('{"images":[{"filename":"01_Overhead_North-up.jpg"}]}'),
+          'site-photos/01_Overhead_North-up.jpg': photo,
+          'site-photos/reference/site map.png': await sharp(photo).png().toBuffer(),
+          'site-photos/reference/study.pdf': text('%PDF-1.4'),
+          'site-photos/tool.exe': text('MZ'),
+          'site-photos/.DS_Store': text('junk'),
+          '__MACOSX/site-photos/._README.md': text('junk'),
+        }),
+      );
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({
+        path: 'uploads/site-photos/',
+        typed: true,
+        input: null,
+        files: 5,
+        left: ['tool.exe'],
+      });
+      const written = supCalls.findLast((c) => c.act === 'workspace.uploadpack')?.body as {
+        folder: string;
+        files: { path: string; data: string }[];
+      };
+      expect(written.folder).toBe('site-photos');
+      const files = new Map(written.files.map((f) => [f.path, Buffer.from(f.data, 'base64')]));
+      // Names kept as the README and manifest give them (made plain only where they must be).
+      expect([...files.keys()].sort()).toEqual([
+        '01_Overhead_North-up.jpg',
+        'README.md',
+        'manifest.json',
+        'reference/site-map.png',
+        'reference/study.pdf',
+      ]);
+      expect(files.get('README.md')?.toString()).toBe('# The house\n\nStart with 01.');
+      // Pictures lose their hidden details, and keep their format.
+      const meta = await sharp(files.get('01_Overhead_North-up.jpg')).metadata();
+      expect([meta.format, meta.width, meta.height, meta.exif, meta.orientation]).toEqual([
+        'jpeg',
+        300,
+        400,
+        undefined,
+        undefined,
+      ]);
+      expect((await sharp(files.get('reference/site-map.png')).metadata()).format).toBe('png');
+      // The folder is named in the terminal (pasted, never sent), and isn't kept with the place.
+      expect(supCalls.findLast((c) => c.act === 'sandbox.paste')?.body).toEqual({
+        text: '@uploads/site-photos/ ',
+      });
+      expect(
+        (await req('GET', `/api/spaces/${placeId}/inputs`, architectCookie)).json().inputs.length,
+      ).toBe(inputsBefore);
+      const again = await req(
+        'POST',
+        `/api/workspaces/${placeWorkspace}/uploads/site-photos/mention?folder=1`,
+        architectCookie,
+      );
+      expect(again.json()).toEqual({ typed: true });
+      expect(supCalls.findLast((c) => c.act === 'sandbox.paste')?.body).toEqual({
+        text: '@uploads/site-photos/ ',
+      });
+
+      // Loose files at a zip's top go in a folder named after it.
+      await add('Loose%20Notes.zip', zip({ 'a.md': text('a'), 'b.txt': text('b') }));
+      expect(supCalls.findLast((c) => c.act === 'workspace.uploadpack')?.body).toMatchObject({
+        folder: 'loose-notes',
+      });
+      // Nothing a place can take, a path that climbs out, and something that isn't a zip.
+      const packs = supCalls.filter((c) => c.act === 'workspace.uploadpack').length;
+      expect((await add('tools.zip', zip({ 'tool.exe': text('MZ') }))).statusCode).toBe(415);
+      expect((await add('evil.zip', zip({ '../evil.md': text('x') }))).statusCode).toBe(400);
+      expect((await add('fake.zip', text('not a zip at all'))).statusCode).toBe(400);
+      expect((await add('a.zip', zip({ 'a.md': text('a') }), memberCookie)).statusCode).toBe(404);
+      expect(supCalls.filter((c) => c.act === 'workspace.uploadpack').length).toBe(packs);
+    });
+
     it('builds a candidate from a sound plan, for Architects to walk through first', async () => {
       fake.workspacePlan = {
         name: 'Our flat',
