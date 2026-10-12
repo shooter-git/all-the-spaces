@@ -51,8 +51,12 @@ with its workspace, plans and photos.
 A building you can't get a floor plan for (a car park, a shop front, a public building) can be
 built from photos of the outside. Put them in one **.zip** (up to 25 MB), with:
 
-- **Photos of every side**, taken straight on and from the corners. Street views are fine.
-- **A view from above** (a satellite or aerial view with its scale bar), for the footprint.
+- **Photos of every side**, taken straight on and from the corners.
+- **A view from above** (an aerial photo or a plan of the site, with a scale), for the footprint.
+
+Use photos you're allowed to use: your own, openly licensed ones (Mapillary, Wikimedia Commons,
+credited as their licences ask), or government aerial imagery. Other sources have terms of their
+own (see "Vendor terms" in [compliance.md](compliance.md)).
 - **Notes**: a `README.md` with what you know (how many floors, how high, what it's made of, where
   the entrances are, which photos to trust least), and ideally a `manifest.json` listing each
   photo with where it was taken and which way it looks. Your assistant then draws its model from
@@ -65,9 +69,8 @@ A manifest is a list of photos (at its top, or under `"images"` or `"photos"`), 
 ```
 
 `heading` is the compass direction the photo looks (0 north, 90 east), `pitch` how far up (0 is
-level), and `fov` its field of view across, in degrees (leave it out if you don't know; for a
-Street View screenshot, the number before `y` in its link is the field of view top to bottom: give
-it as `"vfov"`). Instead of
+level), and `fov` its field of view across, in degrees (leave it out if you don't know; if you
+know the field of view top to bottom instead, give it as `"vfov"`). Instead of
 `lat` and `lng`, `"at": [x, z]` gives a spot in metres. Anything else in an entry (what it shows,
 the date) is notes for your assistant.
 
