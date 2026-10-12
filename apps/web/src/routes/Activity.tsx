@@ -80,6 +80,10 @@ function describe(e: ActivityEntry): string {
       return `${who} changed the Studio settings`;
     case 'backup.settings_changed':
       return `${who} changed the backup settings`;
+    case 'server.sources_changed':
+      return `${who} changed which repositories creations may come from`;
+    case 'server.owner_changed':
+      return `${e.about ?? 'Someone'} became the server’s owner`;
     default:
       return `${who}: ${e.action.replace(/[._]/g, ' ')}`;
   }
