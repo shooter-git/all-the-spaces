@@ -9,8 +9,8 @@ import sharp from 'sharp';
 import type { V3 } from './geometry.ts';
 
 /**
- * Photos of a real place taken from known spots (street views, a survey, someone's own photos
- * with their positions), as cameras in its plan, so the model can be drawn from the same spots and
+ * Photos of a real place taken from known spots (someone's own photos with their positions,
+ * openly licensed street-level imagery, a survey), as cameras in its plan, so the model can be drawn from the same spots and
  * set beside them (`ats space match`).
  */
 export interface Shot {

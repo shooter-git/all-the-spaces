@@ -283,7 +283,7 @@ async function main() {
     const mark = values.mark ? point(values.mark) : ([width / 2, height / 2] as [number, number]);
     const where = moved(mark).join(',');
     console.log(
-      `Turned ${image} ${turn}° clockwise: ${out}. Calibrate on it (ats space scale … --image ${out}).\nIf ${image} was north-up (as maps and aerial views are), the top of ${out} faces a compass bearing of ${bearing.toFixed(1)}°: that's the site's bearing (ats space site LAT,LNG --bearing ${bearing.toFixed(1)}).\n${values.mark ? `Pixel ${mark.join(',')}` : `The middle (${mark.map(Math.round).join(',')})`} of ${image} is at ${where} in ${out}: a map's link gives the latitude and longitude of its middle (ats space site LAT,LNG --at ${where}). --mark X,Y for another pixel.`,
+      `Turned ${image} ${turn}° clockwise: ${out}. Calibrate on it (ats space scale … --image ${out}).\nIf ${image} was north-up (as maps and aerial views are), the top of ${out} faces a compass bearing of ${bearing.toFixed(1)}°: that's the site's bearing (ats space site LAT,LNG --bearing ${bearing.toFixed(1)}).\n${values.mark ? `Pixel ${mark.join(',')}` : `The middle (${mark.map(Math.round).join(',')})`} of ${image} is at ${where} in ${out}: where you know a pixel's latitude and longitude, ats space site LAT,LNG --at ${where}. --mark X,Y for another pixel.`,
     );
   } else if (command === 'site') {
     const [lat, lng] = point(rest[0]);

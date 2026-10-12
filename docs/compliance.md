@@ -111,6 +111,16 @@ terms, which can change. What they said when this was last checked (2026-10-10):
   on only for your own group, and never charge others for it.
 - **OpenAI** ([Codex authentication](https://learn.chatgpt.com/docs/auth)) documents
   `codex login --device-auth` for signing in on a remote machine, which is how the Studio signs in.
+- **Reference photos for a place** are covered by their own source's terms, not this project's
+  licence. Google's published guidelines for Google Maps, Google Earth and Street View
+  ([geo guidelines](https://about.google/brand-resource-center/products-and-services/geo-guidelines/),
+  [Maps/Earth terms](https://maps.google.com/help/terms_maps/)) don't allow screenshotting Street
+  View, creating data from its images (tracing, digitizing), or using Google Earth output to
+  rebuild 3D models; they say this holds for academic, nonprofit and commercial projects alike, and
+  it holds even when the source image never appears in the result. Architects and whoever runs a
+  server are responsible for using reference material they may use: their own photos, openly
+  licensed imagery (credited as its licence asks), or government aerial imagery. The assistant's
+  instructions (`SPACE.md`) tell it to point this out when a pack looks like Google screenshots.
 - **Names.** Say in plain text that All the Spaces works with or runs Claude Code or Codex; don't
   use their names or logos as part of your own product's name or logo, or in a way that suggests
   their makers built or endorse it.

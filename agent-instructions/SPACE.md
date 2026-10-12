@@ -115,9 +115,9 @@ perhaps a view from above), build the place from the outside in:
    a floor plan: `ats space scale` with its scale bar or a length you know (a parking bay is about
    2.5 m wide, a traffic lane 3 to 3.5 m), and `ats space origin` at the building's top-left corner.
 3. **Put it on the map**: `ats space site LAT,LNG --at PX,PY --bearing B`, where PX,PY is a pixel
-   of the calibrated image whose latitude and longitude you know (the centre of a map screenshot
-   is where its link or the manifest says; a corner the README gives), or `--plan X,Z` a point in
-   metres.
+   of the calibrated image whose latitude and longitude you know (a corner the README gives, or
+   the middle of the original picture: `ats space straighten` says where a pixel of the original
+   lands, `--mark X,Y`), or `--plan X,Z` a point in metres.
 4. **Floors** from the photos taken straight on: count them, and take heights from the README or
    by proportion (a door is about 2.1 m; a storey is about 2.7 m in a house, 3.5 to 4 m in an
    office, 3 m in a car park). On a slope, floors keep their elevations and the ground around is
@@ -142,20 +142,25 @@ perhaps a view from above), build the place from the outside in:
    in a core), kept simple and consistent with every opening the photos show. Tell the Architect
    plainly which parts are guesses, so they can correct them or add a floor plan.
 
-Photos from Google Street View or Maps often come with their links, which say where each was
-taken: `@LAT,LNG,…a,…y,…h,…t` is the spot, its altitude in metres (`a`; differences between
-photos show how the ground slopes), the **vertical** field of view (`y`: use it as `vfov`), the
-heading (`h`) and the tilt (`t`; the pitch is `t` minus 90). A map screenshot's link gives the
-latitude and longitude of its middle: `ats space straighten` says where that lands in the turned
-copy (`--mark X,Y` for another pixel), for `ats space site --at`. Street-view cars carry their
-cameras about 2.5 m up; photospheres people upload are held by hand (about 1.6 m), and their
-positions and headings are less reliable.
+Where the photos came from often says where each was taken: a phone's photo records its latitude
+and longitude (and sometimes its heading) in its details, and openly licensed street-level imagery
+(Mapillary, say) comes with each picture's position, compass angle and altitude (differences in
+altitude show how the ground slopes). A field of view may be given across (`fov`) or top to bottom
+(`vfov`): if the drawings come out too big or too small everywhere, try the other. People hold
+cameras about 1.6 m up; cameras on vehicles are about 2.5 m up.
+
+The Architect's photos must be ones they may use. **Google's terms don't allow screenshots of
+Street View, or tracing or modelling from Google Maps, Google Earth or Street View imagery**, even
+privately. If a pack's photos or aerial view look like screenshots of those (Google's logo or
+buttons in them), tell the Architect, plainly, before you build from them, and suggest their own
+photos, openly licensed ones (Mapillary, Wikimedia Commons) or government aerial imagery.
 
 A manifest the tools read is a list (at its top, or as `images`, `photos` or `shots`) of photos,
 each with its `file` (or `filename`), where it was taken (`lat` and `lng`, or `at`: [x, z] in the
 plan), `heading` (degrees: 0 north, 90 east), and optionally `pitch` (degrees up), `fov` (the
 horizontal field of view in degrees; `vfov` for the vertical one) and `cameraHeight` (metres
-above the ground: 2.5 for street views). Anything else in it is notes for you.
+above the ground: about 1.6 for a person, 2.5 for a camera on a vehicle). Anything else in it is
+notes for you.
 
 **Save as you go.** The workspace is its own git repository (only here: it has no remote, so
 never add one or push). Each time a change the Architect asked for works, and after each step of a

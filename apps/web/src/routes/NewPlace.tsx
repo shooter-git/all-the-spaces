@@ -263,10 +263,10 @@ export function NewPlace() {
               </div>
               <p className="ats-muted">
                 No floor plan? Photos of the outside will do, as a .zip: the building from every
-                side (street views are fine), a view from above, and notes on them (a README or a
-                manifest saying where each was taken from and what it shows). Your assistant builds
-                it from the outside in; inside, it makes its best guess and tells you which parts
-                are guesses.
+                side (your own, or openly licensed ones: Google's terms don't allow Street View
+                screenshots), a view from above, and notes on them (a README or a manifest saying
+                where each was taken from and what it shows). Your assistant builds it from the
+                outside in; inside, it makes its best guess and tells you which parts are guesses.
               </p>
               {packs.length > 0 && (
                 <ul className="studio-packs">
