@@ -43,6 +43,7 @@ export function BuildPanel({
 
   const build = async () => {
     setBusy('build');
+    setConfirm(false);
     setError(null);
     setProblems([]);
     const r = await buildPlace(workspaceId);
@@ -168,35 +169,8 @@ export function BuildPanel({
               ))}
             </div>
           )}
-          <div className="studio-actions-row">
-            <a
-              className="ats-button ats-button--ghost"
-              href={`/space/${spaceId}?version=${c.id}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Icon name="enter" size={16} />
-              Walk through it
-            </a>
-            <Button
-              variant="ghost"
-              onClick={() => void build()}
-              disabled={busy !== null}
-              busy={busy === 'build'}
-            >
-              <Icon name="hammer" size={16} />
-              {busy === 'build' ? 'Starting…' : 'Build again'}
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => setConfirm(true)}
-              disabled={busy !== null || undecided.length > 0}
-            >
-              <Icon name="upload" size={16} />
-              Publish…
-            </Button>
-          </div>
-          {confirm && (
+          {/* Asking to be sure takes the actions' place, so there's only ever one Publish. */}
+          {confirm ? (
             <Notice>
               <p style={{ margin: '0 0 8px' }}>
                 {live
@@ -224,6 +198,35 @@ export function BuildPanel({
                 </Button>
               </div>
             </Notice>
+          ) : (
+            <div className="studio-actions-row">
+              <a
+                className="ats-button ats-button--ghost"
+                href={`/space/${spaceId}?version=${c.id}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="enter" size={16} />
+                Walk through it
+              </a>
+              <Button
+                variant="ghost"
+                onClick={() => void build()}
+                disabled={busy !== null}
+                busy={busy === 'build'}
+              >
+                <Icon name="hammer" size={16} />
+                {busy === 'build' ? 'Starting…' : 'Build again'}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => setConfirm(true)}
+                disabled={busy !== null || undecided.length > 0}
+              >
+                <Icon name="upload" size={16} />
+                Publish…
+              </Button>
+            </div>
           )}
         </>
       ) : live ? (
