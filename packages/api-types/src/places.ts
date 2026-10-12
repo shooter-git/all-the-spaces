@@ -24,6 +24,8 @@ export type AddedPack = AddedInput & {
   files: number;
   folder: string;
   left: string[];
+  /** How many photos' positions were kept (when asked), in its photo-positions.json. */
+  positioned: number;
 };
 
 type Named = { key: string; name: string };

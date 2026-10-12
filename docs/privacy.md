@@ -13,7 +13,11 @@ Homes are sensitive, so All the Spaces is private by default:
   - Every room is built and lit on its own with its doors closed, so hiding one never affects
     another.
 - Floor plans and photos you give to build your place are saved again without location, camera
-  or other hidden details, and only Architects can see them (or remove them). They're only ever
+  or other hidden details, and only Architects can see them (or remove them). The one exception
+  is the Architect's own choice: for a .zip of photos of a building's outside, they can keep
+  **where each photo was taken** (its position, the way it faces and its lens, nothing else), in a
+  `photo-positions.json` kept beside the photos, so the assistant can check its model against them.
+  It's off unless they turn it on, and the pictures themselves are still saved without it. They're only ever
   read by your AI assistant, to understand the place: **they never appear in the space.** An
   Architect can have them deleted automatically as soon as a place is published (Studio →
   Settings), along with the workspace that held copies; the plan is kept.

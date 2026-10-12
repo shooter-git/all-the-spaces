@@ -81,9 +81,19 @@ export const MAX_UPLOAD = 25 * 1024 * 1024;
  * (never sent). For a place, `as` says whether a picture is a plan or a photo. A .zip is unpacked
  * into a folder of its own, its files keeping their names: `left` is what a place couldn't take.
  */
-export async function uploadToWorkspace(id: string, file: File, as?: 'plan' | 'photo') {
+export async function uploadToWorkspace(
+  id: string,
+  file: File,
+  as?: 'plan' | 'photo',
+  /** A .zip for a place: keep where each photo was taken (the Architect's choice). */
+  positions = false,
+) {
+  const query = new URLSearchParams({
+    ...(as ? { as } : {}),
+    ...(positions ? { positions: '1' } : {}),
+  }).toString();
   const res = await fetch(
-    `/api/workspaces/${id}/uploads/${encodeURIComponent(file.name)}${as ? `?as=${as}` : ''}`,
+    `/api/workspaces/${id}/uploads/${encodeURIComponent(file.name)}${query ? `?${query}` : ''}`,
     {
       method: 'PUT',
       credentials: 'include',
@@ -98,7 +108,13 @@ export async function uploadToWorkspace(id: string, file: File, as?: 'plan' | 'p
   };
   if (res.status === 413) throw new Error(`${file.name} is over 25 MB.`);
   if (!res.ok) throw new Error(body.error ?? `${file.name} couldn't be added.`);
-  return body as { path: string; typed: boolean; files?: number; left?: string[] };
+  return body as {
+    path: string;
+    typed: boolean;
+    files?: number;
+    left?: string[];
+    positioned?: number;
+  };
 }
 
 /**

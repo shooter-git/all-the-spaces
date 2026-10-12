@@ -142,6 +142,13 @@ perhaps a view from above), build the place from the outside in:
    in a core), kept simple and consistent with every opening the photos show. Tell the Architect
    plainly which parts are guesses, so they can correct them or add a floor plan.
 
+**`photo-positions.json`** in a folder is where each of its photos was taken, from the photos'
+own details (the Architect chose to keep it): match with it directly
+(`ats space match inputs/<folder>/photo-positions.json`). Photos without a `heading` (the phone
+didn't record one) are skipped: work out which way each faces from what it shows and the site, and
+add it in your `match.json`. Phones' compass headings and positions can be off by several degrees
+and metres; when everything is shifted the same way in a photo, adjust that photo, not the model.
+
 Where the photos came from often says where each was taken: a phone's photo records its latitude
 and longitude (and sometimes its heading) in its details, and openly licensed street-level imagery
 (Mapillary, say) comes with each picture's position, compass angle and altitude (differences in

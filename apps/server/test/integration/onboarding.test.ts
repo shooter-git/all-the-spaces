@@ -286,6 +286,7 @@ describe.skipIf(!adminUrl)('server flows', () => {
         input: 'pack-1',
         files: 5,
         left: ['tool.exe'],
+        positioned: 0,
       });
       const written = supCalls.findLast((c) => c.act === 'workspace.uploadpack')?.body as {
         folder: string;
@@ -436,6 +437,90 @@ describe.skipIf(!adminUrl)('server flows', () => {
         .from(schema.workspaces)
         .where(eq(schema.workspaces.id, res.json().id));
       expect(ws?.brief).toBe('The old mill, from its photos.');
+    });
+
+    it('keeps where phone photos were taken only when asked, and cleans the photos either way', async () => {
+      const { zipSync } = await import('fflate');
+      const sharp = (await import('sharp')).default;
+      const photo = await sharp({
+        create: { width: 400, height: 300, channels: 3, background: '#8a9aa8' },
+      })
+        .withExifMerge({
+          IFD0: { Make: 'PhoneCo', Model: 'Phone 12' },
+          IFD2: { FocalLengthIn35mmFilm: '26' },
+          IFD3: {
+            GPSLatitudeRef: 'N',
+            GPSLatitude: '51/1 30/1 0/1',
+            GPSLongitudeRef: 'W',
+            GPSLongitude: '0/1 7/1 3/1',
+            GPSImgDirectionRef: 'T',
+            GPSImgDirection: '90/1',
+          },
+        })
+        .jpeg()
+        .toBuffer();
+      const pack = Buffer.from(zipSync({ 'walk/IMG_0001.jpg': photo, 'walk/IMG_0002.jpg': photo }));
+      const place = async (name: string) =>
+        (
+          await req('POST', `/api/groups/${groupId}/places`, architectCookie, {
+            name,
+            spaceType: 'building',
+          })
+        ).json().spaceId as string;
+      const add = (spaceId: string, query: string) =>
+        req('PUT', `/api/spaces/${spaceId}/packs/walk.zip${query}`, architectCookie, pack, {
+          'content-type': 'application/zip',
+        });
+      const filesOf = async (spaceId: string) => {
+        expect(
+          (
+            await req('POST', `/api/spaces/${spaceId}/workspace`, architectCookie, {
+              provider: 'claude',
+            })
+          ).statusCode,
+        ).toBe(200);
+        const init = supCalls.findLast((c) => c.act === 'workspace.init')?.body?.files as Record<
+          string,
+          string
+        >;
+        return new Map(Object.entries(init).map(([k, v]) => [k, Buffer.from(v, 'base64')]));
+      };
+
+      // Asked: positions kept beside the photos, in the form ats space match reads.
+      const kept = await place('A shop, kept');
+      expect((await add(kept, '?positions=1')).json()).toMatchObject({ positioned: 2, files: 3 });
+      const withPositions = await filesOf(kept);
+      const manifest = JSON.parse(
+        withPositions.get('inputs/walk/photo-positions.json')?.toString() ?? '{}',
+      );
+      expect(manifest.photos).toEqual([
+        {
+          file: 'IMG_0001.jpg',
+          lat: 51.5,
+          lng: -0.1175,
+          heading: 90,
+          fov: 69.4,
+          cameraHeight: 1.6,
+        },
+        {
+          file: 'IMG_0002.jpg',
+          lat: 51.5,
+          lng: -0.1175,
+          heading: 90,
+          fov: 69.4,
+          cameraHeight: 1.6,
+        },
+      ]);
+      // The photos themselves never keep their details.
+      const meta = await sharp(withPositions.get('inputs/walk/IMG_0001.jpg')).metadata();
+      expect(meta.exif).toBeUndefined();
+
+      // Not asked: nothing kept.
+      const plain = await place('A shop, not kept');
+      expect((await add(plain, '')).json()).toMatchObject({ positioned: 0, files: 2 });
+      expect([...(await filesOf(plain)).keys()].some((k) => k.includes('photo-positions'))).toBe(
+        false,
+      );
     });
 
     it('builds a candidate from a sound plan, for Architects to walk through first', async () => {

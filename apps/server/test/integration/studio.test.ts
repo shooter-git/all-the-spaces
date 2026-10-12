@@ -367,6 +367,7 @@ describe.skipIf(!adminUrl)('server flows', () => {
         input: null,
         files: 2,
         left: [],
+        positioned: 0,
       });
       expect((await add('notes.docx', pack, 'application/octet-stream')).json().path).toBe(
         'uploads/notes.docx',

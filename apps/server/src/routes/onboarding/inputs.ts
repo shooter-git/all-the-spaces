@@ -209,7 +209,7 @@ export async function inputRoutes(
       { parseAs: 'buffer', bodyLimit: 25 * 1024 * 1024 },
       (_req, body, done) => done(null, body),
     );
-    scope.put<{ Params: { spaceId: string; file: string } }>(
+    scope.put<{ Params: { spaceId: string; file: string }; Querystring: { positions?: string } }>(
       '/api/spaces/:spaceId/packs/:file',
       async (req, reply) => {
         const me = await requireUser(ctx, req, reply);
@@ -221,7 +221,9 @@ export async function inputRoutes(
           return sendError(reply, 415, 'Send a .zip of photos (and notes on them).');
         let pack: Awaited<ReturnType<typeof preparePack>>;
         try {
-          pack = await preparePack(req.body, file, true);
+          pack = await preparePack(req.body, file, true, {
+            positions: req.query.positions === '1',
+          });
         } catch (err) {
           if (err instanceof PackError)
             return sendError(reply, err.status, `${file}: ${err.message}`);
@@ -234,7 +236,12 @@ export async function inputRoutes(
           actorUserId: me.id,
           action: 'place.pack',
           target: space.id,
-          metadata: { input: kept.name, files: pack.files.size, bytes: kept.bytes },
+          metadata: {
+            input: kept.name,
+            files: pack.files.size,
+            bytes: kept.bytes,
+            ...(pack.positioned ? { positioned: pack.positioned } : {}),
+          },
         });
         return {
           name: kept.name,
@@ -245,6 +252,7 @@ export async function inputRoutes(
           files: pack.files.size,
           folder: kept.folder,
           left: pack.left,
+          positioned: pack.positioned,
         } satisfies AddedPack;
       },
     );

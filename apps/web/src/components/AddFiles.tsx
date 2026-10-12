@@ -1,5 +1,6 @@
 import { Button, Confirm, Icon, IconButton } from '@ats/ui';
 import { useEffect, useRef, useState } from 'react';
+import { useModal } from '../lib/modal.ts';
 import { isPdf, pdfPages } from '../lib/pdf.ts';
 import {
   listUploads,
@@ -38,7 +39,16 @@ export function AddFiles({
   const picker = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [over, setOver] = useState(false);
+  /** Asking whether to keep where a .zip's photos were taken (its answer, once given). */
+  const [asking, setAsking] = useState<((keep: boolean) => void) | null>(null);
   const busy = useRef(false);
+  const keepPositions = () =>
+    new Promise<boolean>((resolve) =>
+      setAsking(() => (keep: boolean) => {
+        setAsking(null);
+        resolve(keep);
+      }),
+    );
 
   const add = async (files: File[]) => {
     if (busy.current || !files.length) return;
@@ -47,6 +57,9 @@ export function AddFiles({
     const added: string[] = [];
     let typed = true;
     try {
+      // Photos of a building's outside can keep where they were taken, to match the model
+      // against: the Architect says so for each .zip (never for photos of a home).
+      const positions = place && files.some(isZip) ? await keepPositions() : false;
       const items: { file: File; as?: 'plan' | 'photo' }[] = [];
       for (const file of files) {
         if (file.size > MAX_UPLOAD) problems.push(`${file.name} is over 25 MB.`);
@@ -66,7 +79,7 @@ export function AddFiles({
       for (const [i, { file, as }] of items.entries()) {
         setProgress(items.length > 1 ? `Adding ${i + 1} of ${items.length}…` : 'Adding…');
         try {
-          const r = await uploadToWorkspace(workspaceId, file, as);
+          const r = await uploadToWorkspace(workspaceId, file, as, positions && isZip(file));
           added.push(r.path.replace(/^uploads\//, ''));
           typed &&= r.typed;
           if (r.left?.length)
@@ -154,6 +167,7 @@ export function AddFiles({
           void add(chosen);
         }}
       />
+      {asking && <KeepPositions onAnswer={asking} />}
       {over && (
         <div className="workspace-drop" aria-hidden="true">
           <div className="workspace-drop-card">
@@ -167,6 +181,50 @@ export function AddFiles({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Whether to keep where a .zip's photos were taken: their positions, the way they face and their
+ * lens, kept in photo-positions.json beside them so the assistant can draw its model from the
+ * same spots. Photos are otherwise saved without any of their details, so it's asked, and closing
+ * the question keeps nothing.
+ */
+function KeepPositions({ onAnswer }: { onAnswer: (keep: boolean) => void }) {
+  const dialog = useModal();
+  const answer = useRef(false);
+  return (
+    <dialog
+      ref={dialog}
+      className="ats-sheet"
+      aria-labelledby="keep-positions-title"
+      onClose={() => onAnswer(answer.current)}
+    >
+      <h2 id="keep-positions-title">Keep where the photos were taken?</h2>
+      <p>
+        Photos from a phone know where they were taken and which way they face. Keeping that lets
+        your assistant draw its model from the same spots and check it against each photo. It's kept
+        with the place, for your assistant only.
+      </p>
+      <p className="ats-muted">
+        Only for photos of the outside of a building, not of a home. The pictures themselves are
+        always saved without it.
+      </p>
+      <div className="studio-actions-row">
+        <Button
+          variant="primary"
+          onClick={() => {
+            answer.current = true;
+            dialog.current?.close();
+          }}
+        >
+          Keep where they were taken
+        </Button>
+        <Button variant="ghost" onClick={() => dialog.current?.close()}>
+          Leave it out
+        </Button>
+      </div>
+    </dialog>
   );
 }
 
