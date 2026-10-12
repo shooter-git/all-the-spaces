@@ -209,6 +209,17 @@ const pose = (tab: Page) =>
  */
 const FRAMES_MS = 10_000;
 
+/**
+ * Two frames drawn since now. After the screen changes size, the browser only works out again what
+ * goes by its height (100dvh) when it next draws: until then the page is laid out with the old one.
+ * Software WebGL on a busy machine can take seconds to draw, so this waits for the frames, not a time.
+ */
+const drawn = (tab: Page) =>
+  tab.evaluate(
+    () =>
+      new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))),
+  );
+
 /** Nothing covers the middle of what's tapped (an invisible layer would swallow the tap). */
 async function reachable(target: Locator) {
   await target.scrollIntoViewIfNeeded();
@@ -256,10 +267,11 @@ run('touch in a space (phones)', () => {
         : await webkit.launch();
   }, 60_000);
 
+  // Closing Chromium with its software WebGL takes about 10 s on a busy machine.
   afterAll(async () => {
     for (const b of Object.values(browsers)) await b.close();
     await new Promise<void>((resolve) => server?.httpServer.close(() => resolve()));
-  });
+  }, 60_000);
 
   async function phone(p: (typeof PHONES)[number]): Promise<BrowserContext> {
     const browser = browsers[p.engine];
@@ -295,14 +307,16 @@ run('touch in a space (phones)', () => {
       null,
       { timeout: 30_000 },
     );
-    // The loading screen has faded away (it's over the view and the joystick until then).
+    // The loading screen has faded away (it's over the view and the joystick until then). Its
+    // fade, and this check, only move on when the page draws, and a busy machine has gone 11 s
+    // without drawing.
     await tab.waitForFunction(
       () => {
         const veil = document.querySelector('.space-loading');
         return veil?.getAttribute('data-done') === 'true' && getComputedStyle(veil).opacity === '0';
       },
       null,
-      { timeout: 10_000 },
+      { timeout: 30_000 },
     );
     return tab;
   }
@@ -530,15 +544,18 @@ run('touch in a space (phones)', () => {
             for (const size of [p.device.viewport, ...(SIDEWAYS[p.engine] ?? [])]) {
               await tab.setViewportSize(size);
               const where = `${size.width}×${size.height}`;
-              // WebKit can lay out a frame with the old screen height (100dvh) just after a resize:
-              // wait for the card to reach the bottom before measuring the rest.
+              // The card's height goes by the screen's (100dvh), which the browser only takes in
+              // when it next draws: until then Chromium keeps the old one (seen for 2 s on a busy
+              // machine), and WebKit can lay out a frame with it. Wait for frames drawn, then for the
+              // card to reach the bottom before measuring the rest.
+              await drawn(tab);
               await expect
                 .poll(
                   async () => {
                     const now = await measure();
                     return Math.min(now.dialog.bottom, size.height) - now.art.bottom;
                   },
-                  { timeout: 3000 },
+                  { timeout: FRAMES_MS },
                 )
                 .toBeLessThanOrEqual(30);
               const at = await measure();
