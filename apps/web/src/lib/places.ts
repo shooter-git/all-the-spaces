@@ -49,8 +49,9 @@ export async function uploadInput(spaceId: string, name: string, file: File, not
  * Adds a pack: a .zip of photos with notes on them (a README, a manifest), unpacked and kept whole
  * with the place, its files keeping their names. `left` is what in it a place can't take.
  */
-export async function uploadPack(spaceId: string, file: File) {
-  const res = await fetch(`/api/spaces/${spaceId}/packs/${encodeURIComponent(file.name)}`, {
+export async function uploadPack(spaceId: string, file: File, positions = false) {
+  const query = positions ? '?positions=1' : '';
+  const res = await fetch(`/api/spaces/${spaceId}/packs/${encodeURIComponent(file.name)}${query}`, {
     method: 'PUT',
     credentials: 'include',
     headers: { 'content-type': 'application/zip' },

@@ -64,11 +64,12 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
     zipName: string,
     body: Buffer,
     supervisor: Supervisor,
+    positions: boolean,
   ) => {
     const place = ws.kind === 'space';
     let pack: Awaited<ReturnType<typeof preparePack>>;
     try {
-      pack = await preparePack(body, zipName, place);
+      pack = await preparePack(body, zipName, place, { positions: place && positions });
     } catch (err) {
       if (err instanceof PackError)
         return sendError(reply, err.status, `${zipName}: ${err.message}`);
@@ -113,6 +114,7 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
         input: kept?.name ?? null,
         files: files.length,
         left: pack.left,
+        positioned: pack.positioned,
       };
     } catch (err) {
       return sandboxSaid(reply, err);
@@ -201,117 +203,121 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
       { parseAs: 'buffer', bodyLimit: MAX_UPLOAD },
       (_req, body, done) => done(null, body),
     );
-    scope.put<{ Params: { id: string; name: string }; Querystring: { as?: string } }>(
-      '/api/workspaces/:id/uploads/:name',
-      async (req, reply) => {
-        const me = await requireUser(ctx, req, reply);
-        if (!me) return;
-        const ws = await ownWorkspace(me.id, req.params.id);
-        if (!ws) return notFound(reply);
-        if (!ctx.supervisor)
-          return sendError(reply, 503, "The Studio isn't set up on this server yet.");
-        if (!Buffer.isBuffer(req.body) || !req.body.length)
-          return sendError(reply, 400, 'That file is empty.');
-        reply.header('cache-control', 'private, no-store');
+    scope.put<{
+      Params: { id: string; name: string };
+      Querystring: { as?: string; positions?: string };
+    }>('/api/workspaces/:id/uploads/:name', async (req, reply) => {
+      const me = await requireUser(ctx, req, reply);
+      if (!me) return;
+      const ws = await ownWorkspace(me.id, req.params.id);
+      if (!ws) return notFound(reply);
+      if (!ctx.supervisor)
+        return sendError(reply, 503, "The Studio isn't set up on this server yet.");
+      if (!Buffer.isBuffer(req.body) || !req.body.length)
+        return sendError(reply, 400, 'That file is empty.');
+      reply.header('cache-control', 'private, no-store');
 
-        const { base, ext } = uploadName(req.params.name);
-        // A zip by its name (a Word document or a model is a zip inside too, and stays whole).
-        if (ext === 'zip') return addPack(reply, me, ws, req.params.name, req.body, ctx.supervisor);
-        const picture =
-          PICTURE.test(ext) || String(req.headers['content-type']).startsWith('image/');
-        let data: Buffer = req.body;
-        let name = ext ? `${base}.${ext}` : base;
-        let input: { name: string; kind: 'plan' | 'photo' } | null = null;
+      const { base, ext } = uploadName(req.params.name);
+      // A zip by its name (a Word document or a model is a zip inside too, and stays whole).
+      if (ext === 'zip')
+        return addPack(
+          reply,
+          me,
+          ws,
+          req.params.name,
+          req.body,
+          ctx.supervisor,
+          req.query.positions === '1',
+        );
+      const picture = PICTURE.test(ext) || String(req.headers['content-type']).startsWith('image/');
+      let data: Buffer = req.body;
+      let name = ext ? `${base}.${ext}` : base;
+      let input: { name: string; kind: 'plan' | 'photo' } | null = null;
 
-        if (ws.kind === 'space') {
-          // A place: pictures only (a PDF's pages arrive as pictures), cleaned as at setup.
-          const kind = req.query.as === 'plan' ? 'plan' : 'photo';
-          try {
-            const { data: jpeg, info } = await (await openPicture(req.body, 100_000_000))
-              .rotate()
-              .resize({ width: 3000, height: 3000, fit: 'inside', withoutEnlargement: true })
-              .jpeg({ quality: 86, mozjpeg: true })
-              .toBuffer({ resolveWithObject: true });
-            data = jpeg;
-            name = `${base}.jpg`;
-            // Kept with the place too (so the next time it's changed, the assistant has it).
-            const existing = ws.spaceId
-              ? await db.select().from(spaceInputs).where(eq(spaceInputs.spaceId, ws.spaceId))
-              : [];
-            if (ws.spaceId && existing.filter((i) => i.kind === kind).length < LIMITS[kind]) {
-              const taken = new Set(existing.map((i) => i.name));
-              let n = 1;
-              while (taken.has(`${kind}-${n}`)) n++;
-              input = { name: `${kind}-${n}`, kind };
-              await (await getStorage(ctx)).put(
-                inputKey(ws.spaceId, input.name),
-                jpeg,
-                'image/jpeg',
-              );
-              await db.insert(spaceInputs).values({
-                spaceId: ws.spaceId,
-                name: input.name,
-                kind,
-                note: base.replace(/-/g, ' ').slice(0, 200),
-                width: info.width,
-                height: info.height,
-                bytes: jpeg.length,
-              });
-            }
-          } catch {
-            return sendError(
-              reply,
-              415,
-              'A place takes pictures and PDFs (photos, or plans: JPEG, PNG, HEIC, PDF…).',
-            );
-          }
-        } else if (picture) {
-          // A creation: the same picture, without its hidden details (where and on what it was
-          // taken). One that can't be read is kept as it is.
-          try {
-            const img = (await openPicture(req.body, 100_000_000))
-              .rotate()
-              .resize({ width: 4096, height: 4096, fit: 'inside', withoutEnlargement: true });
-            if (ext === 'png' || ext === 'webp') data = await img.toFormat(ext).toBuffer();
-            else {
-              data = await img.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
-              name = `${base}.jpg`;
-            }
-          } catch {}
-        }
-
+      if (ws.kind === 'space') {
+        // A place: pictures only (a PDF's pages arrive as pictures), cleaned as at setup.
+        const kind = req.query.as === 'plan' ? 'plan' : 'photo';
         try {
-          const r = await ctx.supervisor.call<{ name: string; running: boolean }>(
-            'workspace.upload',
-            { ws: ws.id },
-            { name, data: data.toString('base64') },
+          const { data: jpeg, info } = await (await openPicture(req.body, 100_000_000))
+            .rotate()
+            .resize({ width: 3000, height: 3000, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 86, mozjpeg: true })
+            .toBuffer({ resolveWithObject: true });
+          data = jpeg;
+          name = `${base}.jpg`;
+          // Kept with the place too (so the next time it's changed, the assistant has it).
+          const existing = ws.spaceId
+            ? await db.select().from(spaceInputs).where(eq(spaceInputs.spaceId, ws.spaceId))
+            : [];
+          if (ws.spaceId && existing.filter((i) => i.kind === kind).length < LIMITS[kind]) {
+            const taken = new Set(existing.map((i) => i.name));
+            let n = 1;
+            while (taken.has(`${kind}-${n}`)) n++;
+            input = { name: `${kind}-${n}`, kind };
+            await (await getStorage(ctx)).put(inputKey(ws.spaceId, input.name), jpeg, 'image/jpeg');
+            await db.insert(spaceInputs).values({
+              spaceId: ws.spaceId,
+              name: input.name,
+              kind,
+              note: base.replace(/-/g, ' ').slice(0, 200),
+              width: info.width,
+              height: info.height,
+              bytes: jpeg.length,
+            });
+          }
+        } catch {
+          return sendError(
+            reply,
+            415,
+            'A place takes pictures and PDFs (photos, or plans: JPEG, PNG, HEIC, PDF…).',
           );
-          const path = `uploads/${r.name}`;
-          const typed = r.running
-            ? (
-                await ctx.supervisor.call<{ ok: boolean }>(
-                  'sandbox.paste',
-                  { ws: ws.id },
-                  { text: mention(ws, r.name) },
-                )
-              ).ok
-            : false;
-          await db
-            .update(workspaces)
-            .set({ lastActivityAt: new Date() })
-            .where(eq(workspaces.id, ws.id));
-          await record(db, {
-            groupId: ws.groupId,
-            actorUserId: me.id,
-            action: 'workspace.upload',
-            target: ws.id,
-            metadata: { bytes: data.length, ...(input ? { input: input.name } : {}) },
-          });
-          return { path, typed, input: input?.name ?? null };
-        } catch (err) {
-          return sandboxSaid(reply, err);
         }
-      },
-    );
+      } else if (picture) {
+        // A creation: the same picture, without its hidden details (where and on what it was
+        // taken). One that can't be read is kept as it is.
+        try {
+          const img = (await openPicture(req.body, 100_000_000))
+            .rotate()
+            .resize({ width: 4096, height: 4096, fit: 'inside', withoutEnlargement: true });
+          if (ext === 'png' || ext === 'webp') data = await img.toFormat(ext).toBuffer();
+          else {
+            data = await img.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+            name = `${base}.jpg`;
+          }
+        } catch {}
+      }
+
+      try {
+        const r = await ctx.supervisor.call<{ name: string; running: boolean }>(
+          'workspace.upload',
+          { ws: ws.id },
+          { name, data: data.toString('base64') },
+        );
+        const path = `uploads/${r.name}`;
+        const typed = r.running
+          ? (
+              await ctx.supervisor.call<{ ok: boolean }>(
+                'sandbox.paste',
+                { ws: ws.id },
+                { text: mention(ws, r.name) },
+              )
+            ).ok
+          : false;
+        await db
+          .update(workspaces)
+          .set({ lastActivityAt: new Date() })
+          .where(eq(workspaces.id, ws.id));
+        await record(db, {
+          groupId: ws.groupId,
+          actorUserId: me.id,
+          action: 'workspace.upload',
+          target: ws.id,
+          metadata: { bytes: data.length, ...(input ? { input: input.name } : {}) },
+        });
+        return { path, typed, input: input?.name ?? null };
+      } catch (err) {
+        return sandboxSaid(reply, err);
+      }
+    });
   });
 }

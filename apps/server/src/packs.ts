@@ -1,4 +1,5 @@
 import { Unzip, UnzipInflate, unzipSync, type Zippable, zipSync } from 'fflate';
+import { fieldOfView, photoPosition } from './photo-position.ts';
 import { openPicture } from './pictures.ts';
 
 /**
@@ -192,21 +193,40 @@ async function packFile(path: string, data: Buffer, place: boolean) {
   return place && !PLACE_DOCUMENT.test(ext) ? null : { path, data };
 }
 
+/** Where the pack's photos were taken, when the Architect chose to keep it. */
+export const POSITIONS_FILE = 'photo-positions.json';
+
 /**
  * A zip as it's kept: unpacked and arranged, its pictures cleaned, and what a place can't take
  * left out (`left`). The folder is a plain name (lower case, digits and dashes).
+ *
+ * With `positions` (the Architect's choice: photos of the outside of a building, not of a home),
+ * where each photo was taken is read from its details before they're cleaned off, and kept in
+ * `photo-positions.json` beside them: position, direction and lens only, in the form
+ * `ats space match` reads. The pictures themselves are still saved without any details.
  */
 export async function preparePack(
   body: Buffer,
   zipName: string,
   place: boolean,
-): Promise<{ folder: string; files: Map<string, Buffer>; left: string[]; bytes: number }> {
+  options: { positions?: boolean } = {},
+): Promise<{
+  folder: string;
+  files: Map<string, Buffer>;
+  left: string[];
+  bytes: number;
+  /** How many photos had a position kept. */
+  positioned: number;
+}> {
   const arranged = arrangePack(unzipPack(body), zipName);
   if (!arranged.files.size) throw new PackError('It’s empty.');
   const files = new Map<string, Buffer>();
   const left: string[] = [];
+  const photos: Record<string, unknown>[] = [];
   let bytes = 0;
   for (const [path, data] of arranged.files) {
+    const ext = path.slice(path.lastIndexOf('.') + 1).toLowerCase();
+    const position = options.positions && PICTURE.test(ext) ? photoPosition(data) : null;
     const kept = await packFile(path, data, place);
     if (!kept || files.has(kept.path)) {
       left.push(path);
@@ -214,13 +234,54 @@ export async function preparePack(
     }
     files.set(kept.path, kept.data);
     bytes += kept.data.length;
+    if (position) {
+      const { width = 0, height = 0 } = await openPicture(kept.data, 100_000_000)
+        .then((img) => img.metadata())
+        .catch(() => ({ width: 0, height: 0 }));
+      photos.push({
+        file: kept.path,
+        lat: Number(position.lat.toFixed(7)),
+        lng: Number(position.lng.toFixed(7)),
+        ...(position.heading !== undefined ? { heading: Number(position.heading.toFixed(1)) } : {}),
+        ...(position.focal35 && width && height
+          ? { fov: fieldOfView(position.focal35, width, height) }
+          : {}),
+        ...(position.altitude !== undefined
+          ? { altitude: Number(position.altitude.toFixed(1)) }
+          : {}),
+        cameraHeight: 1.6,
+      });
+    }
+  }
+  if (photos.length) {
+    let name = POSITIONS_FILE;
+    for (let i = 2; files.has(name); i++) name = `photo-positions-${i}.json`;
+    const manifest = Buffer.from(
+      `${JSON.stringify(
+        {
+          about:
+            "Where each photo was taken, from the photo's own details (kept because the Architect chose to): latitude and longitude, the compass direction it faces (heading) when the phone recorded one, its lens as a field of view across (fov, degrees) and its altitude (metres above sea level). Photos are taken about 1.6 m up. A photo without a heading needs one before ats space match can use it.",
+          photos,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    files.set(name, manifest);
+    bytes += manifest.length;
   }
   if (!files.size)
     throw new PackError(
       'Nothing in it could be added: a place takes pictures and documents about it (PDF, text, JSON…).',
       415,
     );
-  return { folder: uploadName(arranged.folder).base, files, left, bytes };
+  return {
+    folder: uploadName(arranged.folder).base,
+    files,
+    left,
+    bytes,
+    positioned: photos.length,
+  };
 }
 
 /** A prepared pack as one file to store (pictures as they are; text compressed). */

@@ -59,6 +59,9 @@ export function NewPlace() {
   const [error, setError] = useState<string | null>(null);
   const [room, setRoom] = useState('');
   const [floor, setFloor] = useState('');
+  /** Keep where a .zip's photos were taken (for photos of a building's outside). */
+  const [positions, setPositions] = useState(false);
+  const [positioned, setPositioned] = useState(0);
   const [picked, setPicked] = useState<Picked>({ provider: '', model: null, effort: null });
   const descId = useId();
   const defaults = useAssistantDefaults(groupId);
@@ -133,9 +136,10 @@ export function NewPlace() {
       if (!spaceId || !files) return;
       const left: string[] = [];
       for (const file of [...files]) {
-        const added = await uploadPack(spaceId, file);
+        const added = await uploadPack(spaceId, file, positions);
         setInputs((list) => [...list, { ...added, note: added.folder }]);
         left.push(...added.left);
+        setPositioned((n) => n + added.positioned);
       }
       if (left.length)
         setError(
@@ -305,6 +309,22 @@ export function NewPlace() {
                   />
                 </label>
               </div>
+              <label className="studio-check">
+                <input
+                  type="checkbox"
+                  checked={positions}
+                  onChange={(e) => setPositions(e.target.checked)}
+                />
+                Keep where each photo was taken
+              </label>
+              <p className="ats-muted studio-small">
+                Phone photos know where they were taken and which way they face. Keeping that lets
+                your assistant check its model against each photo from the same spot. Only for
+                photos of the outside of a building, not of a home; the pictures themselves are
+                always saved without it.
+                {positioned > 0 &&
+                  ` Kept for ${positioned} photo${positioned === 1 ? '' : 's'} (in photo-positions.json).`}
+              </p>
             </Section>
 
             <Section title="3. Photos (optional)">

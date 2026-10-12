@@ -62,7 +62,15 @@ own (see "Vendor terms" in [compliance.md](compliance.md)).
   photo with where it was taken and which way it looks. Your assistant then draws its model from
   exactly those spots and compares (it shows you these **photo matches** under **Pictures**).
 
-A manifest is a list of photos (at its top, or under `"images"` or `"photos"`), each like:
+**Your own phone photos need no manifest.** Walk round the building taking photos (with location
+on), zip them, and tick **Keep where each photo was taken** when you add the .zip (or answer
+**Keep where they were taken** when you add it later with **Add files**). Each photo's position,
+the way it faces and its lens are kept in `photo-positions.json` beside the photos; nothing else
+from their details is, and the pictures are still cleaned. Only do this for the outside of a
+building, never for photos of a home. Some phones don't record which way a photo faces: your
+assistant works that out for those.
+
+Otherwise, a manifest is a list of photos (at its top, or under `"images"` or `"photos"`), each like:
 
 ```json
 { "file": "03_east-face.jpg", "lat": 51.50072, "lng": -0.12462, "heading": 290, "pitch": 10, "fov": 90 }
