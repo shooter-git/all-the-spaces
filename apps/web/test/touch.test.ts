@@ -654,7 +654,8 @@ run('touch in a space (phones)', () => {
             window.scrollTo(0, 47);
           });
           await turn(tab);
-          await expect.poll(() => still(tab)).toEqual([0, 0, 0, 0]);
+          // The page settles over the next frames drawn (and timers up to 1.5 s), not at once.
+          await expect.poll(() => still(tab), { timeout: FRAMES_MS }).toEqual([0, 0, 0, 0]);
           await topBarAnswers(tab);
         } finally {
           await context.close();
