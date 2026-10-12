@@ -149,12 +149,6 @@ altitude show how the ground slopes). A field of view may be given across (`fov`
 (`vfov`): if the drawings come out too big or too small everywhere, try the other. People hold
 cameras about 1.6 m up; cameras on vehicles are about 2.5 m up.
 
-The Architect's photos must be ones they may use. **Google's terms don't allow screenshots of
-Street View, or tracing or modelling from Google Maps, Google Earth or Street View imagery**, even
-privately. If a pack's photos or aerial view look like screenshots of those (Google's logo or
-buttons in them), tell the Architect, plainly, before you build from them, and suggest their own
-photos, openly licensed ones (Mapillary, Wikimedia Commons) or government aerial imagery.
-
 A manifest the tools read is a list (at its top, or as `images`, `photos` or `shots`) of photos,
 each with its `file` (or `filename`), where it was taken (`lat` and `lng`, or `at`: [x, z] in the
 plan), `heading` (degrees: 0 north, 90 east), and optionally `pitch` (degrees up), `fov` (the

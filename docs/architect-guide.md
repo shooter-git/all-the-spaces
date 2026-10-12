@@ -55,9 +55,8 @@ built from photos of the outside. Put them in one **.zip** (up to 25 MB), with:
 - **A view from above** (an aerial photo or a plan of the site, with a scale), for the footprint.
 
 Use photos you're allowed to use: your own, openly licensed ones (Mapillary, Wikimedia Commons,
-credited as their licences ask), or government aerial imagery. Google's terms don't allow
-screenshots of Street View, or tracing or modelling from Google Maps or Google Earth imagery, even
-for a private place.
+credited as their licences ask), or government aerial imagery. Other sources have terms of their
+own (see "Vendor terms" in [compliance.md](compliance.md)).
 - **Notes**: a `README.md` with what you know (how many floors, how high, what it's made of, where
   the entrances are, which photos to trust least), and ideally a `manifest.json` listing each
   photo with where it was taken and which way it looks. Your assistant then draws its model from
