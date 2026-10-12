@@ -356,6 +356,7 @@ async function composeRoom(
 
   // Textures so far are surfaces (walls, floors…); anything added below belongs to a model.
   const surfaceTextures = new Set(doc.getRoot().listTextures());
+  const surfaceMaterials = new Set(doc.getRoot().listMaterials());
   for (const placed of models) {
     const { doc: source, credit } = await placed.source();
     if (credit) {
@@ -401,7 +402,9 @@ async function composeRoom(
   }
 
   // Model glass often ships as an opaque, fully metallic sheet (renders black): make it clear.
+  // Our own glass (windows) already is, as MATERIALS says.
   for (const m of doc.getRoot().listMaterials()) {
+    if (surfaceMaterials.has(m)) continue;
     if (m.getAlphaMode() === 'BLEND' && /glass/i.test(m.getName())) {
       const [r = 1, g = 1, b = 1] = m.getBaseColorFactor();
       m.setBaseColorFactor([r, g, b, 0.12]).setMetallicFactor(0).setRoughnessFactor(0.05);
