@@ -235,8 +235,9 @@ const skyHash = (path: string) => {
  * own with its doorways closed, so no room's lighting reveals anything about another. A room
  * whose inputs are all the same as in an earlier build gets that build's bake back (`cache`).
  *
- * Writes each architecture group's lightmap UVs into `receiver` (uv2). When it can't be baked,
- * says why; the room then uses real-time lighting only.
+ * Writes each architecture group's lightmap UVs into `receiver` (uv2), except see-through ones
+ * (glass), which light passes through. When it can't be baked, says why; the room then uses
+ * real-time lighting only.
  */
 export async function bakeRoom(
   receiver: MeshBuilder,
@@ -252,24 +253,8 @@ export async function bakeRoom(
   },
   settings: BakeSettings,
 ): Promise<BakeResult> {
-  // Receiver: every architecture group merged, remembering which group each face came from.
-  const positions: number[] = [];
-  const faces: number[][] = [];
-  const faceGroup: number[] = [];
-  const groups: { albedo: [number, number, number] }[] = [];
-  const ranges: { key: SurfaceKey; start: number; count: number }[] = [];
-  for (const [key, g] of receiver.groups) {
-    const offset = positions.length / 3;
-    const count = g.positions.length / 3;
-    for (const v of g.positions) positions.push(v);
-    for (const f of g.faces) {
-      faces.push(f.map((i) => i + offset));
-      faceGroup.push(groups.length);
-    }
-    const name = (key.startsWith('floor:') ? key.slice(6) : key) as MaterialName;
-    groups.push({ albedo: hexToLinear(MATERIALS[name].color) });
-    ranges.push({ key, start: offset, count });
-  }
+  // Receiver: the room's solid surfaces (see receiverInput).
+  const { positions, faces, faceGroup, groups, ranges } = receiverInput(receiver);
   if (faces.length === 0) return { ok: false, error: 'The room has no surfaces', timedOut: false };
 
   // Blockers: furniture plus a panel in every doorway (baked with doors closed).
@@ -341,6 +326,34 @@ export async function bakeRoom(
   if (cache)
     await cache.put(key, writeCacheEntry({ image, intensity, uv2: out.uv2 })).catch(() => {});
   return { ok: true, lightmap: { image, intensity, seconds: meta.seconds, reused: false } };
+}
+
+/**
+ * The room's surfaces as `bake_room.py` reads them: every architecture group merged, remembering
+ * which group each face came from (and where each group's vertices went). See-through groups
+ * (window glass, mesh screens) are left out: they'd block the sky light that comes in through
+ * them, and the viewer draws them as they are, without a lightmap.
+ */
+function receiverInput(receiver: MeshBuilder) {
+  const positions: number[] = [];
+  const faces: number[][] = [];
+  const faceGroup: number[] = [];
+  const groups: { albedo: [number, number, number] }[] = [];
+  const ranges: { key: SurfaceKey; start: number; count: number }[] = [];
+  for (const [key, g] of receiver.groups) {
+    const def = MATERIALS[(key.startsWith('floor:') ? key.slice(6) : key) as MaterialName];
+    if (def.opacity !== undefined) continue;
+    const offset = positions.length / 3;
+    const count = g.positions.length / 3;
+    for (const v of g.positions) positions.push(v);
+    for (const f of g.faces) {
+      faces.push(f.map((i) => i + offset));
+      faceGroup.push(groups.length);
+    }
+    groups.push({ albedo: hexToLinear(def.color) });
+    ranges.push({ key, start: offset, count });
+  }
+  return { positions, faces, faceGroup, groups, ranges };
 }
 
 /** A kept bake: a small JSON header (intensity and sizes), then the UVs, then the image. */

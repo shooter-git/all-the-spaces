@@ -17,6 +17,7 @@ consequences.
 | [0009](0009-lighting-bakes-in-the-workbench.md) | Lighting bakes run in the workbench | 2026-10-04 |
 | [0010](0010-operator-installed-connectors.md) | Operator-installed connectors (amends 0007) | 2026-10-04 |
 | [0011](0011-creations-from-repositories.md) | Creations from repositories (being built) | 2026-10-06 |
+| [0012](0012-any-public-repository.md) | Any public repository, as the owner's choice (amends 0011) | 2026-10-11 |
 
 The early experiments behind some of these are in [spikes/phase-0.md](../spikes/phase-0.md), kept
 as they were written.

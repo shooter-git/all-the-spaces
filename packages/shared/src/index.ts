@@ -36,15 +36,23 @@ export {
 } from './env.ts';
 export { CONTENT_TYPES, isBundlePath, playHeaders, typeOf } from './play.ts';
 export {
-  allowsRepository,
+  BUILT_IN_GITHUB,
   COMMIT,
   GIT_REF,
+  matchRepository,
   parseSourceHostDefinition,
   REPO_PATH,
   REPOSITORY,
+  repositoryAccess,
   SOURCE_HOST_ID,
+  SOURCE_PATTERN,
   SourceHostDefinition,
   SourceHostDefinitionError,
+  SourcePattern,
+  SourcePatterns,
+  StudioSources,
+  studioSourcesOf,
+  uniquePatterns,
 } from './source-hosts.ts';
 export { pack as packTar, unpack as unpackTar } from './tar.ts';
 export {

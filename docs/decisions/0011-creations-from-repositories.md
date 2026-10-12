@@ -1,6 +1,6 @@
 # 11. Creations from repositories
 
-Status: accepted, 2026-10-06. Being built: the server's side first ([repositories.md](../repositories.md))
+Status: accepted, 2026-10-06. Being built: the server's side first ([repositories.md](../repositories.md)). Amended by [0012](0012-any-public-repository.md): any public repository, and the owner's choices in the app
 
 ## Context
 
@@ -95,7 +95,7 @@ pipeline as any other creation. Nothing about checking, building or playing a cr
 |---|---|
 | Malicious code in a repository | Treated like any creation: no code runs while fetching or building, the bundle is checked and played sealed, with no network |
 | Secrets committed to a repository | The snapshot's secret scan refuses the version before anything is stored |
-| An Architect pulling any repository on the internet | Only hosts and repositories in the owner's definitions |
+| An Architect pulling any repository on the internet | Only hosts and repositories in the owner's definitions (since [0012](0012-any-public-repository.md): or chosen in the app by the owner, any public one only when the owner chooses it) |
 | A token leaking | Kept in the server's environment only, read-only, never sent to browsers, sandboxes or creations |
 | Archive tricks (links, `..`, huge or numerous files) | The snapshot's rules: no links, safe names only, file count and size limits counted while unpacking |
 | Server-side request forgery, DNS rebinding | Definition addresses only, resolved once and pinned, private addresses refused unless allowed, redirects only to the host's archive address |

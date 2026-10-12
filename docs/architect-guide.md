@@ -226,7 +226,9 @@ If a new version isn't right, press **Go back to this** on an earlier one.
 ### A creation that lives in a repository
 
 If your server's owner allows it ([repositories.md](repositories.md)), a creation can come straight
-from a git repository and follow it, instead of being built in the Studio. In **Creations**, press
+from a git repository and follow it, instead of being built in the Studio. The owner chooses which
+repositories (some, or any public one on GitHub) under **Server**; the repository form says what's
+allowed. In **Creations**, press
 **From a repository**, choose the object, the repository and the folder its creation is in, and
 what to follow (the newest release, the newest on a branch, or one commit). A creation already
 there can follow one too (the link button on it).
@@ -299,7 +301,11 @@ Everything is under **Your group** on the home page (on a phone, below your spac
 - **Activity**: who did what, newest first. Nothing anyone types to an assistant or in a terminal
   is recorded.
 - **Server**: the version, backups, and the `ats-admin` commands for updates and restores, which
-  run on the server itself.
+  run on the server itself. Its owner (the account made with the setup code) also chooses there
+  which git repositories creations may come from: GitHub's public repositories, some or all of
+  them, switched on in one go and counting straight away, and more for any host set up in a file
+  on the server ([repositories.md](repositories.md)). Other Architects see who the owner is.
+  `sudo ats-admin owner EMAIL`, on the server, makes another Architect the owner.
 
 **Your account** (for everyone): your name, password, passkeys, where you're signed in (sign other
 devices out), and notifications.

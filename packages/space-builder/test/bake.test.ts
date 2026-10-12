@@ -14,6 +14,7 @@ import {
 import { buildSpace } from '../src/build.ts';
 import { MeshBuilder } from '../src/geometry.ts';
 import { MaterialLibrary, writeChunk } from '../src/gltf.ts';
+import { MATERIALS } from '../src/materials.ts';
 
 describe('bake settings', () => {
   const dir = mkdtempSync(join(tmpdir(), 'ats-bin-'));
@@ -109,6 +110,53 @@ function fakeBaker() {
   };
   return { run, baked };
 }
+
+describe('see-through surfaces', () => {
+  /** The room with a glass window pane and a mesh screen. */
+  const glazed = () => {
+    const b = room();
+    b.box('glass', [1, 1, -0.01], [3, 2, 0.01]);
+    b.box('mesh-green', [2, 0, 1], [2.02, 2, 2]);
+    return b;
+  };
+
+  it("are left out of the bake, so they don't block the light coming through them", async () => {
+    const receiver = glazed();
+    const { run, baked } = fakeBaker();
+    const result = await bakeRoom(
+      receiver,
+      new MeshBuilder(),
+      { rect: [0, 0, 4, 3], base: 0, top: 2.5, outdoor: false, doorways: [] },
+      { run, resolution: 8, samples: 1 },
+    );
+    expect(result.ok).toBe(true);
+    const input = baked[0] as BakeInput;
+    // Just the floor and the walls and ceiling: six quads in two groups.
+    expect(input.receiver.groups.length).toBe(2);
+    expect(input.receiver.faces.length).toBe(6);
+    expect(input.receiver.positions.length).toBe(6 * 4 * 3);
+    expect(new Set(input.receiver.faceGroup)).toEqual(new Set([0, 1]));
+    // Only the opaque surfaces get lightmap UVs; the viewer draws glass as it is.
+    for (const [key, g] of receiver.groups) {
+      if (key === 'glass' || key === 'mesh-green') expect(g.uv2).toBeUndefined();
+      else expect(g.uv2?.length).toBe((g.positions.length / 3) * 2);
+    }
+  });
+
+  it('keep the see-through look MATERIALS gives them', async () => {
+    const { gltf } = await writeChunk(
+      [{ name: 'architecture', mesh: glazed() }],
+      [],
+      new MaterialLibrary(null),
+    );
+    const json = JSON.parse(new TextDecoder().decode(gltf));
+    const alpha = (name: string) =>
+      json.materials.find((m: { name: string }) => m.name === name).pbrMetallicRoughness
+        .baseColorFactor[3];
+    expect(alpha('glass')).toBe(MATERIALS.glass.opacity);
+    expect(alpha('mesh-green')).toBe(MATERIALS['mesh-green'].opacity);
+  });
+});
 
 describe('incremental bakes', () => {
   const plan = () =>

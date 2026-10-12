@@ -199,6 +199,7 @@ other services matter.
 |---|---|
 | See what's running (and disk use) | `sudo ats-admin status` |
 | Get a new setup code | `sudo ats-admin setup-code` |
+| See or change who owns the server in the app | `sudo ats-admin owner [EMAIL]` |
 | Update | `sudo ats-admin update` |
 | Undo the last update | `sudo ats-admin rollback` |
 | Back up now (see [Backups](#backups)) | `sudo ats-admin backup` |
@@ -436,12 +437,32 @@ leaves them as they are, like the other settings.
 ## Repositories
 
 Creations can also come straight from a git repository and follow it as it changes: see
-[repositories.md](repositories.md). That's off until you allow a repository host, in the same two
-kinds of place as connectors:
+[repositories.md](repositories.md). That's off until you allow some, as the server's owner.
 
-- **`sources/`**: one definition file per host (GitHub, say), naming the repositories allowed. The
-  server reads it at `/etc/ats/sources` (`ATS_SOURCES_DIR`), read-only.
+**The server's owner** is the account made with the setup code: you, if you finished setup. Only
+the owner changes server-wide settings in the app; your group's other Architects see who it is.
+To make another Architect the owner (if you're handing the server on, say):
+`sudo ats-admin owner their@email`. `sudo ats-admin owner` alone says who it is.
+
+**In the app**, with no file and no restart: **Your group → Server → Creations from
+repositories**. Switch on **GitHub** for public repositories on github.com (no token involved),
+and choose some, or any public one. It's off until you switch it on.
+
+**With files**, for private repositories, a GitHub Enterprise server, or to keep the list on the
+server, in the same two kinds of place as connectors:
+
+- **`sources/`**: one definition file per host (GitHub, say), naming the repositories allowed
+  (`*` for any public one). The server reads it at `/etc/ats/sources` (`ATS_SOURCES_DIR`),
+  read-only.
 - **`sources.env`** (optional): a read-only token for private repositories, as
-  `ATS_SOURCE_…=value` lines. Only the server is given it (`chmod 600`).
+  `ATS_SOURCE_…=value` lines. Only the server is given it (`chmod 600`). It's only ever used for
+  the repositories the file names (`owner/name` or `owner/*`), never for `*` or anything allowed
+  in the app.
 
-Restart the server after changing them, as for connectors; they're backed up the same way.
+Restart the server after changing the files, as for connectors; they're backed up the same way,
+and what you chose in the app is in the database backup.
+
+Without a token GitHub answers 60 requests an hour from your server's address: enough to look at
+about 15 public repositories every hour. With more, each is looked at less often; Architects' own
+**Check** and **Update** keep a share of the hour (see
+[repositories.md](repositories.md#githubs-hourly-limit)).

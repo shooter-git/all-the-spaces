@@ -41,4 +41,36 @@ export interface ServerInfo {
   backups: { schedule: 'nightly' | 'weekly' | 'off'; keepDays: number; offsite: boolean };
   features: { studio: boolean; voice: boolean; email: boolean };
   counts: { people: number; spaces: number; creations: number };
+  /** Who runs the server (ADR 0012): set up with the setup code, or handed on with ats-admin. */
+  owner: { name: string | null; you: boolean };
+}
+
+/**
+ * A repository host as the server's owner sees it in the Studio: never a token, nor where one is
+ * kept.
+ */
+export interface ServerSourceHost {
+  id: string;
+  displayName: string;
+  /** A definition file on the server, or the built-in GitHub host. */
+  from: 'file' | 'built-in';
+  /** The built-in host: whether it's switched on. A file's: always (removing the file stops it). */
+  on: boolean;
+  /** Its API's host name (api.github.com). */
+  address: string;
+  /** What its definition file allows (changed only there). */
+  fileRepositories: string[];
+  /** Whether the file gives it a token: then what the file names may be private. */
+  token: boolean;
+  /** What the owner added here: public repositories only (`*` for any). */
+  repositories: string[];
+}
+
+export interface ServerSources {
+  hosts: ServerSourceHost[];
+}
+
+/** A change to some hosts: the built-in one switched on or off, and what's added here. */
+export interface ServerSourcesChange {
+  hosts: { id: string; on?: boolean; repositories: string[] }[];
 }
