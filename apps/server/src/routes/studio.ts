@@ -14,7 +14,7 @@ import { makeCurrent } from '../creations/store.ts';
 import { noEvents } from '../events.ts';
 import { manifestOf } from '../manifests.ts';
 import { sendError } from '../reply.ts';
-import { NO_SOURCE_HOSTS } from '../sources/registry.ts';
+import { currentSourceHosts } from '../sources/registry.ts';
 import { sourceView } from '../sources/view.ts';
 import { recordPlacements } from '../space-updates.ts';
 import { getStorage } from '../storage.ts';
@@ -80,6 +80,7 @@ export async function studioRoutes(app: FastifyInstance, ctx: AppContext) {
           )
       : [];
     const taken = new Set(rows.map((c) => c.objectKey).filter(Boolean));
+    const sourceHosts = sources.length ? await currentSourceHosts(db, ctx.sourceHosts) : null;
     reply.header('cache-control', 'private, no-store');
     return {
       space: { id: space.space.id, name: space.space.name },
@@ -117,7 +118,7 @@ export async function studioRoutes(app: FastifyInstance, ctx: AppContext) {
             })),
           source: (() => {
             const row = sources.find((r) => r.creationId === c.id);
-            return row ? sourceView(row, ctx.sourceHosts ?? NO_SOURCE_HOSTS) : null;
+            return row && sourceHosts ? sourceView(row, sourceHosts) : null;
           })(),
         }))
         .sort((a, b) => a.title.localeCompare(b.title)),

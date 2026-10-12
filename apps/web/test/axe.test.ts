@@ -143,6 +143,40 @@ function answers(signedIn: boolean): Record<string, unknown> {
     '/api/sources': [
       { id: 'github', displayName: 'GitHub', repositories: ['lanternfield-club/*'] },
     ],
+    '/api/server': {
+      release: 'v0.1.0',
+      address: 'https://spaces.example.test',
+      storage: 'builtin',
+      backups: { schedule: 'nightly', keepDays: 14, offsite: false },
+      features: { studio: true, voice: false, email: true },
+      counts: { people: 4, spaces: 1, creations: 2 },
+      owner: { name: 'Ada Lovelace', you: true },
+    },
+    // The owner's view: GitHub switched on for two lists, and a host set up in a file.
+    '/api/server/sources': {
+      hosts: [
+        {
+          id: 'github-public',
+          displayName: 'GitHub',
+          from: 'built-in',
+          on: true,
+          address: 'api.github.com',
+          fileRepositories: [],
+          token: false,
+          repositories: ['lanternfield-club/*', 'someone/marble-run'],
+        },
+        {
+          id: 'our-github',
+          displayName: 'Our GitHub Enterprise',
+          from: 'file',
+          on: true,
+          address: 'github.example.test',
+          fileRepositories: ['workshop/*'],
+          token: true,
+          repositories: [],
+        },
+      ],
+    },
     '/api/studio/assistants': { available: true, assistants: [] },
     '/api/studio/requests': { requests: [] },
     '/api/requests': { requests: [] },
@@ -175,6 +209,7 @@ const PAGES = [
     signedIn: true,
     ready: 'lanternfield-club/marble-run',
   },
+  { name: 'Server', path: '/group/server', signedIn: true, ready: 'Our GitHub Enterprise' },
 ];
 const SCREENS = [
   { name: 'portrait', viewport: { width: 390, height: 844 } },

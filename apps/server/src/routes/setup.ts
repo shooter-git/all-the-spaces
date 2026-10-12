@@ -234,6 +234,8 @@ export async function setupRoutes(app: FastifyInstance, ctx: AppContext) {
             .set({
               setupCompletedAt: new Date(),
               setupCodeHash: null,
+              // Whoever holds the setup code runs this server: they're its owner (ADR 0012).
+              ownerUserId: user.id,
               publicUrl: env.ATS_PUBLIC_URL,
               storageMode: body.storage.mode,
               externalStorage:

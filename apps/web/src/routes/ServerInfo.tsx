@@ -1,6 +1,7 @@
 import { Facts, Notice, Section } from '@ats/ui';
 import { useEffect, useState } from 'react';
 import { ManageLayout } from '../components/ManageLayout.tsx';
+import { RepositorySources } from '../components/RepositorySources.tsx';
 import type { Me } from '../lib/api.ts';
 import { type ServerInfo as Info, loadServer } from '../lib/group.ts';
 
@@ -18,6 +19,7 @@ const COMMANDS: [string, string][] = [
     'sudo ats-admin backup-settings',
     'Change when backups run, how long they’re kept, and the off-site copy.',
   ],
+  ['sudo ats-admin owner EMAIL', 'Make another Architect the server’s owner.'],
   ['sudo ats-admin restore', 'Put a backup back (it replaces what’s there now).'],
 ];
 
@@ -77,6 +79,22 @@ export function ServerInfo({ me }: { me: Me }) {
                 ['Email', on(info.features.email, 'notifications stay in the app')],
               ]}
             />
+          </Section>
+          <Section title="Creations from repositories">
+            {info.owner.you ? (
+              <RepositorySources />
+            ) : info.owner.name ? (
+              <p className="ats-muted">
+                Which git repositories creations may come from is up to the server’s owner,{' '}
+                {info.owner.name}.
+              </p>
+            ) : (
+              <p className="ats-muted">
+                Which git repositories creations may come from is up to the server’s owner. Nobody
+                is yet: <code>sudo ats-admin owner EMAIL</code> on the server makes an Architect the
+                owner.
+              </p>
+            )}
           </Section>
           <Section title="Looking after it">
             <p className="ats-muted">

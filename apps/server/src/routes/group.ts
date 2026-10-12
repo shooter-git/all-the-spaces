@@ -57,6 +57,8 @@ export const ACTIVITY = [
   'chat.reported',
   'studio.settings',
   'backup.settings_changed',
+  'server.sources_changed',
+  'server.owner_changed',
 ];
 
 /** The group, its people, what happened in it, and the server it runs on: for its Architects. */
@@ -312,6 +314,10 @@ export async function groupRoutes(app: FastifyInstance, ctx: AppContext) {
     if (!mine.some((m) => m.role === 'architect'))
       return sendError(reply, 403, 'Only Architects can see this.');
     const state = await getInstallState(db);
+    const ownerId = state?.ownerUserId ?? null;
+    const [owner] = ownerId
+      ? await db.select({ name: user.name }).from(user).where(eq(user.id, ownerId))
+      : [];
     const count = async (table: typeof user | typeof spaces | typeof creations) =>
       Number((await db.select({ n: sql<number>`count(*)` }).from(table))[0]?.n ?? 0);
     return {
@@ -333,6 +339,7 @@ export async function groupRoutes(app: FastifyInstance, ctx: AppContext) {
         spaces: await count(spaces),
         creations: await count(creations),
       },
+      owner: { name: owner?.name ?? null, you: ownerId === me.id },
     } satisfies Sent<ServerInfo>;
   });
 

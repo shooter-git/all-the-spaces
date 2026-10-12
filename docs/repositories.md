@@ -6,7 +6,9 @@ the repository: when there's a new release (or a new commit on a branch), Archit
 press **Update**, and the new version goes through the same checks as any creation's before it
 can go live. Why it works this way is in [ADR 0011](decisions/0011-creations-from-repositories.md).
 
-Nothing is allowed by default. Without a repository host, creations come only from the Studio.
+Nothing is allowed by default: the server's owner chooses which repositories creations may come
+from, in the app or in files on the server ([ADR 0012](decisions/0012-any-public-repository.md)).
+Until they do, creations come only from the Studio.
 
 ## What a repository needs
 
@@ -25,7 +27,34 @@ page, and files it loads while running referenced so the bundler sees them
 Submodules and Git LFS files aren't fetched. Nothing in the repository runs while it's fetched or
 built: install scripts are off, and the platform builds it with a fixed configuration.
 
-## Allowing a repository host
+## Who decides: the server's owner
+
+The server's owner is the account made with the installer's setup code, the one that finished
+setup. Not every Architect: Architects run their group, the owner decides what the whole server
+allows. To make another Architect the owner, on the server:
+
+```
+sudo ats-admin owner                       # who it is
+sudo ats-admin owner robin@example.com     # hand it to Robin (one of a group's Architects)
+```
+
+Every group's **Activity** shows when the owner, or what's allowed, changes.
+
+## Allowing repositories in the app
+
+The owner opens **Your group → Server → Creations from repositories**. It counts as soon as it's
+saved: no file and no restart.
+
+- **Let creations come from GitHub** switches on the built-in GitHub host: public repositories
+  on github.com, read without any token. It's off until you switch it on. Then choose **Only the
+  ones I list** (`owner/name`, or `owner/*` for all of an owner's, one on each line) or **Any
+  public repository**.
+- Each host set up in a file (below) shows what its file allows, and takes more: **Also allow**,
+  public repositories only (`*` for any public one).
+
+Tokens, the host's addresses and private networks are never set here: those are only in files.
+
+## Allowing repositories with files
 
 A host is one JSON file, `<id>.json`, in the folder `ATS_SOURCES_DIR` names. On a server set up
 with the installer, that's `sources/` in the install folder, which the server sees, read-only, as
@@ -44,10 +73,10 @@ with the installer, that's `sources/` in the install folder, which the server se
 
 | Field | What it is |
 |---|---|
-| `id` | The file's name without `.json` (a-z, 0-9 and `-`) |
+| `id` | The file's name without `.json` (a-z, 0-9 and `-`). `github-public` is the built-in host's |
 | `displayName` | What Architects see |
 | `kind` | `github` (github.com, or GitHub Enterprise with its own `apiUrl`) |
-| `repositories` | The only repositories creations may come from: `owner/name`, or `owner/*` for all of an owner's |
+| `repositories` | Which repositories creations may come from: `owner/name`, `owner/*` for all of an owner's, or `*` for any public one. May be empty (`[]`) if you keep the list in the app |
 | `tokenEnv` | Optional: the environment variable holding a **read-only** token, for private repositories. It must start with `ATS_SOURCE_` |
 | `apiUrl` | Optional: the API's address (default `https://api.github.com`) |
 | `archiveHosts` | Optional: where archives may be fetched from (default `codeload.github.com`) |
@@ -62,9 +91,39 @@ installation token) that can only **read contents** of the repositories you list
 ATS_SOURCE_GITHUB_TOKEN=github_pat_…
 ```
 
-Without a token, only public repositories can be read. The token is never sent to browsers,
-sandboxes or creations, and never shown in the app; it goes to the API only, never to the address
-an archive is fetched from.
+The token is never sent to browsers, sandboxes or creations, and never shown in the app; it goes
+to the API only, never to the address an archive is fetched from.
+
+## Public and private repositories
+
+A repository is read one of two ways:
+
+- **With the host's token**, when the host has one and its **file** names the repository
+  (`owner/name` or `owner/*`). Then it may be private. This is the only way a private repository
+  is ever read.
+- **As a public repository**, for everything else: `*`, and anything allowed in the app, even by
+  name. No token is sent at all, so GitHub itself won't show a private repository. And before
+  every look and every fetch, GitHub must say the repository is public. If it turns private, the
+  next look stops, and the version already live stays as it is.
+
+A private repository and one that doesn't exist get the same answer ("GitHub says owner/name
+doesn't exist, or isn't public"), so nothing is given away about what's private.
+
+## GitHub's hourly limit
+
+Without a token, GitHub answers 60 requests an hour from one address. A look at a public
+repository takes 2 to 4 (is it public, the release, its commit, and what changed only when
+something did); fetching a commit to build takes about 5. The server keeps count from what GitHub
+says:
+
+- Once the hour's requests are used up, Check, Update and linking say "GitHub's limit on requests
+  from this server was reached; it resets in 12 minutes" without asking GitHub again.
+- The hourly looks stop while fewer than 10 are left, keeping those for Architects. With more
+  than about 15 followed public repositories, each is looked at less often than hourly, never
+  refused for it.
+
+Repositories a file names, on a host with a token, use the token's own (much larger) allowance,
+and an answer that hasn't changed doesn't count against it.
 
 ## What Architects do
 
@@ -94,7 +153,7 @@ The same is there for Architects (signed in) as plain requests:
 
 | | |
 |---|---|
-| `GET /api/sources` | The hosts this server allows |
+| `GET /api/sources` | The hosts this server allows, and the repositories on each (`*`: any public one) |
 | `POST /api/spaces/:spaceId/creations/from-repository` | `{ objectKey, host, repository, path?, follows?, ref?, updateMode? }`: a new creation, built from the repository |
 | `GET /api/creations/:id/source` | What a creation follows, and what the repository had when last looked at |
 | `PUT /api/creations/:id/source` | `{ host, repository, path?, follows?, ref?, updateMode? }`: link it (or change what it follows) |
@@ -102,10 +161,20 @@ The same is there for Architects (signed in) as plain requests:
 | `POST /api/creations/:id/source/update` | `{ commit? }`: build the newest (or that commit) |
 | `DELETE /api/creations/:id/source` | Unlink it |
 
+For the server's owner only (anyone else is refused):
+
+| | |
+|---|---|
+| `GET /api/server/sources` | The built-in GitHub host and the hosts in files: what each file allows, whether it has a token (never the token), and what was added in the app |
+| `PUT /api/server/sources` | `{ hosts: [{ id, on?, repositories }] }`: switch the built-in host (`github-public`) on or off and set its list, or set what's added to a host in a file. Only the hosts given change |
+
 ## Safety
 
-The server fetches only from hosts and repositories in your definitions, at addresses resolved
-once and checked to be public (unless you allow otherwise), with a deadline and a size cap, and
-follows a redirect only to an archive address the definition names. The files are then checked as
+The server fetches only from hosts and repositories the owner allows, at addresses resolved once
+and checked to be public (unless a file allows otherwise), with a deadline and a size cap, and
+follows a redirect only to an archive address the host names. A repository allowed by `*` or in
+the app is read without any token, after GitHub says it's public. The files are then checked as
 any creation's source is: names, sizes, and anything that looks like a secret (a version holding
-one is refused and nothing is stored). See [security.md](security.md).
+one is refused and nothing is stored). Whichever repository it comes from, a creation is built
+with the platform's own build and played sealed off, with no network. See
+[security.md](security.md).
