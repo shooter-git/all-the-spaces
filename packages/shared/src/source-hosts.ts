@@ -7,22 +7,33 @@ import { z } from 'zod';
 
 export const SOURCE_HOST_ID = /^[a-z0-9-]{2,32}$/;
 
-/** `owner/name`, as GitHub spells them. */
-export const REPOSITORY = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
+/**
+ * `owner/name`, as GitHub spells them. Neither part may be only dots: the API's address is
+ * `/repos/owner/name/…`, and `x/..` would climb out of it (addresses are tidied before sending).
+ */
+export const REPOSITORY = /^(?!\.+\/)[A-Za-z0-9_.-]{1,100}\/(?!\.+$)[A-Za-z0-9_.-]{1,100}$/;
 
 /** A folder in a repository: plain names separated by `/`, no `.` or `..`, no leading `/`. */
 export const REPO_PATH =
   /^(?:[A-Za-z0-9_@+-][A-Za-z0-9_.@+-]{0,99})(?:\/[A-Za-z0-9_@+-][A-Za-z0-9_.@+-]{0,99}){0,15}$/;
 
-/** A branch or tag name (refs/heads/… or refs/tags/… without the prefix). */
-export const GIT_REF = /^(?!.*\.\.)(?!\/)(?!.*\/$)[A-Za-z0-9._/-]{1,200}$/;
+/**
+ * A branch or tag name (refs/heads/… or refs/tags/… without the prefix). As git has them: no
+ * `..`, no part starting with a dot (`.` alone would be tidied away from the address), no empty
+ * part.
+ */
+export const GIT_REF =
+  /^(?!.*\.\.)(?!\/)(?!.*\/$)(?!.*\/\/)(?!\.)(?!.*\/\.)[A-Za-z0-9._/-]{1,200}$/;
 
 /** A commit, written in full. */
 export const COMMIT = /^[0-9a-f]{40}$/;
 
 const pattern = z
   .string()
-  .regex(/^[A-Za-z0-9_.-]{1,100}\/(?:\*|[A-Za-z0-9_.-]{1,100})$/, 'an owner/name, or owner/*');
+  .regex(
+    /^(?!\.+\/)[A-Za-z0-9_.-]{1,100}\/(?:\*|(?!\.+$)[A-Za-z0-9_.-]{1,100})$/,
+    'an owner/name, or owner/*',
+  );
 
 export const SourceHostDefinition = z.strictObject({
   id: z.string().regex(SOURCE_HOST_ID),

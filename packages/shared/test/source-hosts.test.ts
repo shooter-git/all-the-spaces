@@ -46,13 +46,26 @@ describe('repository host definitions', () => {
     expect(allowsRepository(def, 'lanternfield-club/../x')).toBe(false);
   });
 
+  it('never takes a name that is only dots, which would climb out of the API address', () => {
+    const def = parseSourceHostDefinition({ ...github, repositories: ['lanternfield-club/*'] });
+    for (const bad of ['lanternfield-club/..', 'lanternfield-club/.', '../..', './x', '.../x'])
+      expect(allowsRepository(def, bad), bad).toBe(false);
+    // Dots inside a name are fine (GitHub has plenty).
+    expect(allowsRepository(def, 'lanternfield-club/.github')).toBe(true);
+    expect(allowsRepository(def, 'lanternfield-club/game.js')).toBe(true);
+    for (const bad of ['../*', './*', 'x/..'])
+      expect(() => parseSourceHostDefinition({ ...github, repositories: [bad] }), bad).toThrow(
+        SourceHostDefinitionError,
+      );
+  });
+
   it('knows a safe folder and ref when it sees one', () => {
     for (const ok of ['creation', 'integrations/all/creation', 'a_b-c.d'])
       expect(REPO_PATH.test(ok)).toBe(true);
     for (const bad of ['', '/abs', 'a/../b', '..', 'a//b', 'a/', '.hidden', 'a/./b'])
       expect(REPO_PATH.test(bad)).toBe(false);
     for (const ok of ['main', 'release/1.2', 'v1.2.0']) expect(GIT_REF.test(ok)).toBe(true);
-    for (const bad of ['', '..', 'a..b', '/main', 'main/', 'a b'])
+    for (const bad of ['', '.', '..', 'a..b', '/main', 'main/', 'a b', 'a//b', '.x', 'a/.', 'a/.b'])
       expect(GIT_REF.test(bad)).toBe(false);
   });
 });
