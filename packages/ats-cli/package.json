@@ -1,7 +1,7 @@
 {
   "name": "@allthespaces/ats-cli",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The `ats` command inside an All the Spaces workspace: check a creation, and find free (CC0) assets.",
   "license": "MIT",
   "repository": {
