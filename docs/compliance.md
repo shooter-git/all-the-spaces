@@ -119,8 +119,7 @@ terms, which can change. What they said when this was last checked (2026-10-10):
   rebuild 3D models; they say this holds for academic, nonprofit and commercial projects alike, and
   it holds even when the source image never appears in the result. Architects and whoever runs a
   server are responsible for using reference material they may use: their own photos, openly
-  licensed imagery (credited as its licence asks), or government aerial imagery. The assistant's
-  instructions (`SPACE.md`) tell it to point this out when a pack looks like Google screenshots.
+  licensed imagery (credited as its licence asks), or government aerial imagery.
 - **Names.** Say in plain text that All the Spaces works with or runs Claude Code or Codex; don't
   use their names or logos as part of your own product's name or logo, or in a way that suggests
   their makers built or endorse it.
