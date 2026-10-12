@@ -71,10 +71,8 @@ function noteAllowance(key: string, answer: HttpAnswer) {
   const remaining = answer.headers['x-ratelimit-remaining'];
   const reset = answer.headers['x-ratelimit-reset'];
   if (typeof remaining !== 'string' || typeof reset !== 'string') return;
-  const left = Number(remaining);
-  const at = Number(reset) * 1000;
-  if (Number.isInteger(left) && Number.isFinite(at))
-    allowances.set(key, { remaining: left, resetsAt: at });
+  if (!/^\d{1,9}$/.test(remaining) || !/^\d{1,12}$/.test(reset)) return;
+  allowances.set(key, { remaining: Number(remaining), resetsAt: Number(reset) * 1000 });
 }
 
 function limitReached(host: HostAccess, resetsAt: number | null) {

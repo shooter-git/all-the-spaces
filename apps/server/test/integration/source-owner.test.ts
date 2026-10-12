@@ -13,10 +13,16 @@ import type { Queue } from 'bullmq';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { handServerTo } from '../../src/owner.ts';
+import { sourceCheckTick } from '../../src/sources/checks.ts';
 import { forgetAllowances } from '../../src/sources/github.ts';
-import { BUILT_IN_GITHUB_DEF, sourceHostsOf } from '../../src/sources/registry.ts';
+import {
+  BUILT_IN_GITHUB_DEF,
+  type SourceHostRegistry,
+  sourceHostsOf,
+} from '../../src/sources/registry.ts';
 import {
   addSampleSpace,
+  addSofaCreation,
   adminUrl,
   cookieFrom,
   createTestApp,
@@ -32,6 +38,8 @@ interface Fake {
   /** Repositories, and whether each is private. */
   repos: Record<string, boolean>;
   seen: { path: string; token: boolean }[];
+  /** What it says is left of the hour's requests (null: it doesn't say). */
+  remaining: number | null;
   close(): Promise<void>;
 }
 
@@ -58,10 +66,19 @@ async function startFake(): Promise<Fake> {
       'lanternfield-club/marble-run': true,
     },
     seen: [],
+    remaining: null,
   } as unknown as Fake;
   const gz = tarball();
   const send = (res: ServerResponse, status: number, body?: unknown) => {
-    res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
+    res.writeHead(status, {
+      'content-type': 'application/json; charset=utf-8',
+      ...(fake.remaining === null
+        ? {}
+        : {
+            'x-ratelimit-remaining': String(fake.remaining),
+            'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 1800),
+          }),
+    });
     res.end(body === undefined ? '' : JSON.stringify(body));
   };
   const server: Server = createServer((req: IncomingMessage, res) => {
@@ -110,6 +127,8 @@ describe.skipIf(!adminUrl)('where creations may come from, set by the server’s
   let ownerCookie: string;
   let architectCookie: string;
   let memberCookie: string;
+  let files: SourceHostRegistry;
+  let sofaId: string;
   const req = (
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     url: string,
@@ -144,16 +163,17 @@ describe.skipIf(!adminUrl)('where creations may come from, set by the server’s
       archiveHosts: ['127.0.0.1'],
       allowPrivateAddress: true,
     });
+    files = sourceHostsOf([{ def: { ...def, apiUrl: api }, token: TOKEN }], {
+      // The built-in GitHub host, pointed at the fake.
+      builtIn: {
+        ...BUILT_IN_GITHUB_DEF,
+        apiUrl: api,
+        archiveHosts: ['127.0.0.1'],
+        allowPrivateAddress: true,
+      },
+    });
     t = await createTestApp({
-      sourceHosts: sourceHostsOf([{ def: { ...def, apiUrl: api }, token: TOKEN }], {
-        // The built-in GitHub host, pointed at the fake.
-        builtIn: {
-          ...BUILT_IN_GITHUB_DEF,
-          apiUrl: api,
-          archiveHosts: ['127.0.0.1'],
-          allowPrivateAddress: true,
-        },
-      }),
+      sourceHosts: files,
       buildQueue: { add: async () => {}, close: async () => {} } as unknown as Queue,
     });
     // Pat finishes setup with the setup code: the server's owner.
@@ -170,6 +190,7 @@ describe.skipIf(!adminUrl)('where creations may come from, set by the server’s
       200,
     );
     spaceId = await addSampleSpace(t, ownerCookie, groupId);
+    sofaId = (await addSofaCreation(t, groupId, spaceId)).creationId;
   }, 60_000);
 
   afterAll(async () => {
@@ -386,6 +407,56 @@ describe.skipIf(!adminUrl)('where creations may come from, set by the server’s
         .json()
         .some((h: { id: string }) => h.id === BUILT_IN_GITHUB),
     ).toBe(false);
+  });
+
+  it('near GitHub’s hourly limit, waits with its own looks and leaves the rest for Architects', async () => {
+    await change([{ id: BUILT_IN_GITHUB, on: true, repositories: ['*'] }]);
+    forgetAllowances();
+    // GitHub says few requests are left this hour.
+    gh.remaining = 5;
+    const linked = await req('PUT', `/api/creations/${sofaId}/source`, architectCookie, {
+      host: BUILT_IN_GITHUB,
+      repository: 'open-club/lantern-toss',
+    });
+    expect(linked.statusCode).toBe(200);
+    const due = () =>
+      t.db
+        .update(schema.creationSources)
+        .set({ checkedAt: new Date(Date.now() - 2 * 3600_000) })
+        .where(eq(schema.creationSources.creationId, sofaId));
+    const checkedAt = async () =>
+      (
+        await t.db
+          .select()
+          .from(schema.creationSources)
+          .where(eq(schema.creationSources.creationId, sofaId))
+      )[0]?.checkedAt;
+    await due();
+    const before = await checkedAt();
+    gh.seen.length = 0;
+    const deps = { db: t.db, files, release: 'test' };
+    // The hourly look waits (and stays due), without asking GitHub anything.
+    expect(await sourceCheckTick(deps, undefined)).toBe(0);
+    expect(gh.seen).toEqual([]);
+    expect(await checkedAt()).toEqual(before);
+    // An Architect's own look still goes.
+    const own = await req('POST', `/api/creations/${sofaId}/source/check`, architectCookie);
+    expect(own.json().source).toMatchObject({ checkError: null, latestCommit: C1 });
+    // Used up: refused, saying when it comes back, and GitHub isn't asked again.
+    gh.remaining = 0;
+    await req('POST', `/api/creations/${sofaId}/source/check`, architectCookie);
+    gh.seen.length = 0;
+    const out = await req('POST', `/api/creations/${sofaId}/source/check`, architectCookie);
+    expect(out.json().source.checkError).toMatch(
+      /^GitHub's limit on requests from this server was reached; it resets in \d+ minutes\.$/,
+    );
+    expect(gh.seen).toEqual([]);
+    // A new hour: the looks carry on.
+    forgetAllowances();
+    gh.remaining = null;
+    await due();
+    expect(await sourceCheckTick(deps, undefined)).toBe(1);
+    await req('DELETE', `/api/creations/${sofaId}/source`, architectCookie);
   });
 
   it('gives a server set up before owners existed the account that finished setup', async () => {
