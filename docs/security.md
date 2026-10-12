@@ -200,15 +200,28 @@ untrusted and kept in containers the platform starts from fixed templates:
   weren't built or checked here, so its version is marked as not checked on this server, and the
   Studio says so.
 - **Creations from repositories** ([repositories.md](repositories.md),
-  [0011](decisions/0011-creations-from-repositories.md)) are fetched by the server from hosts and
-  repositories the server's owner listed, one commit's archive at a time: addresses resolved once
-  and public only (unless the owner allows otherwise), a deadline and a size cap, and a redirect
-  followed only to an archive address the definition names. A host's read-only token goes to its
-  API only, never to the archive address, a browser, a sandbox or a creation. Only regular files
-  are kept (links are dropped), names and sizes are checked as for any source, and a commit holding
-  anything that looks like a secret is refused before anything is stored. Its code then goes
-  through the same checks as an assistant's: no install scripts, the platform's own build, played
-  sealed.
+  [0011](decisions/0011-creations-from-repositories.md),
+  [0012](decisions/0012-any-public-repository.md)) are fetched by the server from hosts and
+  repositories the server's owner allows, one commit's archive at a time: addresses resolved once
+  and public only (unless a definition file allows otherwise), a deadline and a size cap, and a
+  redirect followed only to an archive address the host names. Only regular files are kept (links
+  are dropped), names and sizes are checked as for any source, and a commit holding anything that
+  looks like a secret is refused before anything is stored. Its code then goes through the same
+  checks as an assistant's: no install scripts, the platform's own build, played sealed.
+  - **Who allows what.** The server's owner (the account made with the setup code, or handed on
+    with `ats-admin owner` on the server; not a group's other Architects) chooses in the app or in
+    definition files. `*` allows any public repository on a host. The app's choices are checked
+    with the same patterns on the server and recorded in every group's Activity; tokens, addresses
+    and private networks can only be set in files.
+  - **Private repositories** are read only with a host's token, and only when the host's
+    definition file names them (`owner/name` or `owner/*`). Everything else (`*`, and all that's
+    allowed in the app) is read with no token at all, so the host can't show a private
+    repository, and the host must say the repository is public before every look and every fetch.
+    A private repository gets the same answer as one that doesn't exist.
+  - **The token** is kept in the server's environment only: never in the database, and never sent
+    to the archive address, a browser, a sandbox or a creation, or shown in the app.
+  - **Names** made only of dots (`owner/..`) are refused, so a repository can't climb out of its
+    own address on the host's API.
 
 **What remains:** an assistant's own programs run as the same user as the assistant, so code it
 runs could read its sign-in. That's inherent in running the assistant at all, and it's why

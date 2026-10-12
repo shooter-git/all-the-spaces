@@ -161,7 +161,10 @@ access of its own. See [security.md](security.md#creations).
   ([repositories.md](repositories.md), [0011](decisions/0011-creations-from-repositories.md)):
   `creation_sources` says which (host, repository, folder) and what it follows (releases, a
   branch, or one commit). The server fetches one commit's archive from a host the owner allows
-  (`ATS_SOURCES_DIR`), keeps the folder's regular files as a source snapshot, and queues the same
+  (definition files in `ATS_SOURCES_DIR`, and the built-in GitHub host and additions the owner
+  chose in the app, `install_state.sources`; [0012](decisions/0012-any-public-repository.md)),
+  with the host's token only for what its file names and otherwise as a public repository, keeps
+  the folder's regular files as a source snapshot, and queues the same
   build as a Studio publish, with the commit on the build (`builds.source`) and on the version it
   makes (`creation_versions.source_commit`).
 - **Saves.** `creation_data_shared` (for the group) and `creation_data_personal` (for one person)
