@@ -1,6 +1,6 @@
 import type { CreationSource, Sent, SourceHostInfo } from '@ats/api-types';
 import { schema } from '@ats/db';
-import { COMMIT } from '@ats/shared';
+import { COMMIT, uniquePatterns } from '@ats/shared';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ import { manifestOf } from '../manifests.ts';
 import { sendError } from '../reply.ts';
 import { getStorage } from '../storage.ts';
 import { settingsFor } from '../studio/settings.ts';
-import { NO_SOURCE_HOSTS } from './registry.ts';
+import { currentSourceHosts } from './registry.ts';
 import {
   checkSource,
   lookUp,
@@ -51,9 +51,10 @@ const Settings = z.strictObject({
  */
 export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
   const { db } = ctx;
-  const deps = (): SourceDeps => ({
+  /** Read for each request: the owner's changes in the Studio count straight away. */
+  const deps = async (): Promise<SourceDeps> => ({
     db,
-    hosts: ctx.sourceHosts ?? NO_SOURCE_HOSTS,
+    hosts: await currentSourceHosts(db, ctx.sourceHosts),
     storage: () => getStorage(ctx),
     queue: () => (ctx.buildQueue ??= buildQueue(ctx.env.VALKEY_URL)),
     release: ctx.env.ATS_RELEASE ?? 'development',
@@ -68,17 +69,23 @@ export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
     ref: input.follows === 'release' ? null : input.ref?.trim() || null,
   });
 
-  /** The repository hosts this server allows (only Architects see them). */
+  /**
+   * The repository hosts this server allows, and which repositories on each, from its files and
+   * the owner's choices in the Studio together (only Architects see them; never a token).
+   */
   app.get('/api/sources', async (req, reply) => {
     const me = await requireUser(ctx, req, reply);
     if (!me) return;
     if (!(await architectGroups(db, me.id)).length) return notFound(reply);
     reply.header('cache-control', 'private, no-store');
-    return (ctx.sourceHosts ?? NO_SOURCE_HOSTS).list().map((h) => ({
-      id: h.def.id,
-      displayName: h.def.displayName,
-      repositories: h.def.repositories,
-    })) satisfies Sent<SourceHostInfo>[];
+    return (await currentSourceHosts(db, ctx.sourceHosts))
+      .list()
+      .map((h) => ({
+        id: h.def.id,
+        displayName: h.def.displayName,
+        repositories: uniquePatterns([...h.def.repositories, ...h.added]),
+      }))
+      .filter((h) => h.repositories.length > 0) satisfies Sent<SourceHostInfo>[];
   });
 
   /** A creation, if the person is one of its group's Architects. */
@@ -101,7 +108,7 @@ export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
       if (!c) return notFound(reply);
       const row = await sourceOf(c.id);
       reply.header('cache-control', 'private, no-store');
-      return { source: row ? sourceView(row, deps().hosts) : null } satisfies {
+      return { source: row ? sourceView(row, (await deps()).hosts) : null } satisfies {
         source: Sent<CreationSource> | null;
       };
     },
@@ -119,9 +126,10 @@ export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
       const c = await creationFor(me.id, req.params.creationId);
       if (!c) return notFound(reply);
       const settings = settingsOf(Settings.parse(req.body ?? {}));
+      const using = await deps();
       let found: Awaited<ReturnType<typeof lookUp>>;
       try {
-        found = await lookUp(deps(), settings);
+        found = await lookUp(using, settings);
       } catch (err) {
         return refuse(reply, err);
       }
@@ -158,7 +166,7 @@ export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
           follows: settings.follows,
         },
       });
-      return { source: row ? sourceView(row, deps().hosts) : null };
+      return { source: row ? sourceView(row, using.hosts) : null };
     },
   );
 
@@ -190,7 +198,8 @@ export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
       if (!c) return notFound(reply);
       const row = await sourceOf(c.id);
       if (!row) return sendError(reply, 409, "This creation doesn't follow a repository.");
-      return { source: sourceView(await checkSource(deps(), row), deps().hosts) };
+      const using = await deps();
+      return { source: sourceView(await checkSource(using, row), using.hosts) };
     },
   );
 
@@ -210,7 +219,7 @@ export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
       if (!row) return sendError(reply, 409, "This creation doesn't follow a repository.");
       const studio = await settingsFor(db, c.groupId);
       try {
-        const started = await startSourceBuild(deps(), {
+        const started = await startSourceBuild(await deps(), {
           groupId: c.groupId,
           spaceId: c.spaceId,
           creationId: c.id,
@@ -264,7 +273,7 @@ export async function sourceRoutes(app: FastifyInstance, ctx: AppContext) {
       const settings = settingsOf(input);
       const studio = await settingsFor(db, space.groupId);
       try {
-        const started = await startSourceBuild(deps(), {
+        const started = await startSourceBuild(await deps(), {
           groupId: space.groupId,
           spaceId: space.id,
           creationId: null,

@@ -1,6 +1,7 @@
 import { Button, Icon, IconButton, Notice } from '@ats/ui';
 import { useState } from 'react';
 import {
+  allowedInWords,
   type CreationSource,
   checkSource,
   linkSource,
@@ -249,13 +250,13 @@ export function RepositoryForm({
           className="ats-input"
           value={repository}
           onChange={(e) => setRepository(e.target.value)}
-          placeholder={allowed[0]?.replace('*', 'name') ?? 'owner/name'}
+          placeholder={allowed.find((p) => p !== '*')?.replace('*', 'name') ?? 'owner/name'}
           required
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
         />
-        <small className="ats-muted">This server allows {allowed.join(', ') || 'none yet'}.</small>
+        <small className="ats-muted">This server allows {allowedInWords(allowed)}.</small>
       </label>
       <label>
         <span>Folder</span>

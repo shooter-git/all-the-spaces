@@ -10,7 +10,6 @@ import { valkeyEvents } from './events.ts';
 import { ensureSetupCode } from './install-state.ts';
 import { defaultTransport, mailFrom } from './notify.ts';
 import { startSourceChecks } from './sources/checks.ts';
-import { NO_SOURCE_HOSTS } from './sources/registry.ts';
 import { failInterruptedBuilds } from './spaces.ts';
 import { getStorage } from './storage.ts';
 import { createSupervisor } from './studio/supervisor.ts';
@@ -72,9 +71,9 @@ const builds = startBuildWorker(
 );
 ctx.buildQueue = buildQueue(env.VALKEY_URL);
 await failStuckBuilds(db, ctx.buildQueue);
-// Followed repositories are looked at about once an hour (only with a repository host installed).
+// Followed repositories are looked at about once an hour.
 const stopSourceChecks = startSourceChecks(
-  { db, hosts: ctx.sourceHosts ?? NO_SOURCE_HOSTS, release: env.ATS_RELEASE },
+  { db, files: ctx.sourceHosts, release: env.ATS_RELEASE },
   ctx.notifier,
   log,
 );

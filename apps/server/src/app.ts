@@ -26,6 +26,7 @@ import { studioRoutes } from './routes/studio.ts';
 import { transferRoutes } from './routes/transfer.ts';
 import { uploadRoutes } from './routes/uploads.ts';
 import { workspaceRoutes } from './routes/workspaces.ts';
+import { sourceOwnerRoutes } from './sources/owner-routes.ts';
 import { loadSourceHosts } from './sources/registry.ts';
 import { sourceRoutes } from './sources/routes.ts';
 
@@ -106,5 +107,6 @@ export async function buildApp(ctx: AppContext) {
   await transferRoutes(app, ctx);
   await connectorRoutes(app, ctx);
   await sourceRoutes(app, ctx);
+  await sourceOwnerRoutes(app, ctx);
   return app;
 }

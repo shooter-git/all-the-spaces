@@ -3,24 +3,38 @@ import { asc, eq, isNull, lt, or } from 'drizzle-orm';
 import { architectsOf } from '../commissions.ts';
 import type { Log } from '../log.ts';
 import type { Notifier } from '../notify.ts';
-import { checkSource, type SourceDeps } from './service.ts';
+import { allowanceLow, SourceError } from './github.ts';
+import { currentSourceHosts, type SourceHostRegistry } from './registry.ts';
+import { checkSource, hostFor, type SourceDeps, type SourceRow } from './service.ts';
 
 const { creations, creationSources } = schema;
 
 /** How often a followed repository is looked at, without anyone pressing anything. */
 export const CHECK_EVERY_MS = 60 * 60_000;
 
+/** What the background looks need: the hosts from files (the Studio's part is read each time). */
+export interface CheckDeps extends Pick<SourceDeps, 'db' | 'release'> {
+  files: SourceHostRegistry | undefined;
+}
+
 /**
  * Looks at the followed repositories that are due (never looked at, or not for an hour), oldest
  * first and a few at a time, and tells the group's Architects when one has something newer than
  * what's built. It only notices: building it is Update's job (ADR 0011).
+ *
+ * A host whose hourly allowance is nearly used up (GitHub gives 60 requests an hour without a
+ * token) is left until it fills up again, keeping the rest for Architects' own Check and Update:
+ * with many public repositories, looks come less often than hourly rather than failing.
  */
 export async function sourceCheckTick(
-  deps: Pick<SourceDeps, 'db' | 'hosts' | 'release'>,
+  deps: CheckDeps,
   notifier: Pick<Notifier, 'send'> | undefined,
   opts: { now?: Date; batch?: number } = {},
 ) {
   const now = opts.now ?? new Date();
+  const batch = opts.batch ?? 20;
+  const hosts = await currentSourceHosts(deps.db, deps.files);
+  const using = { ...deps, hosts };
   const due = await deps.db
     .select({ row: creationSources, title: creations.title, spaceId: creations.spaceId })
     .from(creationSources)
@@ -32,9 +46,14 @@ export async function sourceCheckTick(
       ),
     )
     .orderBy(asc(creationSources.checkedAt))
-    .limit(opts.batch ?? 20);
+    // More than a batch: some may wait for their host's allowance, and shouldn't hold up others.
+    .limit(batch * 5);
+  let looked = 0;
   for (const { row, title, spaceId } of due) {
-    const after = await checkSource(deps, row);
+    if (looked >= batch) break;
+    if (waitsForAllowance(using, row)) continue;
+    looked += 1;
+    const after = await checkSource(using, row);
     // Something new since the last look, and not what's built: once per new commit.
     if (
       notifier &&
@@ -56,16 +75,26 @@ export async function sourceCheckTick(
       });
     }
   }
-  return due.length;
+  return looked;
 }
 
-/** Runs the checks in the background: a first look a minute after starting, then every ten. */
-export function startSourceChecks(
-  deps: Pick<SourceDeps, 'db' | 'hosts' | 'release'>,
-  notifier: Notifier | undefined,
-  log: Log,
-) {
-  if (!deps.hosts.list().length) return () => {};
+/** Whether a repository's host has too little of its allowance left for a background look. */
+function waitsForAllowance(deps: Pick<SourceDeps, 'hosts' | 'release'>, row: SourceRow) {
+  try {
+    return allowanceLow(hostFor(deps, row));
+  } catch (err) {
+    // Not allowed any more: the look itself says so (and records why).
+    if (err instanceof SourceError) return false;
+    throw err;
+  }
+}
+
+/**
+ * Runs the checks in the background: a first look a minute after starting, then every ten. Always,
+ * since the owner can allow a host in the Studio at any time (with nothing followed, a look is one
+ * small query).
+ */
+export function startSourceChecks(deps: CheckDeps, notifier: Notifier | undefined, log: Log) {
   let running = false;
   const tick = () => {
     if (running) return;

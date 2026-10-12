@@ -1,12 +1,12 @@
 import { type Db, schema } from '@ats/db';
 import { SnapshotError, scanForSecrets, snapshotOf } from '@ats/qa';
-import { allowsRepository, COMMIT, GIT_REF, REPO_PATH } from '@ats/shared';
+import { BUILT_IN_GITHUB, COMMIT, GIT_REF, REPO_PATH, repositoryAccess } from '@ats/shared';
 import type { Storage } from '@ats/storage';
 import type { Queue } from 'bullmq';
 import { eq } from 'drizzle-orm';
 import { uploadSource } from '../creations/sources.ts';
 import { filesFrom } from './archive.ts';
-import { archive, behindBy, type Found, latest, SourceError } from './github.ts';
+import { archive, behindBy, type Found, type HostAccess, latest, SourceError } from './github.ts';
 import type { SourceHostRegistry } from './registry.ts';
 
 const { builds, creationSources, creationVersions } = schema;
@@ -17,6 +17,7 @@ export type SourceRow = typeof creationSources.$inferSelect;
 
 export interface SourceDeps {
   db: Db;
+  /** The hosts allowed right now (files, and the owner's choices in the Studio). */
   hosts: SourceHostRegistry;
   storage: () => Promise<Storage>;
   queue: () => Queue;
@@ -34,11 +35,27 @@ export const settingsOf = (s: SourceSettings): SourceSettings => ({
   updateMode: s.updateMode,
 });
 
-/** The host for some settings, once they're checked against its definition. */
-export function hostFor(deps: Pick<SourceDeps, 'hosts' | 'release'>, s: SourceSettings) {
+/**
+ * The host for some settings, once they're checked against what the owner allows, and how the
+ * repository may be read: with the host's token only when its definition file names it, else as
+ * a public repository, with no token at all (ADR 0012).
+ */
+export function hostFor(
+  deps: Pick<SourceDeps, 'hosts' | 'release'>,
+  s: Pick<SourceSettings, 'host' | 'repository' | 'path' | 'follows' | 'ref'>,
+): HostAccess {
   const host = deps.hosts.get(s.host);
-  if (!host) throw new SourceError(`This server has no repository host called "${s.host}".`);
-  if (!allowsRepository(host.def, s.repository))
+  if (!host)
+    throw new SourceError(
+      s.host === BUILT_IN_GITHUB
+        ? 'GitHub is switched off on this server: its owner can switch it on again.'
+        : `This server has no repository host called "${s.host}".`,
+    );
+  const access = repositoryAccess(
+    { repositories: host.def.repositories, added: host.added, token: Boolean(host.token) },
+    s.repository,
+  );
+  if (!access)
     throw new SourceError(`${s.repository} isn't one of the repositories this server allows.`);
   if (s.path && !REPO_PATH.test(s.path)) throw new SourceError('That folder name can’t be used.');
   if (s.follows === 'branch' && !(s.ref && GIT_REF.test(s.ref)))
@@ -47,7 +64,8 @@ export function hostFor(deps: Pick<SourceDeps, 'hosts' | 'release'>, s: SourceSe
     throw new SourceError('A commit is its full 40-character id.');
   return {
     def: host.def,
-    token: host.token,
+    token: access === 'token' ? host.token : null,
+    publicOnly: access === 'public',
     userAgent: `ATS-sources/${deps.release.replace(/[^\w.+-]/g, '').slice(0, 40) || 'development'}`,
   };
 }
@@ -169,9 +187,14 @@ export async function checkSource(
   try {
     const host = hostFor(deps, row);
     const found = await latest(host, row);
-    const behind = row.builtCommit
-      ? await behindBy(host, row.repository, row.builtCommit, found.commit)
-      : null;
+    // Nothing new since the last look: how far behind it is hasn't changed either (one request
+    // fewer, which matters without a token).
+    const unchanged = found.commit === row.latestCommit && row.behindBy !== null && !row.checkError;
+    const behind = !row.builtCommit
+      ? null
+      : unchanged
+        ? row.behindBy
+        : await behindBy(host, row.repository, row.builtCommit, found.commit);
     const [updated] = await deps.db
       .update(creationSources)
       .set({

@@ -256,3 +256,34 @@
   font-size: 0.95rem;
   margin: var(--ats-space-2) 0 0;
 }
+
+/* ---- Server: where creations may come from ---- */
+.manage-source {
+  padding: var(--ats-space-3) 0;
+  border-top: 1px solid var(--ats-line);
+}
+.manage-source-choice {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+}
+.manage-source-choice legend {
+  padding: 0;
+  margin-bottom: var(--ats-space-1);
+  font-weight: 500;
+}
+.manage-source-choice label {
+  display: flex;
+  align-items: center;
+  gap: var(--ats-space-2);
+  min-height: var(--ats-touch);
+}
+.manage-source-list {
+  min-height: 88px;
+  resize: vertical;
+  font: inherit;
+  font-family: ui-monospace, monospace;
+}

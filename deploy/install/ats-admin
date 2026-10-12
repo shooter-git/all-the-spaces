@@ -109,6 +109,11 @@ case ${1:-help} in
   setup-code)
     dc exec -T server node apps/server/src/cli/setup-code.ts
     ;;
+  owner)
+    # Who owns this server in the app (whoever finished setup, at first), or hand it to another
+    # of a group's Architects: they decide server-wide settings there, such as repositories.
+    dc exec -T server node apps/server/src/cli/server-owner.ts ${2:+"$2"} </dev/null
+    ;;
   backup)
     mkdir -p "$BACKUPS"
     if [[ ${2:-} != --auto ]]; then
@@ -250,6 +255,7 @@ Usage: ats-admin COMMAND
   logs [part]         Follow the logs (parts: server, realtime, worker, supervisor, egress, caddy,
                       livekit, postgres, valkey, garage)
   setup-code          Print a new one-time setup code (only before setup is finished)
+  owner [EMAIL]       Show who owns this server in the app, or hand it to another Architect
   backup              Make a backup now (database, stored files and settings; copied off-site if set up)
   backup-settings     Show or change backups: schedule nightly|weekly|off, keep-days DAYS, offsite [off]
   prune [--all]       Remove scheduled backups older than chosen (--all: manual ones too)

@@ -106,7 +106,7 @@ export interface CreationSource extends SourceSettings {
 export interface SourceHostInfo {
   id: string;
   displayName: string;
-  /** `owner/name`, or `owner/*`. */
+  /** `owner/name`, `owner/*`, or `*` (any public repository). */
   repositories: string[];
 }
 
