@@ -397,7 +397,7 @@ describe.skipIf(!adminUrl)('creations from repositories', () => {
         sent.push({ to: [...to], title: n.title, ...(n.url ? { url: n.url } : {}) });
       },
     };
-    const deps = { db: t.db, hosts, release: 'test' };
+    const deps = { db: t.db, files: hosts, release: 'test' };
     const hourAgo = () =>
       t.db
         .update(schema.creationSources)

@@ -1,6 +1,7 @@
 /**
- * Repository hosts a server's owner allows creations to come from (ADR 0011, docs/repositories.md):
- * one definition file each in ATS_SOURCES_DIR. Everything here is plain checking: no network, no
+ * Repository hosts a server's owner allows creations to come from (ADR 0011, ADR 0012,
+ * docs/repositories.md): one definition file each in ATS_SOURCES_DIR, and the built-in GitHub
+ * host the owner can switch on in the Studio. Everything here is plain checking: no network, no
  * secrets (a token is named by the environment variable that holds it).
  */
 import { z } from 'zod';
@@ -8,8 +9,14 @@ import { z } from 'zod';
 export const SOURCE_HOST_ID = /^[a-z0-9-]{2,32}$/;
 
 /**
- * `owner/name`, as GitHub spells them. Neither part may be only dots: the API's address is
- * `/repos/owner/name/…`, and `x/..` would climb out of it (addresses are tidied before sending).
+ * The built-in GitHub host's id: github.com, public repositories only, never a token. It's off
+ * until the server's owner switches it on in the Studio; a definition file can't use this id.
+ */
+export const BUILT_IN_GITHUB = 'github-public';
+
+/**
+ * `owner/name`, as GitHub spells them. Neither part may be only dots: `x/..` would climb out of
+ * the repository's own address on the host's API.
  */
 export const REPOSITORY = /^(?!\.+\/)[A-Za-z0-9_.-]{1,100}\/(?!\.+$)[A-Za-z0-9_.-]{1,100}$/;
 
@@ -19,8 +26,7 @@ export const REPO_PATH =
 
 /**
  * A branch or tag name (refs/heads/… or refs/tags/… without the prefix). As git has them: no
- * `..`, no part starting with a dot (`.` alone would be tidied away from the address), no empty
- * part.
+ * `..`, no part starting with a dot, no empty part.
  */
 export const GIT_REF =
   /^(?!.*\.\.)(?!\/)(?!.*\/$)(?!.*\/\/)(?!\.)(?!.*\/\.)[A-Za-z0-9._/-]{1,200}$/;
@@ -28,12 +34,34 @@ export const GIT_REF =
 /** A commit, written in full. */
 export const COMMIT = /^[0-9a-f]{40}$/;
 
-const pattern = z
+/**
+ * Which repositories are allowed: `owner/name`, `owner/*` (every one of an owner's), or `*`
+ * (any public repository on the host).
+ */
+export const SOURCE_PATTERN =
+  /^(?:\*|(?!\.+\/)[A-Za-z0-9_.-]{1,100}\/(?:\*|(?!\.+$)[A-Za-z0-9_.-]{1,100}))$/;
+
+export const SourcePattern = z
   .string()
-  .regex(
-    /^(?!\.+\/)[A-Za-z0-9_.-]{1,100}\/(?:\*|(?!\.+$)[A-Za-z0-9_.-]{1,100})$/,
-    'an owner/name, or owner/*',
-  );
+  .trim()
+  .regex(SOURCE_PATTERN, 'owner/name, owner/* or * (any public repository)');
+
+/** At most 100 patterns, without repeats (compared without case, as GitHub's names are). */
+export const SourcePatterns = z
+  .array(SourcePattern)
+  .max(100)
+  .transform((list) => uniquePatterns(list));
+
+/** The patterns once each, in the order given (compared without case). */
+export function uniquePatterns(list: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return list.filter((p) => {
+    const key = p.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 export const SourceHostDefinition = z.strictObject({
   id: z.string().regex(SOURCE_HOST_ID),
@@ -53,14 +81,21 @@ export const SourceHostDefinition = z.strictObject({
     .default(['codeload.github.com']),
   /**
    * The environment variable holding a read-only token (`ATS_SOURCE_…`), for private
-   * repositories. Without one, only public repositories can be read.
+   * repositories. Without one, only public repositories can be read. It's only ever used for
+   * the repositories this file names (`owner/name` or `owner/*`), never for `*`.
    */
   tokenEnv: z
     .string()
     .regex(/^ATS_SOURCE_[A-Z0-9_]{1,60}$/)
     .optional(),
-  /** Which repositories creations may come from: `owner/name`, or every one of an owner's. */
-  repositories: z.array(pattern).min(1).max(100),
+  /**
+   * Which repositories creations may come from: `owner/name`, every one of an owner's
+   * (`owner/*`), or any public one (`*`). May be empty when the list is kept in the Studio.
+   */
+  repositories: z
+    .array(z.string().regex(SOURCE_PATTERN, 'owner/name, owner/* or *'))
+    .max(100)
+    .default([]),
   /**
    * Allow the host (and its archive address) on a private network: a company's own GitHub
    * Enterprise, say. Off by default: only public addresses are reached.
@@ -85,15 +120,71 @@ export function parseSourceHostDefinition(input: unknown): SourceHostDefinition 
   return parsed.data;
 }
 
-/** Whether a host's definition allows a repository (names compare without case, as GitHub's do). */
-export function allowsRepository(
-  def: Pick<SourceHostDefinition, 'repositories'>,
+/**
+ * How a list of patterns takes in a repository: by its owner or name (`named`), only through
+ * `*` (`any`), or not at all (null). Names compare without case, as GitHub's do.
+ */
+export function matchRepository(
+  patterns: readonly string[],
   repository: string,
-) {
-  if (!REPOSITORY.test(repository)) return false;
+): 'named' | 'any' | null {
+  if (!REPOSITORY.test(repository)) return null;
   const [owner, name] = repository.toLowerCase().split('/') as [string, string];
-  return def.repositories.some((p) => {
+  let any = false;
+  for (const p of patterns) {
+    if (p === '*') {
+      any = true;
+      continue;
+    }
     const [o, n] = p.toLowerCase().split('/') as [string, string];
-    return o === owner && (n === '*' || n === name);
-  });
+    if (o === owner && (n === '*' || n === name)) return 'named';
+  }
+  return any ? 'any' : null;
+}
+
+/**
+ * How the server may read a repository from a host, if at all:
+ *
+ * - `token`: with the host's token, so it may be private. Only when the host has a token and its
+ *   definition file names the repository (`owner/name` or `owner/*`).
+ * - `public`: without any token, and only while the host says it's public. Everything else the
+ *   owner allows: `*`, and every repository added in the Studio.
+ * - null: not allowed.
+ */
+export function repositoryAccess(
+  host: {
+    /** From the definition file. */
+    repositories: readonly string[];
+    /** Added in the Studio: public only, whatever they name. */
+    added?: readonly string[];
+    /** Whether the host has a token. */
+    token: boolean;
+  },
+  repository: string,
+): 'token' | 'public' | null {
+  if (!REPOSITORY.test(repository)) return null;
+  const fromFile = matchRepository(host.repositories, repository);
+  if (fromFile === 'named' && host.token) return 'token';
+  if (fromFile || matchRepository(host.added ?? [], repository)) return 'public';
+  return null;
+}
+
+/** What the server's owner chose in the Studio (stored with the install; see ADR 0012). */
+export const StudioSources = z.object({
+  /** The built-in GitHub host: off until the owner switches it on. */
+  github: z
+    .object({ on: z.boolean().default(false), repositories: SourcePatterns.default([]) })
+    .default({ on: false, repositories: [] }),
+  /** Repositories added to hosts defined in files, by host id: public ones only. */
+  added: z.record(z.string().regex(SOURCE_HOST_ID), SourcePatterns).default({}),
+});
+export type StudioSources = z.infer<typeof StudioSources>;
+
+/**
+ * The owner's choices as stored, or none if what's stored isn't valid (nothing allowed is the
+ * safe way to be wrong).
+ */
+export function studioSourcesOf(stored: unknown): StudioSources {
+  const parsed = StudioSources.safeParse(stored ?? {});
+  return parsed.success ? parsed.data : StudioSources.parse({});
 }
