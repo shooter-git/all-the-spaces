@@ -43,7 +43,7 @@ export const DOWNLOAD = {
   /** Everything fetched before the creation says it's ready. */
   initialMB: 10,
   /** The whole bundle. */
-  totalMB: 60,
+  totalMB: 80,
 };
 
 /** The longest side a texture inside a model is kept at, by tier. */
