@@ -39,7 +39,7 @@ Every publish is checked first, and the report says what to fix:
   its calls are answered from `qa/connectors/<connector>/<op>.json` and listed in the report; a
   call to an operation `ats.json` doesn't declare fails the checks;
 - it stays within the budgets for its `budgetTier` (draw calls, triangles, texture and graphics
-  memory, sounds at once, script memory, 10 MB before it's ready and 60 MB in all), and every
+  memory, sounds at once, script memory, 10 MB before it's ready and 80 MB in all), and every
   sound goes through `portal.audio` groups.
 
 `qa/script.json` steps: `{ "wait": 1 }`, `{ "press": "KeyE" }`, `{ "hold": "KeyW", "seconds": 2 }`,
