@@ -8,6 +8,7 @@ import { connect } from '../src/index.ts';
 const made = vi.hoisted(() => ({
   renderers: [] as {
     domElement: HTMLCanvasElement;
+    setPixelRatio: ReturnType<typeof vi.fn>;
     setSize: ReturnType<typeof vi.fn>;
     setAnimationLoop: ReturnType<typeof vi.fn>;
     dispose: ReturnType<typeof vi.fn>;
@@ -19,7 +20,7 @@ vi.mock('three', async (importOriginal) => {
   class StubRenderer {
     domElement = document.createElement('canvas');
     shadowMap = { enabled: false, type: 0 };
-    setPixelRatio() {}
+    setPixelRatio = vi.fn();
     setSize = vi.fn();
     setAnimationLoop = vi.fn();
     dispose = vi.fn();
@@ -60,6 +61,27 @@ describe('a stage', () => {
       data: { width: 400, height: 800, orientation: 'portrait', dpr: 2, touch: true },
     });
     expect(renderer?.setSize).not.toHaveBeenCalled();
+  });
+
+  it('changes resolution before drawing, so the frame just drawn is never wiped', async () => {
+    const portal = await connect();
+    const stage = createStage(portal);
+    const renderer = made.renderers.at(-1);
+    const happened: string[][] = [];
+    renderer?.setPixelRatio.mockImplementation(() => happened.at(-1)?.push('resize'));
+    stage.loop(() => happened.at(-1)?.push('draw'));
+    const tick = renderer?.setAnimationLoop.mock.lastCall?.[0] as (now: number) => void;
+    // Two seconds of slow frames: the resolution steps down at least once.
+    const start = performance.now();
+    for (let i = 1; i <= 70; i++) {
+      happened.push([]);
+      tick(start + i * 30);
+    }
+    const stepped = happened.filter((frame) => frame.includes('resize'));
+    expect(stage.resolution.scale).toBeLessThan(1);
+    expect(stepped.length).toBeGreaterThan(0);
+    for (const frame of stepped) expect(frame).toEqual(['resize', 'draw']);
+    stage.dispose();
   });
 });
 

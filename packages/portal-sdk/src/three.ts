@@ -86,8 +86,10 @@ export function createStage(
       const dt = Math.min(0.1, ms / 1000);
       last = now;
       if (paused) return;
-      frame(dt);
+      // Resize before drawing: resizing the canvas wipes it, so after `frame` it would leave a
+      // black frame on screen until the next one.
       if (options.dynamicResolution !== false && resolution.frame(ms, now)) resize();
+      frame(dt);
     });
   };
   const dispose = () => {

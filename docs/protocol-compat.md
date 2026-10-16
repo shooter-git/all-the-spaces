@@ -80,3 +80,4 @@ break.
 |---|---|---|
 | 1 | 0.1.0 | First version. Later additions within it: `duck` (host to creation). |
 | 1 | 0.2.0 | Connectors, added within version 1: `connector:call`, `connector:status` and `connector:link` (creation to host); result codes `not-linked`, `not-approved`, `trial`, `clash`, `rejected` and `upstream`; an optional `details` on a failed `result`. The SDK gives up on a request after 20 s (`upstream`), so an older host that ignores these messages doesn't leave it waiting. |
+| 1 | 0.2.1 | No protocol change. `createStage` changes resolution before drawing a frame rather than after, so a step in dynamic resolution no longer wipes the frame just drawn (a black flash, often on phones). |

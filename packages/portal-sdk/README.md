@@ -188,7 +188,8 @@ loop((dt) => {                                            // paused while the ap
   frames are slow and more once they're smooth again (`stage.resolution.scale`; pass
   `{ dynamicResolution: false }` to keep it fixed). Your own renderer can do the same with
   `ResolutionGovernor` from `@allthespaces/portal/resolution`: call `frame(ms)` every frame and
-  set the pixel ratio from `scale` when it returns true.
+  set the pixel ratio from `scale` when it returns true, before you draw (resizing the canvas
+  wipes it, so doing it after drawing leaves a black frame).
 - `FirstPersonRig`: walk with the first stick; drag (or click to capture the mouse) to look.
 - `OrbitRig(camera, target, distance)`: drag to circle, pinch or scroll to zoom.
 - Switching scenes or rigs: `stage.dispose()` stops the loop, removes the canvas and lets go of
