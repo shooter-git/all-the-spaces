@@ -80,9 +80,11 @@ export async function convertAssets(
         }
         if (textures.some((t) => t.getMimeType() === 'image/webp'))
           doc.createExtension(EXTTextureWebP).setRequired(true);
+        // A creation's code may look up empty nodes by name (anchors, spots to put things) and
+        // read UVs in its own shaders when no texture does, so prune keeps both.
         await doc.transform(
           dedup(),
-          prune(),
+          prune({ keepLeaves: true, keepAttributes: true }),
           meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
         );
         const out = await io.writeBinary(doc);
