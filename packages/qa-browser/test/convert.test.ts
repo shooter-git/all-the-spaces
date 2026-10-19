@@ -140,6 +140,43 @@ describe('converting models', () => {
   });
 });
 
+describe('converting several models', () => {
+  it('compresses them a few at a time and reports them in file order', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ats-qa-convert-'));
+    dirs.push(dir);
+    const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+    const files: { path: string; bytes: number }[] = [];
+    for (const [path, model] of [
+      ['a-screen.glb', screenModel()],
+      ['b-chest.glb', lidModel()],
+      ['d-screen.glb', screenModel()],
+      ['e-chest.glb', lidModel()],
+      ['f-screen.glb', screenModel()],
+    ] as const) {
+      const glb = await io.writeBinary(model);
+      await writeFile(join(dir, path), glb);
+      files.push({ path, bytes: glb.byteLength });
+    }
+    await writeFile(join(dir, 'c-broken.glb'), 'not a model');
+    files.splice(2, 0, { path: 'c-broken.glb', bytes: 11 });
+
+    const result = await convertAssets(dir, files, 'mid');
+    expect(result.conversions.map((c) => c.path)).toEqual([
+      'a-screen.glb',
+      'b-chest.glb',
+      'd-screen.glb',
+      'e-chest.glb',
+      'f-screen.glb',
+    ]);
+    expect(result.notes).toHaveLength(1);
+    expect(result.notes[0]).toMatch(/^c-broken\.glb couldn't be compressed: /);
+    for (const c of result.conversions) {
+      expect(c.after).toBeLessThan(c.before);
+      expect(files.find((f) => f.path === c.path)?.bytes).toBe(c.after);
+    }
+  });
+});
+
 const hasFfmpeg = (() => {
   try {
     execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
