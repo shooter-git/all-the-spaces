@@ -243,10 +243,15 @@ function handle(msg: CreationMessage) {
 }
 
 let n = 0;
-setInterval(() => {
-  send({ type: 'ping', n: n++ });
+/** While the checks take a screenshot, silence isn't the creation's (see quiet()). */
+let quiet = false;
+const noteSilence = () => {
   if (log.readyAt !== null && log.exitedAt === null)
     log.longestSilence = Math.max(log.longestSilence, performance.now() - log.lastPong);
+};
+setInterval(() => {
+  send({ type: 'ping', n: n++ });
+  if (!quiet) noteSilence();
 }, 500);
 addEventListener('resize', () => send({ type: 'viewport', data: viewport() }));
 
@@ -255,6 +260,17 @@ addEventListener('resize', () => send({ type: 'viewport', data: viewport() }));
   requestExit() {
     log.exitRequestedAt = performance.now() - started;
     send({ type: 'exit-requested' });
+  },
+  /**
+   * A screenshot waits for this browser to finish drawing a frame on the CPU, and holds up both
+   * pages meanwhile: tens of seconds for a heavy scene. That wait is the checks', so it isn't
+   * counted as the creation not answering. Silence before it still counts; after it, counting
+   * starts again.
+   */
+  quiet(on: boolean) {
+    if (on) noteSilence();
+    else log.lastPong = performance.now();
+    quiet = on;
   },
   /** Where the app's own buttons sit (a creation shouldn't put its controls under them). */
   appButtons() {

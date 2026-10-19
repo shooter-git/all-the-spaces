@@ -411,7 +411,21 @@ async function shoot(
   checks: Check[],
 ) {
   const file = `${result.name}-${result.screenshots.length + 1}.png`;
-  const png = await screenshot(page, join(outDir, file), `${result.label}, ${name}`, checks);
+  // Waiting for a frame here can hold up the creation's page too: not its silence (see quiet()).
+  const quiet = (on: boolean) =>
+    page
+      .evaluate(
+        (q) => (globalThis as unknown as { __host: { quiet(on: boolean): void } }).__host.quiet(q),
+        on,
+      )
+      .catch(() => {});
+  await quiet(true);
+  const png = await screenshot(
+    page,
+    join(outDir, file),
+    `${result.label}, ${name}`,
+    checks,
+  ).finally(() => quiet(false));
   if (!png) return;
   result.screenshots.push({ name, file });
   // Blank: everything below the app's buttons is one flat colour.
