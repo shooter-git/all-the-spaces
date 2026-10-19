@@ -300,12 +300,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
       report.creation.tier,
     ]);
     if (!built.ok) {
-      fail({
-        id: 'build',
-        title: "It didn't build",
-        detail: built.error?.slice(0, 800),
-        fix: 'Fix the error above. The platform builds with its own settings (vite.config is ignored): import files by relative path and keep assets in public/ or import them.',
-      });
+      fail(buildFailure(built));
       return await finish();
     }
     files = await listFiles(opts.distDir);
@@ -401,11 +396,30 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
  */
 const PLAY_MINUTES = 25;
 
+/** A step that crashed or ran out of time, so it couldn't say what happened itself. */
+interface ChildFailure {
+  ok: false;
+  error: string;
+  timedOut?: true;
+}
+
+/** The failed check for a build that failed or ran out of time. */
+export function buildFailure(built: { error?: string; timedOut?: boolean }): Omit<Check, 'status'> {
+  return {
+    id: 'build',
+    title: "It didn't build",
+    detail: built.error?.slice(0, 800),
+    fix: built.timedOut
+      ? 'Building took too long, usually because the server was busy: try again. If it keeps happening, the creation has files that take long to check (many large sounds or models): fewer or smaller ones help.'
+      : 'Fix the error above. The platform builds with its own settings (vite.config is ignored): import files by relative path and keep assets in public/ or import them.',
+  };
+}
+
 /**
  * Runs a step in its own process with nothing secret in its environment: it handles code and
  * files from the creation, so it never shares a process with the platform's credentials.
  */
-function child<T>(args: string[], timeout = 5 * 60_000): Promise<T> {
+function child<T>(args: string[], timeout = 5 * 60_000): Promise<T | ChildFailure> {
   return new Promise((resolve) => {
     execFile(
       process.execPath,
@@ -416,10 +430,11 @@ function child<T>(args: string[], timeout = 5 * 60_000): Promise<T> {
         try {
           resolve(JSON.parse(last) as T);
         } catch {
-          const error = err?.killed
+          const timedOut = !!err?.killed;
+          const error = timedOut
             ? `It took longer than ${Math.round(timeout / 60_000)} minutes.`
             : (stderr || err?.message || 'failed').slice(-2000);
-          resolve({ ok: false, error } as T);
+          resolve({ ok: false, error, ...(timedOut && { timedOut }) });
         }
       },
     );
