@@ -52,6 +52,38 @@ function screenModel(): Document {
   return doc;
 }
 
+/** A chest lid hinged at its node's origin: a fine grid from x 0.5 to 1.5, off that origin. */
+function lidModel(): Document {
+  const doc = new Document();
+  const buffer = doc.createBuffer();
+  const n = 32;
+  const position: number[] = [];
+  const indices: number[] = [];
+  for (let z = 0; z < n; z++)
+    for (let x = 0; x < n; x++) {
+      position.push(0.5 + x / (n - 1), 0.2, (z / (n - 1)) * 0.8 - 0.4);
+      if (x < n - 1 && z < n - 1) {
+        const i = z * n + x;
+        indices.push(i, i + n, i + 1, i + 1, i + n, i + n + 1);
+      }
+    }
+  const primitive = doc
+    .createPrimitive()
+    .setAttribute(
+      'POSITION',
+      doc.createAccessor().setType('VEC3').setArray(new Float32Array(position)).setBuffer(buffer),
+    )
+    .setIndices(
+      doc.createAccessor().setType('SCALAR').setArray(new Uint16Array(indices)).setBuffer(buffer),
+    );
+  const lid = doc
+    .createNode('lid')
+    .setTranslation([0, 1, -0.4])
+    .setMesh(doc.createMesh('lid').addPrimitive(primitive));
+  doc.createScene().addChild(doc.createNode('chest').addChild(lid));
+  return doc;
+}
+
 describe('converting models', () => {
   it('keeps the UVs and empty nodes a creation’s own code uses', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'ats-qa-convert-'));
@@ -77,5 +109,32 @@ describe('converting models', () => {
     expect(primitive?.listSemantics()).toEqual(
       expect.arrayContaining(['POSITION', 'NORMAL', 'TEXCOORD_0', 'TEXCOORD_1']),
     );
+  });
+
+  it('keeps each part’s own transform, so parts the code turns turn around their joint', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ats-qa-convert-'));
+    dirs.push(dir);
+    const io = new NodeIO()
+      .registerExtensions(ALL_EXTENSIONS)
+      .registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
+    const glb = await io.writeBinary(lidModel());
+    await writeFile(join(dir, 'chest.glb'), glb);
+
+    const result = await convertAssets(dir, [{ path: 'chest.glb', bytes: glb.byteLength }], 'mid');
+    expect(result.conversions.map((c) => c.path)).toEqual(['chest.glb']);
+
+    await MeshoptDecoder.ready;
+    const out = await io.read(join(dir, 'chest.glb'));
+    const lid = out
+      .getRoot()
+      .listNodes()
+      .find((n) => n.getName() === 'lid');
+    expect(lid?.getTranslation()).toEqual([0, 1, -0.4]);
+    expect(lid?.getRotation()).toEqual([0, 0, 0, 1]);
+    expect(lid?.getScale()).toEqual([1, 1, 1]);
+    const position = lid?.getMesh()?.listPrimitives()[0]?.getAttribute('POSITION');
+    expect(position?.getComponentType()).toBe(5126);
+    expect(position?.getNormalized()).toBe(false);
+    expect(position?.getMin([])).toEqual([0.5, 0.2, -0.4].map(Math.fround));
   });
 });
