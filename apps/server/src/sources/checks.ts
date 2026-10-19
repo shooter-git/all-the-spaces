@@ -72,6 +72,7 @@ export async function sourceCheckTick(
             : "Update it in Creations when you're ready.",
         url: `/space/${spaceId}/creations`,
         groupId: row.groupId,
+        subject: `creation:${row.creationId}`,
       });
     }
   }

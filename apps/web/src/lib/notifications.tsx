@@ -120,6 +120,8 @@ interface NotificationsState {
   more: boolean;
   loadMore: () => Promise<void>;
   markRead: (ids?: string[]) => Promise<void>;
+  /** Clears the ones named, or (with none named) all that are read. */
+  clear: (ids?: string[]) => Promise<void>;
   /** Hears each notification as it arrives (for a pop-up). */
   onArrive: (listener: (n: AppNotification) => void) => () => void;
 }
@@ -190,6 +192,23 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     [items],
   );
 
+  const clear = useCallback(
+    async (ids?: string[]) => {
+      const gone = items.filter((n) => (ids ? ids.includes(n.id) : n.read));
+      if (gone.length === 0) return;
+      const wasUnread = gone.filter((n) => !n.read).length;
+      setItems((list) => list.filter((n) => !gone.some((g) => g.id === n.id)));
+      setUnread((u) => Math.max(0, u - wasUnread));
+      await api('/api/notifications', {
+        method: 'DELETE',
+        json: ids ? { ids: gone.map((n) => n.id) } : { read: true },
+      }).catch(() => {});
+      // Cleared down to nothing on the page while earlier ones wait: bring the next lot.
+      if (more && gone.length === items.length) await load();
+    },
+    [items, more, load],
+  );
+
   const onArrive = useCallback((listener: (n: AppNotification) => void) => {
     listeners.current.add(listener);
     return () => {
@@ -198,8 +217,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ items, unread, more, loadMore, markRead, onArrive }),
-    [items, unread, more, loadMore, markRead, onArrive],
+    () => ({ items, unread, more, loadMore, markRead, clear, onArrive }),
+    [items, unread, more, loadMore, markRead, clear, onArrive],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

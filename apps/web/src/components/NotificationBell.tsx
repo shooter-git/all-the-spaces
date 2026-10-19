@@ -60,7 +60,7 @@ function BellIcon() {
 }
 
 export function NotificationSheet({ onClose }: { onClose: () => void }) {
-  const { items, unread, more, loadMore, markRead } = useNotifications();
+  const { items, unread, more, loadMore, markRead, clear } = useNotifications();
   const navigate = useNavigate();
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -86,6 +86,11 @@ export function NotificationSheet({ onClose }: { onClose: () => void }) {
             {unread > 0 && (
               <IconButton icon="check" label="Mark all read" onClick={() => void markRead()} />
             )}
+            {items.some((n) => n.read) && (
+              <Button variant="ghost" onClick={() => void clear()}>
+                Clear read
+              </Button>
+            )}
             <IconButton icon="close" label="Close" onClick={() => dialog.current?.close()} />
           </span>
         </div>
@@ -96,7 +101,7 @@ export function NotificationSheet({ onClose }: { onClose: () => void }) {
         ) : (
           <ul className="notify-list">
             {items.map((n) => (
-              <li key={n.id}>
+              <li key={n.id} className="notify-row">
                 <button
                   type="button"
                   className="notify-item"
@@ -107,6 +112,12 @@ export function NotificationSheet({ onClose }: { onClose: () => void }) {
                   {n.body && <span>{n.body}</span>}
                   <time dateTime={n.createdAt}>{ago(n.createdAt)}</time>
                 </button>
+                <IconButton
+                  icon="close"
+                  label="Clear"
+                  className="notify-clear"
+                  onClick={() => void clear([n.id])}
+                />
               </li>
             ))}
           </ul>

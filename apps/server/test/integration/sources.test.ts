@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { downloadSourceFiles } from '../../src/creations/sources.ts';
 import { publishCreation } from '../../src/creations/store.ts';
+import type { Notice } from '../../src/notify.ts';
 import { sourceCheckTick } from '../../src/sources/checks.ts';
 import { type SourceHostRegistry, sourceHostsOf } from '../../src/sources/registry.ts';
 import { recordSourceBuild } from '../../src/sources/service.ts';
@@ -421,5 +422,54 @@ describe.skipIf(!adminUrl)('creations from repositories', () => {
     await hourAgo();
     await sourceCheckTick(deps, notifier);
     expect(sent).toHaveLength(1);
+  });
+
+  it('clears "new in its repository" for everyone once the creation is updated', async () => {
+    // v1.3 is still waiting (as the last look left it): looked at afresh, it's news again.
+    await t.db
+      .update(schema.creationSources)
+      .set({ checkedAt: new Date(Date.now() - 2 * 3600_000), latestCommit: null })
+      .where(eq(schema.creationSources.creationId, creationId));
+    // Kept as the notifier keeps them, for each Architect it was sent to.
+    const notifier = {
+      send: async (to: Iterable<string>, n: Notice) => {
+        await t.db.insert(schema.notifications).values(
+          [...to].map((userId) => ({
+            userId,
+            groupId: n.groupId ?? null,
+            kind: n.kind,
+            title: n.title,
+            subject: n.subject ?? null,
+          })),
+        );
+      },
+    };
+    await sourceCheckTick({ db: t.db, files: hosts, release: 'test' }, notifier);
+    const newer = () =>
+      t.db
+        .select()
+        .from(schema.notifications)
+        .where(eq(schema.notifications.kind, 'creation.source.newer'));
+    const sent = await newer();
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent.every((n) => n.subject === `creation:${creationId}`)).toBe(true);
+    // Another creation's notice stays.
+    const userId = sent[0]?.userId as string;
+    await t.db.insert(schema.notifications).values({
+      userId,
+      kind: 'creation.source.newer',
+      title: 'Something else: a new commit in its repository',
+      subject: `creation:${crypto.randomUUID()}`,
+    });
+
+    // Checking again doesn't clear it: only having it built does.
+    await req('POST', `/api/creations/${creationId}/source/check`, architectCookie);
+    expect(await newer()).toHaveLength(sent.length + 1);
+    const res = await req('POST', `/api/creations/${creationId}/source/update`, architectCookie);
+    expect(res.json()).toMatchObject({ commit: C6 });
+    expect(await newer()).toHaveLength(sent.length + 1);
+    await pass(res.json().buildId);
+    const left = await newer();
+    expect(left.map((n) => n.title)).toEqual(['Something else: a new commit in its repository']);
   });
 });
