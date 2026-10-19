@@ -3,8 +3,8 @@ import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MAX_TEXTURE, type Tier } from '@ats/qa';
 import { NodeIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
-import { dedup, meshopt, prune } from '@gltf-transform/functions';
+import { ALL_EXTENSIONS, EXTMeshoptCompression, EXTTextureWebP } from '@gltf-transform/extensions';
+import { dedup, prune, quantize, reorder } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
 import sharp from 'sharp';
 import type { BundleFile } from './build.ts';
@@ -82,11 +82,20 @@ export async function convertAssets(
           doc.createExtension(EXTTextureWebP).setRequired(true);
         // A creation's code may look up empty nodes by name (anchors, spots to put things) and
         // read UVs in its own shaders when no texture does, so prune keeps both.
+        // It may also turn, move or scale its named parts, so positions stay floats: packing
+        // them (as meshopt() does) folds an offset and scale into each part's own transform,
+        // and a lid or head would then turn around its middle instead of its joint.
+        const notPosition = /^(?!POSITION$).*$/;
         await doc.transform(
           dedup(),
           prune({ keepLeaves: true, keepAttributes: true }),
-          meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+          reorder({ encoder: MeshoptEncoder, target: 'size' }),
+          quantize({ pattern: notPosition, patternTargets: notPosition }),
         );
+        doc
+          .createExtension(EXTMeshoptCompression)
+          .setRequired(true)
+          .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE });
         const out = await io.writeBinary(doc);
         if (out.byteLength < f.bytes || resized) {
           await writeFile(full, out);
