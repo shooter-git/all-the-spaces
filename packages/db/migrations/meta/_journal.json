@@ -15,6 +15,13 @@
       "when": 1791766121505,
       "tag": "0001_server_owner_and_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792420187837,
+      "tag": "0002_notification_subject",
+      "breakpoints": true
     }
   ]
 }

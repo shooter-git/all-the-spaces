@@ -102,12 +102,15 @@ export const notifications = pgTable(
     body: text('body').notNull().default(''),
     /** Where it leads in the app (a path, e.g. /requests/…). */
     url: text('url'),
+    /** What it's about (e.g. creation:<id>), so it can be cleared once that's dealt with. */
+    subject: text('subject'),
     readAt: timestamp('read_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     index('notifications_user').on(t.userId, t.createdAt),
     index('notifications_user_unread').on(t.userId, t.readAt),
+    index('notifications_subject').on(t.subject),
   ],
 );
 

@@ -17,6 +17,8 @@ export interface Notice {
   /** Where it leads in the app (a path). */
   url?: string;
   groupId?: string | null;
+  /** What it's about (e.g. creation:<id>), so it can be cleared once that's dealt with. */
+  subject?: string;
 }
 
 export interface NotificationRow {
@@ -152,6 +154,7 @@ export class Notifier {
           title: notice.title,
           body: notice.body ?? '',
           url: notice.url ?? null,
+          subject: notice.subject ?? null,
         })),
       )
       .returning();

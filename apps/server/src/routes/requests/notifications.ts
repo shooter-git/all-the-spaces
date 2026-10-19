@@ -1,6 +1,6 @@
 import type { NotificationSettings, Sent } from '@ats/api-types';
 import { schema } from '@ats/db';
-import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireUser } from '../../access.ts';
@@ -80,6 +80,27 @@ export async function notificationRoutes(
           eq(notifications.userId, me.id),
           isNull(notifications.readAt),
           ids ? inArray(notifications.id, ids) : undefined,
+        ),
+      );
+    return { ok: true };
+  });
+
+  /** Clears some of their own: the ones named, or all they've read. */
+  app.delete('/api/notifications', async (req, reply) => {
+    const me = await requireUser(ctx, req, reply);
+    if (!me) return;
+    const body = z
+      .union([
+        z.object({ ids: z.array(z.uuid()).min(1).max(100) }).strict(),
+        z.object({ read: z.literal(true) }).strict(),
+      ])
+      .parse(req.body ?? {});
+    await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.userId, me.id),
+          'ids' in body ? inArray(notifications.id, body.ids) : isNotNull(notifications.readAt),
         ),
       );
     return { ok: true };

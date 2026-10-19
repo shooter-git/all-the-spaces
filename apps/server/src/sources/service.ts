@@ -3,13 +3,13 @@ import { SnapshotError, scanForSecrets, snapshotOf } from '@ats/qa';
 import { BUILT_IN_GITHUB, COMMIT, GIT_REF, REPO_PATH, repositoryAccess } from '@ats/shared';
 import type { Storage } from '@ats/storage';
 import type { Queue } from 'bullmq';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { uploadSource } from '../creations/sources.ts';
 import { filesFrom } from './archive.ts';
 import { archive, behindBy, type Found, type HostAccess, latest, SourceError } from './github.ts';
 import type { SourceHostRegistry } from './registry.ts';
 
-const { builds, creationSources, creationVersions } = schema;
+const { builds, creationSources, creationVersions, notifications } = schema;
 
 export { SourceError };
 export type SourceSettings = schema.SourceSettings;
@@ -176,6 +176,15 @@ export async function recordSourceBuild(
       ...values,
     })
     .onConflictDoUpdate({ target: creationSources.creationId, set: values });
+  // What's built is the newest now: "a new commit in its repository" is old news, for everyone.
+  await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.kind, 'creation.source.newer'),
+        eq(notifications.subject, `creation:${made.creationId}`),
+      ),
+    );
 }
 
 /** Looks at what a creation follows now, and records it (or why it couldn't). */

@@ -444,6 +444,54 @@ describe.skipIf(!adminUrl)('server flows', () => {
       expect((await notificationsOf(memberCookie)).unread).toBe(0);
     });
 
+    it('clears notifications by hand: the ones named, or all read, and only their own', async () => {
+      const architectId = (await req('GET', '/api/me', architectCookie)).json().user.id;
+      const add = (userId: string, title: string, read: boolean) =>
+        db
+          .insert(schema.notifications)
+          .values({ userId, kind: 'test', title, readAt: read ? new Date() : null })
+          .returning()
+          .then((rows) => rows[0]?.id as string);
+      const mineRead = await add(memberId, 'Mine, read', true);
+      const mineUnread = await add(memberId, 'Mine, unread', false);
+      await add(memberId, 'Mine, also read', true);
+      await add(architectId, 'Theirs, read', true);
+      const theirsUnread = await add(architectId, 'Theirs, unread', false);
+      const titles = async (cookie: string) =>
+        ((await notificationsOf(cookie)).notifications as { kind: string; title: string }[])
+          .filter((n) => n.kind === 'test')
+          .map((n) => n.title)
+          .sort();
+      const clear = (body: object, cookie = memberCookie) =>
+        req('DELETE', '/api/notifications', cookie, body);
+
+      // Neither ids nor read, or both, or too many: refused.
+      expect((await clear({})).statusCode).toBe(400);
+      expect((await clear({ ids: [mineRead], read: true })).statusCode).toBe(400);
+      expect((await clear({ read: false })).statusCode).toBe(400);
+      expect(
+        (await clear({ ids: Array.from({ length: 101 }, () => crypto.randomUUID()) })).statusCode,
+      ).toBe(400);
+
+      // By id: someone else's id is quietly left alone.
+      expect((await clear({ ids: [mineUnread, theirsUnread] })).statusCode).toBe(200);
+      expect(await titles(memberCookie)).toEqual(['Mine, also read', 'Mine, read']);
+      expect((await notificationsOf(memberCookie)).unread).toBe(0);
+      expect(await titles(architectCookie)).toEqual(['Theirs, read', 'Theirs, unread']);
+
+      // All read: theirs, read too, stay.
+      expect((await clear({ read: true })).statusCode).toBe(200);
+      expect(await titles(memberCookie)).toEqual([]);
+      expect(await titles(architectCookie)).toEqual(['Theirs, read', 'Theirs, unread']);
+
+      // Signed out: nothing.
+      expect(
+        (await app.inject({ method: 'DELETE', url: '/api/notifications', payload: { read: true } }))
+          .statusCode,
+      ).toBe(401);
+      expect(await titles(architectCookie)).toEqual(['Theirs, read', 'Theirs, unread']);
+    });
+
     it('writes a request and its timeline together, and moves it on the same way', async () => {
       const titled = (title: string) =>
         db.select().from(schema.commissions).where(eq(schema.commissions.title, title));
