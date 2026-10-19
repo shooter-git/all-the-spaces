@@ -157,6 +157,15 @@ export function RepositoryPanel({
           </Button>
         </div>
       )}
+      {/* Up to date: the same commit again, for instance once the server builds things differently. */}
+      {!newer && source.builtCommit && !source.checkError && (
+        <div className="studio-actions">
+          <Button variant="ghost" disabled={busy !== null} onClick={() => void run('update')}>
+            <Icon name="hammer" size={16} />
+            {busy === 'update' ? 'Fetching…' : 'Build again'}
+          </Button>
+        </div>
+      )}
       {editing && (
         <RepositoryForm
           hosts={hosts}
