@@ -244,7 +244,9 @@ there can follow one too (the link button on it).
 Its card then shows the repository and whether there's something newer (you're also told when a
 new release turns up). **Update** fetches it,
 checks it like any version and builds it: it waits for you to try it, or goes live once it passes,
-as you chose. Each version says which commit it came from, and **Go back to this** works as usual.
+as you chose. When it's up to date, **Build again** builds the same commit once more, for instance
+after your server is updated. Each version says which commit it came from, and **Go back to this**
+works as usual.
 Improving it in the Studio instead stops it following the repository (you're asked first).
 
 ## Requests from members
