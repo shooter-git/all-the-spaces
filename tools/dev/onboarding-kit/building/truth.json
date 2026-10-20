@@ -163,5 +163,5 @@
       "at": [1.5, 8.5]
     }
   ],
-  "spawns": [{ "key": "front-door", "room": "lobby", "at": [3.5, 1.2], "yaw": 3.14159 }]
+  "spawns": [{ "key": "front-door", "room": "lobby", "at": [3.5, 1.2], "yaw": 180 }]
 }
