@@ -585,6 +585,8 @@ interface FlushFace {
   part: number;
   d: number;
   area: number;
+  /** Shaded flat: every corner's normal is the plane's (not smoothed into the faces around it). */
+  flat: boolean;
   minU: number;
   minV: number;
   maxU: number;
@@ -606,9 +608,10 @@ interface FlushDirection {
  * a millimetre apart, moving each face that has to move (every point of the part in that plane,
  * so nothing opens up): the room's own surfaces stay and whatever lies on them comes out; among
  * the rest the larger stays and the smaller goes the way it already was, or on top when they're
- * exactly flush (as a label sits on its plate). Parts of the same material are left alone: they
- * look the same whichever is in front. Returns the parts that moved. `scale` is how many metres
- * one unit of the compared space is.
+ * exactly flush (as a label sits on its plate). Parts of one plain material are left alone
+ * (they look the same whichever is in front), but not when one is shaded flat and the other
+ * smooth (a pot's top under its flat rim): that flickers just the same. Returns the parts that moved.
+ * `scale` is how many metres one unit of the compared space is.
  */
 export function separateFlush(
   parts: FlushPart[],
@@ -640,6 +643,7 @@ export function separateFlush(
   parts.forEach(({ prim, matrix }, part) => {
     const at = flushPositions(prim, matrix);
     if (!at) return;
+    const normals = flushNormals(prim, matrix);
     const idx = prim.getIndices()?.getArray();
     const count = idx ? idx.length : at.length / 3;
     for (let i = 0; i + 2 < count; i += 3) {
@@ -669,6 +673,7 @@ export function separateFlush(
           part,
           d,
           area: 0,
+          flat: true,
           minU: Infinity,
           minV: Infinity,
           maxU: -Infinity,
@@ -677,6 +682,15 @@ export function separateFlush(
         dir.faces.set(id, face);
       }
       face.area += len / 2;
+      if (normals && face.flat)
+        for (const k of [ia, ib, ic])
+          if (
+            (normals[k] ?? 0) * dir.n[0] +
+              (normals[k + 1] ?? 0) * dir.n[1] +
+              (normals[k + 2] ?? 0) * dir.n[2] <
+            0.999
+          )
+            face.flat = false;
       for (const k of [ia, ib, ic]) {
         const x = at[k] ?? 0;
         const y = at[k + 1] ?? 0;
@@ -708,11 +722,26 @@ export function separateFlush(
    * Whether a face lies on one laid already (where it was laid), close enough to flicker. In a
    * room, one object's own parts were laid when it was put together (see joinModel).
    */
+  /**
+   * Two faces of one plain material look the same whichever is in front, unless one is shaded
+   * flat and the other smooth, over enough of it to see (a square centimetre).
+   */
+  const visible = 0.0001 / (scale * scale);
+  const alike = (p: FlushFace, q: FlushFace) => {
+    const material = parts[p.part]?.prim.getMaterial();
+    return (
+      (p.flat === q.flat || Math.min(p.area, q.area) < visible) &&
+      material === parts[q.part]?.prim.getMaterial() &&
+      !material?.getBaseColorTexture() &&
+      !material?.getNormalTexture() &&
+      !material?.getEmissiveTexture()
+    );
+  };
   const fights = (face: FlushFace, l: { face: FlushFace; d: number }) =>
     face.part !== l.face.part &&
+    !alike(face, l.face) &&
     (!owner(face) || owner(face) !== owner(l.face) || (room(face) && room(l.face))) &&
     Math.abs(face.d - l.d) < within(face, l.face) &&
-    parts[face.part]?.prim.getMaterial() !== parts[l.face.part]?.prim.getMaterial() &&
     overlap(face, l.face);
   /** Whether moving a face `by` along `n` would take it back the way it came last time. */
   const back = (face: FlushFace, n: V3, by: number) =>
@@ -829,6 +858,28 @@ function flushPositions(prim: Primitive, matrix?: ArrayLike<number>): Float32Arr
       out[i * 3 + 1] = m(1) * x + m(5) * y + m(9) * z + m(13);
       out[i * 3 + 2] = m(2) * x + m(6) * y + m(10) * z + m(14);
     }
+  }
+  return out;
+}
+
+/** A part's normals turned where they're compared (unit length), or null if it has none. */
+function flushNormals(prim: Primitive, matrix?: ArrayLike<number>): Float32Array | null {
+  const normal = prim.getAttribute('NORMAL');
+  if (!normal) return null;
+  const out = new Float32Array(normal.getCount() * 3);
+  const e: number[] = [];
+  const m = (k: number) => matrix?.[k] ?? 0;
+  for (let i = 0; i < normal.getCount(); i++) {
+    normal.getElement(i, e);
+    let [x = 0, y = 0, z = 0] = e;
+    if (matrix)
+      [x, y, z] = [
+        m(0) * x + m(4) * y + m(8) * z,
+        m(1) * x + m(5) * y + m(9) * z,
+        m(2) * x + m(6) * y + m(10) * z,
+      ];
+    const l = Math.hypot(x, y, z) || 1;
+    out.set([x / l, y / l, z / l], i * 3);
   }
   return out;
 }
