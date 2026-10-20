@@ -192,7 +192,10 @@ loop((dt) => {                                            // paused while the ap
   same with `ResolutionGovernor` from `@allthespaces/portal/resolution`: call `frame(ms)` every
   frame once you've loaded (`portal.readyAt` says when you called `ready()`) and set the pixel
   ratio from `scale` when it returns true, before you draw (resizing the canvas wipes it, so
-  doing it after drawing leaves a black frame).
+  doing it after drawing leaves a black frame). Options: `detectCpuBound: true` puts the pixels
+  back when fewer of them didn't make frames faster (frames held up by the processor only get
+  blurrier), and `shed`/`restore` give up something cheaper (an effect pass) before pixels and
+  bring it back after them.
 - `FirstPersonRig`: walk with the first stick; drag (or click to capture the mouse) to look.
 - `OrbitRig(camera, target, distance)`: drag to circle, pinch or scroll to zoom.
 - Switching scenes or rigs: `stage.dispose()` stops the loop, removes the canvas and lets go of

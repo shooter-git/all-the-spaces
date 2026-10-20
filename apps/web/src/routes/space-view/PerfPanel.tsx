@@ -11,6 +11,7 @@ export function PerfPanel({ stats }: { stats: ViewerStats }) {
         `collision rooms ${stats.collisionRooms}  loading ${stats.loading}`,
         `resident ${kb(stats.residentBytes)}  geometries ${stats.geometries}`,
         `quality ${stats.quality}  pixel ratio ${stats.pixelRatio.toFixed(2)} (${Math.round(stats.resolutionScale * 100)}% of full)`,
+        `ambient occlusion ${stats.ambientOcclusion}  sun shadows ${stats.sunShadows ? 'on' : 'off'}`,
       ].join('\n')}
     </div>
   );

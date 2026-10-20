@@ -69,3 +69,15 @@ function forEachTexture(root: Object3D, visit: (t: Texture) => void) {
     }
   });
 }
+
+/**
+ * Draws a room's textures sharply when seen at a glance (a floor stretching away from you), which
+ * otherwise go soft a few steps ahead. `anisotropy` is how many samples a pixel may take (the
+ * graphics card's limit, capped: each one costs a little).
+ */
+export function sharpen(root: Object3D, anisotropy: number) {
+  forEachTexture(root, (texture) => {
+    if (texture.anisotropy >= anisotropy) return;
+    texture.anisotropy = anisotropy;
+  });
+}
