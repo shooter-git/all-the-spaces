@@ -21,9 +21,15 @@ interface PlayerLike {
   yaw: number;
   room: string;
   moving: boolean;
+  /** When they took this pose, on their clock (0 or missing: not said). */
+  at?: number;
 }
 
-const SEND_EVERY_MS = 66; // ~15 updates a second
+/**
+ * 20 updates a second, as often as the server sends them on: sent from the frame loop, each
+ * with the time it was taken, so others can draw the walk evenly however unevenly it arrives.
+ */
+const SEND_EVERY_MS = 50;
 
 /** Being in a space's live presence. */
 export interface Presence {
@@ -65,6 +71,9 @@ export async function joinPresence(
   /** People shown as avatars (cleared on a drop: they'd only stand frozen). */
   const shown = new Set<string>();
   let lastSent = '';
+  /** When this connection joined: poses carry the time since (ms, never going back). */
+  let joinedAt = 0;
+  let lastAt = 0;
   let passWaiting: ((answer: { room: string; token: string } | { error: string }) => void) | null =
     null;
 
@@ -95,6 +104,8 @@ export async function joinPresence(
     reconnecting = false;
     attempt = 0;
     lastSent = '';
+    joinedAt = performance.now();
+    lastAt = 0;
     follow(joined);
     onStatus('connected');
     return voice === true;
@@ -124,7 +135,14 @@ export async function joinPresence(
       players: Map<string, PlayerLike>;
       roster: Map<string, { id: string; name: string; color: string; room: string }>;
     };
-    const pose = (p: PlayerLike) => ({ x: p.x, y: p.y, z: p.z, yaw: p.yaw, moving: p.moving });
+    const pose = (p: PlayerLike) => ({
+      x: p.x,
+      y: p.y,
+      z: p.z,
+      yaw: p.yaw,
+      moving: p.moving,
+      at: p.at ?? 0,
+    });
 
     // Players arrive only while they're near you (the server decides who that is).
     $(state).players.onAdd((player: PlayerLike, sessionId: string) => {
@@ -185,7 +203,12 @@ export async function joinPresence(
   document.addEventListener('visibilitychange', wake);
 
   let lastTeleports = viewer.teleports;
-  const timer = window.setInterval(() => {
+  let nextSend = 0;
+  const sendPose = () => {
+    const now = performance.now();
+    if (now < nextSend) return;
+    // On the beat where frames allow; after a stall, start afresh rather than catch up.
+    nextSend = now - nextSend > SEND_EVERY_MS ? now + SEND_EVERY_MS : nextSend + SEND_EVERY_MS;
     const p = viewer.pose();
     if (!p.roomKey || !room) return;
     const teleport = viewer.teleports !== lastTeleports;
@@ -202,8 +225,15 @@ export async function joinPresence(
     const key = JSON.stringify(message);
     if (key === lastSent) return; // standing still: nothing to send
     lastSent = key;
-    room.send('pose', message);
-  }, SEND_EVERY_MS);
+    lastAt = Math.max(lastAt + 1, Math.round(now - joinedAt));
+    room.send('pose', { ...message, at: lastAt });
+  };
+  const otherFrame = viewer.onFrame;
+  const onFrame = (dt: number) => {
+    otherFrame?.(dt);
+    sendPose();
+  };
+  viewer.onFrame = onFrame;
 
   return {
     voice,
@@ -228,7 +258,10 @@ export async function joinPresence(
     },
     leave: () => {
       left = true;
-      window.clearInterval(timer);
+      if (viewer.onFrame === onFrame) {
+        if (otherFrame) viewer.onFrame = otherFrame;
+        else delete viewer.onFrame;
+      }
       window.clearTimeout(retryTimer);
       window.removeEventListener('online', wake);
       document.removeEventListener('visibilitychange', wake);

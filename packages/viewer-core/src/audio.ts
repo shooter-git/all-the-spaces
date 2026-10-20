@@ -212,16 +212,19 @@ export class SpaceAudio {
     this.everydaySounds(t);
   }
 
-  /** Someone else's footstep, heard from where they are. */
+  /**
+   * Someone else's footstep, heard from where they are. Placed left or right only (equal-power
+   * panning), not with HRTF: with a crowd walking, a head-shaped filter per step adds up.
+   */
   remoteStep(position: Vec, room: Room | null) {
-    this.step(room, position, 0.55);
+    this.step(room, position, 0.55, 'equalpower');
   }
 
   /** A footstep on a room's floor, sounding like that floor. */
-  private step(room: Room | null, at: Vec | null, level: number) {
+  private step(room: Room | null, at: Vec | null, level: number, panning?: PanningModelType) {
     const surface = surfaceOf(room);
     const tone = STEP[surface];
-    this.play(`footsteps/${surface}`, at, level * tone.level, 0.07, 0, false, tone);
+    this.play(`footsteps/${surface}`, at, level * tone.level, 0.07, 0, false, tone, panning);
   }
 
   /** A door swinging open, or clicking shut. */
@@ -303,11 +306,15 @@ export class SpaceAudio {
   }
 
   /** Where a sound at `at` goes: placed in 3D, and muffled if it's in the next room. */
-  private destination(at: Vec | null, fromNextRoom = false): AudioNode[] {
+  private destination(
+    at: Vec | null,
+    fromNextRoom = false,
+    panning: PanningModelType = 'HRTF',
+  ): AudioNode[] {
     const ctx = this.ctx as AudioContext;
     if (!at) return [this.env, this.reverb];
     const p = ctx.createPanner();
-    p.panningModel = 'HRTF';
+    p.panningModel = panning;
     p.distanceModel = 'inverse';
     p.refDistance = 1.5;
     p.rolloffFactor = 1.2;
@@ -333,6 +340,7 @@ export class SpaceAudio {
     when = 0,
     fromNextRoom = false,
     tone: { highpass?: number; lowpass?: number } = {},
+    panning?: PanningModelType,
   ) {
     const ctx = this.ctx;
     const takes = this.recordings.get(name);
@@ -359,7 +367,7 @@ export class SpaceAudio {
       out = filter;
     }
     out.connect(gain);
-    for (const d of this.destination(at, fromNextRoom)) gain.connect(d);
+    for (const d of this.destination(at, fromNextRoom, panning)) gain.connect(d);
     src.start(when || ctx.currentTime);
   }
 

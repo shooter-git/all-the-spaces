@@ -42,6 +42,13 @@ times a second, so there are no boundaries. An update with nothing in it isn't s
 240-room building): updates take 3–4 ms at the 99th percentile, who-sees-whom 0.5 ms, under 40%
 of one core.
 
+Each app sends where its person is 20 times a second (the server's rate), from the frame loop,
+with the time it was taken on its own clock (ms since joining; the server only lets it go
+forward). Other people are drawn on that clock, not on when updates happen to arrive: about
+100 ms behind plus however unevenly their updates have been arriving, smoothed between updates,
+carried on for at most 180 ms when updates run late and eased back after; a jump (quick travel, a
+lift) is drawn at once. An app that sends no time still works, drawn on arrival times as before.
+
 ## Voice chat
 
 LiveKit (unmodified) carries the sound. The real-time service hands out passes, because it knows

@@ -181,3 +181,43 @@ describe('live presence after a drop', () => {
     expect(rooms.joins).toBe(3);
   });
 });
+
+describe('sending where you are', () => {
+  it('sends from the frame loop 20 times a second, with your own time, and not while still', async () => {
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    let x = 0;
+    viewer.pose = () => ({ x, y: 0, z: 2, yaw: 0, roomKey: 'hall', moving: x < 1 });
+    const presence = await join();
+    const room = lastRoom();
+    // 60 frames a second for half a second, walking.
+    for (let i = 0; i < 30; i++) {
+      now += 1000 / 60;
+      x = Math.min(1, x + 0.023);
+      viewer.onFrame?.(1 / 60);
+    }
+    const poses = (room?.sent ?? []).filter(([type]) => type === 'pose') as [
+      string,
+      { at: number },
+    ][];
+    expect(poses.length).toBe(10);
+    const at = poses.map(([, p]) => p.at);
+    for (let i = 1; i < at.length; i++)
+      expect(Math.abs((at[i] ?? 0) - (at[i - 1] ?? 0) - 50)).toBeLessThanOrEqual(17);
+    // Standing still: nothing more.
+    x = 1;
+    for (let i = 0; i < 60; i++) {
+      now += 1000 / 60;
+      viewer.onFrame?.(1 / 60);
+    }
+    const before = room?.sent.length ?? 0;
+    for (let i = 0; i < 60; i++) {
+      now += 1000 / 60;
+      viewer.onFrame?.(1 / 60);
+    }
+    expect(room?.sent.length).toBe(before);
+    presence.leave();
+    expect(viewer.onFrame).toBeUndefined();
+    vi.restoreAllMocks();
+  });
+});
