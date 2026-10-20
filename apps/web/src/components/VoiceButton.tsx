@@ -124,7 +124,7 @@ export function useVoiceChat(target: VoiceTarget | null, onProblem: (text: strin
   };
 }
 
-/** Talk / Mute, and leaving voice chat. */
+/** Talk / Mute, and leaving voice chat: rows in the menu (CreationMenu). */
 export function VoiceButton({ voice }: { voice: ReturnType<typeof useVoiceChat> }) {
   const others = voice.speaking.length;
   if (voice.status === 'off' || voice.status === 'joining')
@@ -137,7 +137,7 @@ export function VoiceButton({ voice }: { voice: ReturnType<typeof useVoiceChat> 
         aria-label="Join voice chat"
       >
         <Icon name="mic" />
-        <span className="space-wide-only">{voice.status === 'joining' ? 'Joining…' : 'Talk'}</span>
+        {voice.status === 'joining' ? 'Joining…' : 'Talk'}
       </button>
     );
   return (
@@ -150,7 +150,7 @@ export function VoiceButton({ voice }: { voice: ReturnType<typeof useVoiceChat> 
         aria-label={voice.status === 'on' ? 'Mute your microphone' : 'Unmute your microphone'}
       >
         <Icon name={voice.status === 'on' ? 'mic' : 'micOff'} />
-        <span className="space-wide-only">{voice.status === 'on' ? 'Mute' : 'Unmute'}</span>
+        {voice.status === 'on' ? 'Mute' : 'Unmute'}
         {others > 0 && (
           <span className="voice-talking" aria-hidden="true">
             {' '}

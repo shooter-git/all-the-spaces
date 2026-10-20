@@ -1,7 +1,9 @@
-/* The app's one control over a creation: a small pane of washi glass in the top-left corner. */
+/* The app's one control over a creation, and over a space as you walk around it: a small pane of
+   washi glass in the top-left corner. */
 .creation-menu {
   position: fixed;
-  z-index: 25;
+  /* Over the chat (its menu can reach down to where the chat sheet is on a phone). */
+  z-index: 35;
   top: calc(6px + var(--ats-safe-top));
   left: calc(6px + var(--ats-safe-left));
   display: grid;
@@ -9,8 +11,15 @@
   gap: 4px;
 }
 
+/* The button, and beside it the microphone while voice chat is on. */
+.creation-menu-bar {
+  display: flex;
+  align-items: center;
+}
+
 /* 44 × 44 to tap, a 34 px pane to look at. */
-.creation-menu-button {
+.creation-menu-button,
+.creation-menu-mic {
   width: var(--ats-touch);
   height: var(--ats-touch);
   display: grid;
@@ -31,12 +40,14 @@
   opacity: 1;
   transition-duration: 0.15s;
 }
-.creation-menu-button:focus-visible {
+.creation-menu-button:focus-visible,
+.creation-menu-mic:focus-visible {
   outline: none;
 }
 
 .creation-menu-glass,
-.creation-menu-panel {
+.creation-menu-panel,
+.washi-glass {
   /* Washi glass: the creation shows through, blurred, under a faint paper tint and a hairline
      edge that catches the light along the top. */
   background: rgb(245 241 238 / 0.36);
@@ -67,9 +78,17 @@
   background: rgb(245 241 238 / 0.62);
 }
 
-.creation-menu-button:focus-visible .creation-menu-glass {
+.creation-menu-button:focus-visible .creation-menu-glass,
+.creation-menu-mic:focus-visible .creation-menu-glass {
   outline: 2px solid var(--ats-accent);
   outline-offset: 2px;
+}
+
+/* A live microphone glows indigo; a muted one is plain glass, crossed out. */
+.creation-menu-mic[data-on="true"] .creation-menu-glass {
+  background: #3f5b7c;
+  border-color: rgb(255 255 255 / 0.3);
+  color: #ffffff;
 }
 
 /* Something new: a small indigo dot on the pane's corner. */
@@ -99,6 +118,10 @@
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
   transform-origin: top left;
   animation: creation-menu-in 0.16s ease-out;
+  /* Longer than the screen (a phone held sideways): it scrolls on its own. */
+  max-height: calc(100dvh - 60px - var(--ats-safe-top) - var(--ats-safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 @keyframes creation-menu-in {
   from {
@@ -110,7 +133,8 @@
   .creation-menu-panel {
     animation: none;
   }
-  .creation-menu-button {
+  .creation-menu-button,
+  .creation-menu-mic {
     transition: none;
   }
 }
@@ -147,9 +171,6 @@
   opacity: 0.5;
   cursor: default;
 }
-.creation-menu-panel .space-wide-only {
-  display: inline;
-}
 .creation-menu-panel .voice-controls {
   display: flex;
 }
@@ -167,6 +188,24 @@
   font-size: 0.75rem;
   line-height: 20px;
   text-align: center;
+}
+/* Something said beside an item rather than a count (how many people are here). */
+.creation-menu-aside {
+  margin-left: auto;
+  padding-left: 12px;
+  color: rgb(46 44 51 / 0.7);
+  font-size: 0.85rem;
+}
+/* An item whose words can be long (a space's name): they wrap rather than run out of the menu. */
+.creation-menu-item[data-wrap] {
+  white-space: normal;
+  padding-block: 8px;
+}
+/* Sets the way out apart from the rest. */
+.creation-menu-rule {
+  height: 1px;
+  margin: 3px 6px;
+  background: rgb(46 44 51 / 0.08);
 }
 /* A line of information rather than something to tap (the version being tried). */
 .creation-menu-note {

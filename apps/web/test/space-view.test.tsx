@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Me } from '../src/lib/api.ts';
 import { NotificationsProvider } from '../src/lib/notifications.tsx';
 import { OPEN_TIMEOUT_MS, SpaceView } from '../src/routes/SpaceView.tsx';
+import { ROOM_TITLE_MS } from '../src/routes/space-view/RoomTitle.tsx';
 import { FakeSocket, FakeViewer, json, routes, until } from './helpers/fakes.ts';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -188,6 +189,7 @@ describe('the installed app on a phone', () => {
 
     await open();
     await until(() => FakeViewer.all.length === 1);
+    act(() => FakeViewer.last?.onReady?.());
     expect(page.requestFullscreen).not.toHaveBeenCalled();
     const tap = (el: Element | null | undefined) =>
       act(() => {
@@ -195,7 +197,9 @@ describe('the installed app on a phone', () => {
         el?.dispatchEvent(new Event('pointerup', { bubbles: true }));
       });
     // Not from a control: the screen growing under the finger would make that tap miss.
-    tap(container.querySelector('button[aria-label="Leave the space"]'));
+    const menu = container.querySelector('.creation-menu-button');
+    expect(menu).not.toBeNull();
+    tap(menu);
     expect(page.requestFullscreen).not.toHaveBeenCalled();
     tap(container.querySelector('.space-canvas'));
     expect(page.requestFullscreen).toHaveBeenCalledOnce();
@@ -228,10 +232,88 @@ describe('the keyboard in a space', () => {
     await open();
     await until(() => FakeViewer.all.length === 1);
     act(() => FakeViewer.last?.onReady?.());
-    const people = container.querySelector<HTMLButtonElement>('button[aria-label^="People here"]');
-    people?.focus();
-    press(people as HTMLButtonElement, 'Enter');
+    const menu = container.querySelector<HTMLButtonElement>('.creation-menu-button');
+    menu?.focus();
+    press(menu as HTMLButtonElement, 'Enter');
     expect(chat()).toBeNull();
+  });
+});
+
+describe('the menu in a space', () => {
+  const hall = { key: 'hall', name: 'Hall', floorKey: 'ground', objects: [] };
+  const menuButton = () => container.querySelector<HTMLButtonElement>('.creation-menu-button');
+  const items = () =>
+    [...container.querySelectorAll('.creation-menu-panel .creation-menu-item')].map((b) =>
+      b.textContent?.trim(),
+    );
+
+  it('is one glass button in the corner, once the space is on screen', async () => {
+    await open();
+    await until(() => FakeViewer.all.length === 1);
+    // Not over the loading screen.
+    expect(menuButton()).toBeNull();
+    act(() => FakeViewer.last?.onReady?.());
+    expect(menuButton()?.getAttribute('aria-label')).toBe('Menu');
+    // Nothing else up there: the controls that used to line the top are in the menu.
+    expect(container.querySelector('button[aria-label^="People here"]')).toBeNull();
+    expect(button('Leave')).toBeUndefined();
+  });
+
+  it('holds chat, the people here, notifications, requests, settings and the way out', async () => {
+    await open();
+    await until(() => FakeViewer.all.length === 1);
+    act(() => FakeViewer.last?.onReady?.());
+    act(() => FakeViewer.last?.onRoomChange?.(hall));
+    act(() => menuButton()?.click());
+    expect(container.querySelector('.creation-menu-note')?.textContent).toBe('The Workshop · Hall');
+    // One room: nowhere else to go.
+    expect(items()).toEqual([
+      'Chat',
+      'People here0',
+      'Notifications',
+      'My requests',
+      'Sound and settings',
+      'Leave The Workshop',
+    ]);
+
+    act(() => button('Chat')?.click());
+    expect(container.querySelector('aside[aria-label="Chat"]')).not.toBeNull();
+    expect(container.querySelector('.creation-menu-panel')).toBeNull();
+    act(() => menuButton()?.click());
+    act(() => button('Close chat')?.click());
+    expect(container.querySelector('aside[aria-label="Chat"]')).toBeNull();
+
+    act(() => menuButton()?.click());
+    act(() => button('Sound and settings')?.click());
+    expect(container.querySelector('dialog[aria-label="Sound and settings"]')).not.toBeNull();
+  });
+
+  it('leaves the space from the last item', async () => {
+    await open();
+    await until(() => FakeViewer.all.length === 1);
+    act(() => FakeViewer.last?.onReady?.());
+    act(() => menuButton()?.click());
+    await act(async () => button('Leave The Workshop')?.click());
+    expect(text()).toContain('Home');
+  });
+
+  it('names each room for a moment on arriving, then lets the view have the screen', async () => {
+    await open();
+    await until(() => FakeViewer.all.length === 1);
+    act(() => FakeViewer.last?.onReady?.());
+    act(() => FakeViewer.last?.onRoomChange?.(hall));
+    const title = () => container.querySelector('.space-room-title');
+    // One floor: the space's name under the room's.
+    expect(title()?.textContent).toBe('HallThe Workshop');
+    expect(title()?.getAttribute('data-shown')).toBe('true');
+    expect(title()?.getAttribute('aria-live')).toBe('polite');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ROOM_TITLE_MS);
+    });
+    expect(title()?.getAttribute('data-shown')).toBe('false');
+    act(() => FakeViewer.last?.onRoomChange?.({ key: 'porch', name: 'Porch', floorKey: 'ground' }));
+    expect(title()?.textContent).toBe('PorchThe Workshop');
+    expect(title()?.getAttribute('data-shown')).toBe('true');
   });
 });
 
