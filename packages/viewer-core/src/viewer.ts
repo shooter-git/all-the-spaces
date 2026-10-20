@@ -34,6 +34,7 @@ import {
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
@@ -203,6 +204,11 @@ export class SpaceViewer {
   private readonly lightmaps = new Map<string, Promise<Texture>>();
   /** How sharply textures seen at a glance (a floor ahead of you) are drawn. */
   private readonly anisotropy: number;
+  /**
+   * Reads KTX2 textures into the compressed format this graphics card reads (ASTC, BC7, ETC2…),
+   * so they stay compressed in its memory. Uncompressed only when the card reads none of them.
+   */
+  private readonly ktx2: KTX2Loader;
 
   constructor(container: HTMLElement, options: ViewerOptions) {
     this.container = container;
@@ -262,9 +268,12 @@ export class SpaceViewer {
     this.scene.add(this.doors.root);
     this.avatars.onStep = (p) =>
       this.audio.remoteStep(p, roomAt(this.manifest, p.x, p.y + 0.1, p.z));
+    // Its transcoder is served with the app's own files (bundled from three.js; no CDN).
+    this.ktx2 = new KTX2Loader().detectSupport(this.renderer);
     this.streamer = new RoomStreamer(this.manifest, options.baseUrl, this.world, {
       maxDetail: quality === 'low' ? 'lod1' : 'lod0',
       detailBudget: DETAIL_BUDGETS[quality],
+      ktx2: this.ktx2,
     });
     this.streamer.onError = (_key, error) => {
       if (!this.ready) this.onError?.(error);
@@ -436,14 +445,17 @@ export class SpaceViewer {
     if (!baked || !architecture) return;
     let loading = this.lightmaps.get(roomKey);
     if (!loading) {
-      loading = new TextureLoader()
-        .loadAsync(new URL(baked.path, this.baseUrl).toString())
-        .then((t) => {
-          t.flipY = false;
-          t.colorSpace = SRGBColorSpace;
-          t.channel = 1; // the second UV set, made for the lightmap
-          return t;
-        });
+      const url = new URL(baked.path, this.baseUrl).toString();
+      // KTX2, or WebP in places built before lightmaps could be KTX2.
+      const load: Promise<Texture> = baked.path.endsWith('.ktx2')
+        ? this.ktx2.loadAsync(url)
+        : new TextureLoader().loadAsync(url);
+      loading = load.then((t) => {
+        t.flipY = false;
+        t.colorSpace = SRGBColorSpace;
+        t.channel = 1; // the second UV set, made for the lightmap
+        return t;
+      });
       this.lightmaps.set(roomKey, loading);
     }
     let texture: Texture;
@@ -935,6 +947,7 @@ export class SpaceViewer {
     this.resizeObserver.disconnect();
     this.input.detach();
     this.streamer.dispose();
+    this.ktx2.dispose();
     this.avatars.dispose();
     this.audio.dispose();
     const land = this.scene.getObjectByName('surroundings');

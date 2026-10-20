@@ -13,7 +13,11 @@ import {
   Root,
   type Texture,
 } from '@gltf-transform/core';
-import { ALL_EXTENSIONS, EXTMeshoptCompression, EXTTextureWebP } from '@gltf-transform/extensions';
+import {
+  ALL_EXTENSIONS,
+  EXTMeshoptCompression,
+  KHRTextureBasisu,
+} from '@gltf-transform/extensions';
 import {
   dedup,
   dequantizePrimitive,
@@ -32,6 +36,7 @@ import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
 import { FLOORS, SURFACES, type TextureChoice } from './catalog.ts';
 import type { MeshBuilder, SurfaceKey, V3 } from './geometry.ts';
+import { encodeKtx2, type TextureKind } from './ktx2.ts';
 import { hexToLinear, MATERIALS } from './materials.ts';
 import { MODEL_LIMITS } from './models.ts';
 
@@ -98,25 +103,31 @@ export const io = new NodeIO()
 const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 
 /**
- * JPEG/PNG → WebP (typically 3–5× smaller). Normal maps keep more quality because compression
- * artefacts in them show up as bumpy lighting. Cached so shared textures convert once per build.
+ * JPEG/PNG → KTX2 (Basis Universal), which the graphics card keeps compressed: 4–8× less of its
+ * memory than the full RGBA a WebP or JPEG unpacks to. Mipmaps are made here, so the viewer needn't.
+ * Sizes are rounded to whole 4 × 4 blocks, which some cards' formats need. Cached so shared
+ * textures convert once per build.
  */
-const webpCache = new Map<string, Promise<Uint8Array>>();
-function toWebp(
-  bytes: Uint8Array,
-  kind: 'color' | 'normal' | 'data',
-  maxSize: number,
-): Promise<Uint8Array> {
+const ktx2Cache = new Map<string, Promise<Uint8Array>>();
+function toKtx2(bytes: Uint8Array, kind: TextureKind, maxSize: number): Promise<Uint8Array> {
   const key = `${sha(bytes)}:${kind}:${maxSize}`;
-  let p = webpCache.get(key);
+  let p = ktx2Cache.get(key);
   if (!p) {
-    const quality = kind === 'normal' ? 90 : kind === 'data' ? 85 : 80;
-    p = sharp(bytes)
-      .resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality, effort: 4 })
-      .toBuffer()
-      .then((b) => new Uint8Array(b));
-    webpCache.set(key, p);
+    p = (async () => {
+      const image = sharp(bytes);
+      const meta = await image.metadata();
+      const scale = Math.min(1, maxSize / Math.max(meta.width ?? 1, meta.height ?? 1));
+      const block = (n: number) => Math.max(4, Math.round((n * scale) / 4) * 4);
+      const width = block(meta.width ?? 1);
+      const height = block(meta.height ?? 1);
+      const rgba = await image
+        .resize({ width, height, fit: 'fill' })
+        .ensureAlpha()
+        .raw()
+        .toBuffer();
+      return encodeKtx2(new Uint8Array(rgba), width, height, kind);
+    })();
+    ktx2Cache.set(key, p);
   }
   return p;
 }
@@ -180,28 +191,31 @@ export async function writeChunk(
   const detail = options.detail ?? FULL_DETAIL;
   const { doc, credits, surfaceTextures } = await composeRoom(nodes, models, library, options);
 
-  // Compress every texture to WebP and content-address it, so every room shares the same files.
+  // Compress every texture to KTX2 and content-address it, so every room shares the same files.
   const textureList = doc.getRoot().listTextures();
   if (textureList.length) {
-    doc.createExtension(EXTTextureWebP).setRequired(true);
-    for (const t of textureList) {
-      const image = t.getImage();
-      if (!image) continue;
-      const slots = doc
-        .getGraph()
-        .listParentEdges(t)
-        .map((e) => e.getName());
-      const kind = slots.includes('normalTexture')
-        ? 'normal'
-        : slots.includes('baseColorTexture')
-          ? 'color'
-          : 'data';
-      const maxSize = surfaceTextures.has(t) ? detail.surfaceTexture : detail.modelTexture;
-      const webp = await toWebp(image, kind, maxSize);
-      t.setImage(webp)
-        .setMimeType('image/webp')
-        .setURI(`${sha(webp)}.webp`);
-    }
+    doc.createExtension(KHRTextureBasisu).setRequired(true);
+    // All at once: they're encoded side by side in worker threads (see ktx2.ts).
+    await Promise.all(
+      textureList.map(async (t) => {
+        const image = t.getImage();
+        if (!image) return;
+        const slots = doc
+          .getGraph()
+          .listParentEdges(t)
+          .map((e) => e.getName());
+        const kind: TextureKind = slots.includes('normalTexture')
+          ? 'normal'
+          : slots.includes('baseColorTexture') || slots.includes('emissiveTexture')
+            ? 'color'
+            : 'data';
+        const maxSize = surfaceTextures.has(t) ? detail.surfaceTexture : detail.modelTexture;
+        const ktx2 = await toKtx2(image, kind, maxSize);
+        t.setImage(ktx2)
+          .setMimeType('image/ktx2')
+          .setURI(`${sha(ktx2)}.ktx2`);
+      }),
+    );
   }
 
   // As meshopt({ level: 'medium' }), but positions on a grid four times finer: a joined model

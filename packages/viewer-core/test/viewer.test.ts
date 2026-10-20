@@ -30,6 +30,7 @@ vi.mock('three', async (importOriginal) => {
     private size = [300, 150] as [number, number];
     shadowMap = { enabled: false, type: 0 };
     capabilities = { getMaxAnisotropy: () => 16 };
+    extensions = { has: () => false };
     info = {
       autoReset: true,
       render: { calls: 0, triangles: 0 },
