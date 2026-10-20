@@ -507,7 +507,11 @@ export function CreationHost({
       send({ type: 'ping', n: n++ });
       if (state.ready && Date.now() - state.lastPong > 5000) setStuck(true);
     }, 1000);
-    const onVisibility = () => send({ type: document.hidden ? 'pause' : 'resume' });
+    const onVisibility = () => {
+      send({ type: document.hidden ? 'pause' : 'resume' });
+      // Time with the app out of sight isn't counted as time in the creation.
+      room?.send('away', document.hidden);
+    };
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {

@@ -61,11 +61,14 @@ const graph = {
 const spaceId = randomUUID();
 const secret = randomBytes(32).toString('hex');
 
-// --- A stand-in for the API server's internal graph endpoint ---------------------------------
+// --- A stand-in for the API server's internal endpoints (the graph; visits are taken and dropped)
 const api: Server = createServer((req, res) => {
-  const ok = req.url === `/internal/spaces/${spaceId}/graph` && req.headers['x-realtime-secret'];
+  const visits = req.method === 'POST' && req.url === '/internal/visits';
+  if (visits) req.resume();
+  const ok =
+    (visits || req.url === `/internal/spaces/${spaceId}/graph`) && req.headers['x-realtime-secret'];
   res.writeHead(ok ? 200 : 404, { 'content-type': 'application/json' });
-  res.end(ok ? JSON.stringify(graph) : '{}');
+  res.end(ok && !visits ? JSON.stringify(graph) : '{}');
 });
 await new Promise<void>((r) => api.listen(0, '127.0.0.1', r));
 const apiPort = (api.address() as AddressInfo).port;

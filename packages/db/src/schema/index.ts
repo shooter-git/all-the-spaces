@@ -7,3 +7,4 @@ export * from './creations.ts';
 export * from './perf.ts';
 export * from './spaces.ts';
 export * from './studio.ts';
+export * from './visits.ts';

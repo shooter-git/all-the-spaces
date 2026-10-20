@@ -651,6 +651,10 @@
   font-size: 1rem;
   font-weight: 600;
 }
+/* Where people spend time: short ranked lists. */
+.studio-visits {
+  gap: 4px;
+}
 
 /* Choosing the assistant, model and effort. */
 .assistant-picker {

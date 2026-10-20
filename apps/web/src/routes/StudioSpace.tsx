@@ -17,7 +17,8 @@ import {
   placeVersions,
   startPlaceWorkspace,
 } from '../lib/places.ts';
-import { byForm, loadFieldPerf } from '../lib/studio.ts';
+import { byForm, loadFieldPerf, loadVisits, type PlaceVisits } from '../lib/studio.ts';
+import { timeSpent } from '../lib/time-spent.ts';
 import { placeExportUrl } from '../lib/transfer.ts';
 import {
   type Assistant,
@@ -136,6 +137,7 @@ export function StudioSpace() {
               improveTitle={params.get('title')}
               onCreated={(id) => navigate(`/space/${spaceId}/studio/${id}`)}
             />
+            <Visits spaceId={spaceId ?? ''} />
             <p className="ats-muted studio-small">
               When workspaces sleep, the model and effort they start with, and what a creation needs
               before it goes live: <Link to="/group/settings">Group settings</Link>.
@@ -514,5 +516,104 @@ function ChangePlace({
       {note && <Notice>{note}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
     </Section>
+  );
+}
+
+/** Rows shown before "more". */
+const FOLDED = 5;
+
+/** Where people spend their time here: rooms, creations, and each person (Architects only). */
+function Visits({ spaceId }: { spaceId: string }) {
+  const [visits, setVisits] = useState<PlaceVisits | null>(null);
+  useEffect(() => {
+    loadVisits(spaceId).then(setVisits, () => setVisits(null));
+  }, [spaceId]);
+  if (!visits) return null;
+  const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
+  return (
+    <Section title="Where people spend time">
+      <p className="ats-muted">
+        The last {visits.days} days, while the app is open and in sight. A room counts once someone
+        has stayed a few seconds, and time in a creation is also time in its room. Only Architects
+        see this.
+      </p>
+      {visits.people.length === 0 ? (
+        <p className="ats-muted">Nobody has spent time here yet.</p>
+      ) : (
+        <>
+          <VisitList
+            title="Rooms"
+            rows={visits.rooms.map((r) => ({
+              key: r.key,
+              name: r.name ? (r.floor ? `${r.name}, ${r.floor}` : r.name) : 'A room since removed',
+              seconds: r.seconds,
+              detail: people(r.people),
+            }))}
+          />
+          {visits.creations.length > 0 && (
+            <VisitList
+              title="Creations"
+              rows={visits.creations.map((c) => ({
+                key: c.id,
+                name: c.title,
+                seconds: c.seconds,
+                detail: people(c.people),
+              }))}
+            />
+          )}
+          <VisitList
+            title="People"
+            rows={visits.people.map((p) => ({
+              key: p.userId,
+              name: p.name,
+              seconds: p.seconds,
+              detail: `${p.inCreations ? `${timeSpent(p.inCreations)} in creations · ` : ''}last here ${ago(p.lastAt)}`,
+            }))}
+          />
+        </>
+      )}
+    </Section>
+  );
+}
+
+function VisitList({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: { key: string; name: string; seconds: number; detail: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const shown = open ? rows : rows.slice(0, FOLDED);
+  return (
+    <div className="ats-stack" style={{ gap: 4 }}>
+      <h3 className="studio-subhead">{title}</h3>
+      <ol className="studio-list studio-visits">
+        {shown.map((r) => (
+          <li key={r.key} className="studio-small">
+            <strong>{r.name}</strong> ·{' '}
+            {r.seconds > 0 ? (
+              <>
+                {timeSpent(r.seconds)}
+                <span className="ats-muted"> · {r.detail}</span>
+              </>
+            ) : (
+              <span className="ats-muted">nobody yet</span>
+            )}
+          </li>
+        ))}
+      </ol>
+      {rows.length > FOLDED && (
+        <button
+          type="button"
+          className="studio-unfold"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <Icon name={open ? 'chevronUp' : 'chevronDown'} size={16} />
+          {open ? 'Fewer' : `${rows.length - FOLDED} more`}
+        </button>
+      )}
+    </div>
   );
 }

@@ -292,6 +292,11 @@ Do Not Disturb (in chat) holds back everything but the list.
   (Menu → Smoothness, anonymous). Your place's Studio page and each creation's versions then show
   how it runs on people's phones, tablets and computers, and each kind of device starts at a
   quality that has run smoothly on it.
+- **Where people spend time**: your place's Studio page shows, for the last 90 days, how long
+  people have spent in each room and each creation (and how many different people), and each
+  person's time there; **People** shows each person's time in the group's places. Time counts while
+  the app is open and in sight, a room once someone has stayed a few seconds. Only Architects see
+  it; [privacy.md](privacy.md) says what's kept.
 
 ## Running your group
 

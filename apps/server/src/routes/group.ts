@@ -11,6 +11,7 @@ import { noEvents } from '../events.ts';
 import { getInstallState } from '../install-state.ts';
 import { sendError } from '../reply.ts';
 import { getSession, membershipsFor } from '../session.ts';
+import { timeByPerson } from '../visits.ts';
 
 const {
   auditLog,
@@ -110,6 +111,8 @@ export async function groupRoutes(app: FastifyInstance, ctx: AppContext) {
           )
           .groupBy(session.userId)
       : [];
+    // Time each spent in the group's places (and their creations).
+    const time = await timeByPerson(db, eq(schema.visits.groupId, req.params.groupId));
     return {
       people: rows.map(({ emailVerified, ...r }) => ({
         ...r,
@@ -120,6 +123,7 @@ export async function groupRoutes(app: FastifyInstance, ctx: AppContext) {
         you: r.userId === me.id,
         color: avatarColor(r.userId),
         lastSeenAt: seen.find((s) => s.userId === r.userId)?.at ?? null,
+        secondsHere: time.get(r.userId)?.seconds ?? 0,
       })) satisfies Sent<Person>[],
     };
   });

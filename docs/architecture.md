@@ -49,6 +49,18 @@ forward). Other people are drawn on that clock, not on when updates happen to ar
 carried on for at most 180 ms when updates run late and eased back after; a jump (quick travel, a
 lift) is drawn at once. An app that sends no time still works, drawn on arrival times as before.
 
+## Visits
+
+The real-time service knows who is in which room and creation session, so it records visits:
+time someone spent in a room of a place (once they've stayed 10 seconds; passing through goes to
+the room they came from) or in a creation, paused while their app is out of sight. Like the rest of
+the service it never touches the database: it posts batches to the server's internal
+`/internal/visits` every 10 seconds, with ids it chose (sending a batch again changes nothing),
+and once a minute names every visit still going. A visit nobody has vouched for in three minutes
+(its real-time service stopped or restarted) ends when it was last seen; a stopping service ends
+its own. Visits are spans only, never positions; they're kept 90 days (worker) and summed up for
+Architects (`GET /api/spaces/:id/visits`), counting overlapping time once per person.
+
 ## Voice chat
 
 LiveKit (unmodified) carries the sound. The real-time service hands out passes, because it knows

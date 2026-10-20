@@ -161,3 +161,33 @@ export interface FieldPerf {
   p95Ms: number;
   scale: number;
 }
+
+/**
+ * For Architects: time people spent in a place (GET /api/spaces/:spaceId/visits), over the last
+ * `days` days. Time in a room counts once someone has stayed a few seconds, while the app is in
+ * sight; time in a creation, while it's open.
+ */
+export interface PlaceVisits {
+  days: number;
+  /** Every room of the live version, and any since removed that people spent time in. */
+  rooms: {
+    key: string;
+    /** Null for a room no longer in the place. */
+    name: string | null;
+    /** Its floor, when the place has more than one. */
+    floor: string | null;
+    /** How many different people. */
+    people: number;
+    seconds: number;
+  }[];
+  creations: { id: string; title: string; people: number; seconds: number }[];
+  people: {
+    userId: string;
+    name: string;
+    color: string;
+    /** Time in the place, creations included (time in a creation is also time in its room). */
+    seconds: number;
+    inCreations: number;
+    lastAt: string;
+  }[];
+}

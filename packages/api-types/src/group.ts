@@ -8,6 +8,8 @@ export interface Person {
   role: 'architect' | 'member';
   joinedAt: string;
   lastSeenAt: string | null;
+  /** Seconds they spent in the group's places (creations included) over the last 90 days. */
+  secondsHere: number;
   you: boolean;
   /** Their colour, as everyone sees it on their figure in a space. */
   color: string;

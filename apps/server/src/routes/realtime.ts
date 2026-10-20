@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { schema } from '@ats/db';
 import { avatarColor, shardFor, signTicket } from '@ats/shared';
 import { count, eq } from 'drizzle-orm';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { notFound, requireUser } from '../access.ts';
 import type { AppContext } from '../context.ts';
@@ -11,6 +11,13 @@ import { membershipsFor } from '../session.ts';
 import { voiceFor } from '../voice.ts';
 
 const { memberships, spaces, spaceVersions } = schema;
+
+/** Whether a request comes from the real-time service (it sends the shared secret). */
+export function fromRealtime(req: FastifyRequest, secret: string) {
+  const given = Buffer.from(String(req.headers['x-realtime-secret'] ?? ''));
+  const expected = Buffer.from(secret);
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}
 
 export async function realtimeRoutes(app: FastifyInstance, ctx: AppContext) {
   const { db, env } = ctx;
@@ -56,10 +63,7 @@ export async function realtimeRoutes(app: FastifyInstance, ctx: AppContext) {
   app.get<{ Params: { spaceId: string } }>(
     '/internal/spaces/:spaceId/graph',
     async (req, reply) => {
-      const given = Buffer.from(String(req.headers['x-realtime-secret'] ?? ''));
-      const expected = Buffer.from(env.REALTIME_SECRET);
-      if (given.length !== expected.length || !timingSafeEqual(given, expected))
-        return reply.code(404).send();
+      if (!fromRealtime(req, env.REALTIME_SECRET)) return reply.code(404).send();
       if (!z.uuid().safeParse(req.params.spaceId).success) return reply.code(404).send();
       const [row] = await db
         .select({ manifest: spaceVersions.manifest, groupId: spaces.groupId })

@@ -26,6 +26,7 @@ import {
   usableInvite,
   when,
 } from '../lib/group.ts';
+import { timeSpent } from '../lib/time-spent.ts';
 
 function InviteSection({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [role, setInviteRole] = useState<InviteLink['role']>('member');
@@ -174,7 +175,7 @@ function PersonRow({
       lead={<Avatar name={p.name} color={p.color} />}
       title={p.name}
       tag={p.you ? <Tag>You</Tag> : undefined}
-      meta={`${p.email}${p.emailConfirmed === false ? ' (not confirmed yet)' : ''} · joined ${when(p.joinedAt)} · last here ${when(p.lastSeenAt)}`}
+      meta={`${p.email}${p.emailConfirmed === false ? ' (not confirmed yet)' : ''} · joined ${when(p.joinedAt)} · last here ${when(p.lastSeenAt)}${p.secondsHere ? ` · ${timeSpent(p.secondsHere)} here in 90 days` : ''}`}
       actions={
         <>
           <select

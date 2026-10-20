@@ -1,4 +1,10 @@
-import { type Db, deleteExpiredChat, deleteOldPerfSamples } from '@ats/db';
+import {
+  type Db,
+  deleteExpiredChat,
+  deleteOldPerfSamples,
+  deleteOldVisits,
+  endStaleVisits,
+} from '@ats/db';
 
 /** What each maintenance job does: `alive` records a heartbeat. */
 export const maintenanceJobs =
@@ -8,6 +14,12 @@ export const maintenanceJobs =
       return { at: new Date().toISOString() };
     }
     if (job.name === 'chat-retention')
-      return { deleted: await deleteExpiredChat(db), perf: await deleteOldPerfSamples(db) };
+      return {
+        deleted: await deleteExpiredChat(db),
+        perf: await deleteOldPerfSamples(db),
+        // Visits left open by a real-time service that never came back end when last seen.
+        ended: await endStaleVisits(db),
+        visits: await deleteOldVisits(db),
+      };
     throw new Error(`Unknown maintenance job: ${job.name}`);
   };

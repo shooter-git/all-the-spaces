@@ -1,7 +1,8 @@
-import { and, eq, lt, notExists, sql } from 'drizzle-orm';
+import { and, eq, isNull, lt, notExists, sql } from 'drizzle-orm';
 import type { Db } from './client.ts';
 import { chatMessages, groupSettings } from './schema/chat.ts';
 import { perfSamples } from './schema/perf.ts';
+import { visits } from './schema/visits.ts';
 
 /** How long performance samples are kept. */
 export const PERF_RETENTION_DAYS = 90;
@@ -47,4 +48,35 @@ export async function deleteExpiredChat(db: Db, now = new Date()): Promise<numbe
     )
     .returning({ id: chatMessages.id });
   return chosen.length + rest.length;
+}
+
+/** How long visits are kept: like chat, three months. */
+export const VISIT_RETENTION_DAYS = 90;
+
+/** Deletes visits that began more than `VISIT_RETENTION_DAYS` ago. Returns how many went. */
+export async function deleteOldVisits(db: Db, now = new Date()): Promise<number> {
+  const rows = await db
+    .delete(visits)
+    .where(lt(visits.startedAt, new Date(now.getTime() - VISIT_RETENTION_DAYS * 86_400_000)))
+    .returning({ id: visits.id });
+  return rows.length;
+}
+
+/**
+ * How long an open visit may go without the real-time service saying it's still going (it says
+ * so every minute) before it counts as over.
+ */
+export const VISIT_STALE_MS = 3 * 60_000;
+
+/**
+ * Ends the visits nobody has vouched for lately (the real-time service that had them stopped or
+ * restarted), when they were last seen. Returns how many.
+ */
+export async function endStaleVisits(db: Db, now = new Date()): Promise<number> {
+  const rows = await db
+    .update(visits)
+    .set({ endedAt: sql`${visits.seenAt}` })
+    .where(and(isNull(visits.endedAt), lt(visits.seenAt, new Date(now.getTime() - VISIT_STALE_MS))))
+    .returning({ id: visits.id });
+  return rows.length;
 }
