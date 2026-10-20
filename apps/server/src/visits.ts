@@ -1,18 +1,30 @@
 import { type Db, endStaleVisits, schema, VISIT_RETENTION_DAYS } from '@ats/db';
 import type { VisitBatch } from '@ats/shared';
-import { and, inArray, isNull, type SQL, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, type SQL, sql } from 'drizzle-orm';
 
-const { creations, memberships, spaces, visits } = schema;
+const { creations, groupSettings, memberships, spaces, visits } = schema;
 
 /** When a visit ended or, still going, when it was last known to be. */
 export const visitEnd = sql`greatest(coalesce(${visits.endedAt}, ${visits.seenAt}), ${visits.startedAt})`;
 /** Visits within the retention period (older ones are deleted every night). */
 export const recentVisits = sql`${visits.startedAt} > now() - make_interval(days => ${VISIT_RETENTION_DAYS})`;
+/** Whether a group records visits: on unless its Architects turned it off (Group settings). */
+const recording = sql<boolean>`coalesce(${groupSettings.visits}, true)`;
+
+/** Whether a group records where people spend time. */
+export async function recordsVisits(db: Db, groupId: string) {
+  const [row] = await db
+    .select({ visits: groupSettings.visits })
+    .from(groupSettings)
+    .where(eq(groupSettings.groupId, groupId));
+  return row?.visits ?? true;
+}
 
 /**
  * Writes what the real-time service says about visits. Only visits by members of the place's
- * group count, and never trying a version of a creation that isn't live (Architects testing).
- * Sending the same batch twice changes nothing. Returns how many visits began.
+ * group count, never in a group that turned visit records off, and never trying a version of a
+ * creation that isn't live (Architects testing). Sending the same batch twice changes nothing.
+ * Returns how many visits began.
  */
 export async function recordVisits(db: Db, batch: VisitBatch): Promise<number> {
   // Times are on the real-time service's clock: shifted onto this one.
@@ -26,8 +38,9 @@ export async function recordVisits(db: Db, batch: VisitBatch): Promise<number> {
   const [placeRows, creationRows, memberRows] = await Promise.all([
     spaceIds.length
       ? db
-          .select({ id: spaces.id, groupId: spaces.groupId })
+          .select({ id: spaces.id, groupId: spaces.groupId, recording })
           .from(spaces)
+          .leftJoin(groupSettings, eq(groupSettings.groupId, spaces.groupId))
           .where(inArray(spaces.id, spaceIds))
       : [],
     creationIds.length
@@ -37,8 +50,10 @@ export async function recordVisits(db: Db, batch: VisitBatch): Promise<number> {
             groupId: creations.groupId,
             spaceId: creations.spaceId,
             live: creations.currentVersionId,
+            recording,
           })
           .from(creations)
+          .leftJoin(groupSettings, eq(groupSettings.groupId, creations.groupId))
           .where(inArray(creations.id, creationIds))
       : [],
     userIds.length
@@ -60,11 +75,11 @@ export async function recordVisits(db: Db, batch: VisitBatch): Promise<number> {
     };
     if ('roomKey' in v) {
       const place = places.get(v.spaceId);
-      if (!place) return [];
+      if (!place?.recording) return [];
       where = { groupId: place.groupId, spaceId: place.id, roomKey: v.roomKey, creationId: null };
     } else {
       const creation = made.get(v.creationId);
-      if (!creation || creation.live !== v.versionId) return [];
+      if (!creation?.recording || creation.live !== v.versionId) return [];
       where = { ...creation, roomKey: null, creationId: creation.id };
     }
     if (!members.has(`${where.groupId}:${v.userId}`)) return [];

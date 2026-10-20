@@ -4,6 +4,7 @@ import { ChatSettings } from '../components/ChatSettings.tsx';
 import { ColourSwatches, DEFAULT_GROUP_COLOUR } from '../components/ColourSwatches.tsx';
 import { ManageLayout } from '../components/ManageLayout.tsx';
 import { StudioSettings } from '../components/StudioSettings.tsx';
+import { VisitSettings } from '../components/VisitSettings.tsx';
 import type { Me } from '../lib/api.ts';
 import { saveGroup } from '../lib/group.ts';
 
@@ -74,10 +75,11 @@ export function GroupSettings({ me, onChanged }: { me: Me; onChanged: () => Prom
     <ManageLayout
       me={me}
       title="Group settings"
-      intro="How your group looks, how chat works, and how the Studio builds for everyone. Who may see each room is set per space, under Privacy."
+      intro="How your group looks, how chat works, whether time spent in places is recorded, and how the Studio builds for everyone. Who may see each room is set per space, under Privacy."
     >
       <NameAndColour me={me} onChanged={onChanged} />
       <ChatSettings groupId={group.groupId} />
+      <VisitSettings groupId={group.groupId} />
       <StudioSettings groupId={group.groupId} open />
     </ManageLayout>
   );

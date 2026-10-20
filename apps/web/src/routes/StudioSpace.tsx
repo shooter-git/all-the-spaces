@@ -530,12 +530,22 @@ function Visits({ spaceId }: { spaceId: string }) {
   }, [spaceId]);
   if (!visits) return null;
   const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
+  if (!visits.recording) {
+    return (
+      <Section title="Where people spend time">
+        <p className="ats-muted">
+          Your group doesn’t record where people spend time: it’s turned off in{' '}
+          <Link to="/group/settings">Group settings</Link>.
+        </p>
+      </Section>
+    );
+  }
   return (
     <Section title="Where people spend time">
       <p className="ats-muted">
         The last {visits.days} days, while the app is open and in sight. A room counts once someone
         has stayed a few seconds, and time in a creation is also time in its room. Only Architects
-        see this.
+        see this, and <Link to="/group/settings">Group settings</Link> can turn it off.
       </p>
       {visits.people.length === 0 ? (
         <p className="ats-muted">Nobody has spent time here yet.</p>

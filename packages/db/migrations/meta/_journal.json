@@ -29,6 +29,13 @@
       "when": 1792519851289,
       "tag": "0003_visits",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792520906593,
+      "tag": "0004_group_visits_switch",
+      "breakpoints": true
     }
   ]
 }

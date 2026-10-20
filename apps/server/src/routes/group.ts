@@ -56,6 +56,7 @@ export const ACTIVITY = [
   'connect.forget',
   'chat.settings_changed',
   'chat.reported',
+  'visits.settings_changed',
   'studio.settings',
   'backup.settings_changed',
   'server.sources_changed',

@@ -296,7 +296,9 @@ Do Not Disturb (in chat) holds back everything but the list.
   people have spent in each room and each creation (and how many different people), and each
   person's time there; **People** shows each person's time in the group's places. Time counts while
   the app is open and in sight, a room once someone has stayed a few seconds. Only Architects see
-  it; [privacy.md](privacy.md) says what's kept.
+  it; [privacy.md](privacy.md) says what's kept. To stop it, untick **Record where people spend
+  time** in **Group settings**: nothing more is recorded, and what was recorded is deleted at once
+  (turning it back on starts from nothing).
 
 ## Running your group
 
@@ -309,7 +311,7 @@ Everything is under **Your group** on the home page (on a phone, below your spac
   back). A group always keeps at least one Architect. Invite links are made here too, for members
   or Architects, and any link still working can be turned off.
 - **Group settings**: the group's name and colour, how long chat is kept, voice chat, reported
-  messages, and the Studio settings (when workspaces sleep, the model and effort they start with,
+  messages, whether where people spend time is recorded, and the Studio settings (when workspaces sleep, the model and effort they start with,
   what a creation needs before it goes live). Who may see each room is set per space, under
   **Privacy** on its card.
 - **AI assistants**: connect, update or disconnect Claude Code and Codex.

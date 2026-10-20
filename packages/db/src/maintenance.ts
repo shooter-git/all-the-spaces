@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, notExists, sql } from 'drizzle-orm';
+import { and, eq, exists, isNull, lt, notExists, or, sql } from 'drizzle-orm';
 import type { Db } from './client.ts';
 import { chatMessages, groupSettings } from './schema/chat.ts';
 import { perfSamples } from './schema/perf.ts';
@@ -53,11 +53,24 @@ export async function deleteExpiredChat(db: Db, now = new Date()): Promise<numbe
 /** How long visits are kept: like chat, three months. */
 export const VISIT_RETENTION_DAYS = 90;
 
-/** Deletes visits that began more than `VISIT_RETENTION_DAYS` ago. Returns how many went. */
+/**
+ * Deletes visits that began more than `VISIT_RETENTION_DAYS` ago, and any in a group that turned
+ * visit records off (a batch in flight as it did). Returns how many went.
+ */
 export async function deleteOldVisits(db: Db, now = new Date()): Promise<number> {
   const rows = await db
     .delete(visits)
-    .where(lt(visits.startedAt, new Date(now.getTime() - VISIT_RETENTION_DAYS * 86_400_000)))
+    .where(
+      or(
+        lt(visits.startedAt, new Date(now.getTime() - VISIT_RETENTION_DAYS * 86_400_000)),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(groupSettings)
+            .where(and(eq(groupSettings.groupId, visits.groupId), eq(groupSettings.visits, false))),
+        ),
+      ),
+    )
     .returning({ id: visits.id });
   return rows.length;
 }

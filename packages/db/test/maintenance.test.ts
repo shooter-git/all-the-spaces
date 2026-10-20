@@ -1,6 +1,7 @@
 // Clean-up jobs against a real Postgres: needs TEST_DATABASE_URL pointing at a server where it may
 // create and drop a scratch database (skipped when unset).
 import { randomBytes } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -138,6 +139,28 @@ describe.skipIf(!adminUrl)('clean-up', () => {
       const old = ago(VISIT_RETENTION_DAYS + 1);
       await db.insert(schema.visits).values(visit('4', old, old, old));
       expect(await deleteOldVisits(db, now)).toBe(1);
+      expect(await db.select().from(schema.visits)).toHaveLength(3);
+    });
+
+    it('deletes any visits left in a group that turned visit records off', async () => {
+      await db.insert(schema.spaces).values({
+        id: '00000000-0000-4000-8000-0000000000a2',
+        groupId: 'forever',
+        name: 'Flat',
+        spaceType: 'house',
+      });
+      await db.insert(schema.visits).values({
+        ...visit('6', ago(1), ago(1)),
+        groupId: 'forever',
+        spaceId: '00000000-0000-4000-8000-0000000000a2',
+      });
+      expect(await deleteOldVisits(db, now)).toBe(0);
+      await db
+        .update(schema.groupSettings)
+        .set({ visits: false })
+        .where(eq(schema.groupSettings.groupId, 'forever'));
+      expect(await deleteOldVisits(db, now)).toBe(1);
+      // Other groups' visits stay.
       expect(await db.select().from(schema.visits)).toHaveLength(3);
     });
 

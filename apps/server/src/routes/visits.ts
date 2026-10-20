@@ -4,13 +4,14 @@ import { avatarColor } from '@ats/shared';
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { isArchitect, notFound, requireUser } from '../access.ts';
+import { isArchitect, notFound, requireArchitect, requireUser } from '../access.ts';
+import { record } from '../audit.ts';
 import type { AppContext } from '../context.ts';
 import { manifestOf } from '../manifests.ts';
-import { recentVisits, recordVisits, timeByPerson, visitEnd } from '../visits.ts';
+import { recentVisits, recordsVisits, recordVisits, timeByPerson, visitEnd } from '../visits.ts';
 import { fromRealtime } from './realtime.ts';
 
-const { creations, spaces, spaceVersions, user, visits } = schema;
+const { creations, groupSettings, spaces, spaceVersions, user, visits } = schema;
 
 const At = z.number().int().nonnegative();
 const Started = z.intersection(
@@ -37,7 +38,8 @@ const seconds = sql<number>`coalesce(sum(extract(epoch from ${visitEnd} - ${visi
 
 /**
  * Visits: time people spend in each room of a place and in each creation. The real-time service
- * says who's where (coarse spans, never positions); only the group's Architects see the totals.
+ * says who's where (coarse spans, never positions); only the group's Architects see the totals,
+ * and they can turn it off for the group (which deletes what was recorded).
  */
 export async function visitRoutes(app: FastifyInstance, ctx: AppContext) {
   const { db, env } = ctx;
@@ -63,6 +65,16 @@ export async function visitRoutes(app: FastifyInstance, ctx: AppContext) {
       .leftJoin(spaceVersions, eq(spaceVersions.id, spaces.currentVersionId))
       .where(eq(spaces.id, spaceId));
     if (!space || !(await isArchitect(db, me.id, space.groupId))) return notFound(reply);
+    reply.header('cache-control', 'private, no-store');
+    if (!(await recordsVisits(db, space.groupId))) {
+      return {
+        days: VISIT_RETENTION_DAYS,
+        recording: false,
+        rooms: [],
+        creations: [],
+        people: [],
+      } satisfies Sent<PlaceVisits>;
+    }
     const here = and(eq(visits.spaceId, spaceId), recentVisits);
     const [roomRows, creationRows, made, everyone, inCreations] = await Promise.all([
       db
@@ -108,9 +120,9 @@ export async function visitRoutes(app: FastifyInstance, ctx: AppContext) {
       seconds: Math.round(spent.get(r.key)?.seconds ?? 0),
     }));
     const inCreation = new Map(creationRows.map((c) => [c.id, c]));
-    reply.header('cache-control', 'private, no-store');
     return {
       days: VISIT_RETENTION_DAYS,
+      recording: true,
       rooms: rooms.sort((a, b) => b.seconds - a.seconds),
       creations: made
         .map((c) => ({
@@ -134,4 +146,38 @@ export async function visitRoutes(app: FastifyInstance, ctx: AppContext) {
         .sort((a, b) => b.seconds - a.seconds),
     } satisfies Sent<PlaceVisits>;
   });
+
+  /** For Architects: whether the group records where people spend time. */
+  app.get<{ Params: { groupId: string } }>(
+    '/api/groups/:groupId/visit-settings',
+    async (req, reply) => {
+      if (!(await requireArchitect(ctx, req, reply, req.params.groupId))) return;
+      return { visits: await recordsVisits(db, req.params.groupId) };
+    },
+  );
+
+  // Turning it off deletes everything recorded for the group, at once.
+  app.put<{ Params: { groupId: string } }>(
+    '/api/groups/:groupId/visit-settings',
+    async (req, reply) => {
+      const groupId = req.params.groupId;
+      const me = await requireArchitect(ctx, req, reply, groupId);
+      if (!me) return;
+      const { visits: on } = z.object({ visits: z.boolean() }).parse(req.body);
+      await db.transaction(async (tx) => {
+        await tx
+          .insert(groupSettings)
+          .values({ groupId, visits: on })
+          .onConflictDoUpdate({ target: groupSettings.groupId, set: { visits: on } });
+        if (!on) await tx.delete(visits).where(eq(visits.groupId, groupId));
+        await record(tx, {
+          groupId,
+          actorUserId: me.id,
+          action: 'visits.settings_changed',
+          metadata: { visits: on },
+        });
+      });
+      return { ok: true };
+    },
+  );
 }
