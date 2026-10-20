@@ -55,7 +55,8 @@ export default defineConfig(({ mode }) => {
             'icons/{favicon.svg,icon-192.png,badge-96.png}',
           ],
           // Reading PDFs is rare (adding a floor plan): fetched when used, not kept offline.
-          globIgnores: ['**/pdfjs-*.js', '**/pdf.worker*'],
+          // Nor three.js's texture transcoder (for places' KTX2 textures): places aren't kept offline.
+          globIgnores: ['**/pdfjs-*.js', '**/pdf.worker*', '**/basis_transcoder*'],
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//, /^\/rt\//, /^\/manifest\.webmanifest$/],
           // Never cache API responses or private space data in the service worker.

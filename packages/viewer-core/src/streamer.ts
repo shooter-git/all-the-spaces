@@ -10,6 +10,7 @@ import {
 } from 'three';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { CollisionWorld } from './physics.ts';
 import {
@@ -125,9 +126,13 @@ export class RoomStreamer {
       /** Graphics memory to spend on rooms in full detail (bytes, roughly). */
       detailBudget?: number;
       loader?: ChunkLoader;
+      /** For rooms whose textures are KTX2 (WebP ones load without it). */
+      ktx2?: KTX2Loader;
     } = {},
   ) {
-    this.loader = options.loader ?? new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    if (options.ktx2) gltf.setKTX2Loader(options.ktx2);
+    this.loader = options.loader ?? gltf;
     this.detailLod = options.maxDetail ?? 'lod0';
     this.detailBudget = options.detailBudget ?? DEFAULT_DETAIL_BUDGET;
     this.manifest = manifest;

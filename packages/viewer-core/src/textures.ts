@@ -16,7 +16,10 @@ interface GltfJson {
  * usual frees a shared image only when the last room using it goes.
  */
 export class SharedTextures {
-  private readonly sources = new Map<string, { source: ImageSource; rooms: number }>();
+  private readonly sources = new Map<
+    string,
+    { source: ImageSource; mipmaps: Texture['mipmaps']; rooms: number }
+  >();
 
   /** Shares a freshly loaded room's images; returns the files it now uses (for `release`). */
   adopt(gltf: GLTF, chunkUrl: string): string[] {
@@ -26,7 +29,10 @@ export class SharedTextures {
       const index = (ref as { textures?: number }).textures;
       if (index === undefined || !(object as Texture).isTexture) continue;
       const def = json.textures?.[index];
-      const image = def?.extensions?.EXT_texture_webp?.source ?? def?.source;
+      const image =
+        def?.extensions?.KHR_texture_basisu?.source ??
+        def?.extensions?.EXT_texture_webp?.source ??
+        def?.source;
       const uri = image === undefined ? undefined : json.images?.[image]?.uri;
       if (uri) uriOf.set((object as Texture).source, new URL(uri, chunkUrl).href);
     }
@@ -36,10 +42,12 @@ export class SharedTextures {
       if (!uri) return;
       const shared = this.sources.get(uri);
       if (!shared) {
-        this.sources.set(uri, { source: texture.source, rooms: 0 });
+        this.sources.set(uri, { source: texture.source, mipmaps: texture.mipmaps, rooms: 0 });
       } else if (shared.source !== texture.source) {
         const duplicate = texture.source.data as { close?: () => void } | null;
         texture.source = shared.source;
+        // A KTX2 texture's pixels are its mipmaps (its source only holds the size).
+        if (texture.mipmaps?.length) texture.mipmaps = shared.mipmaps;
         duplicate?.close?.(); // an ImageBitmap we no longer need
       }
       used.add(uri);
