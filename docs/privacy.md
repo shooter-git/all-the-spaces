@@ -49,6 +49,13 @@ Homes are sensitive, so All the Spaces is private by default:
 - **Voice chat** is off until you choose to talk, and only people in the same room (or the same
   creation session) hear you. It goes through your group's server, is never recorded, and an
   Architect can turn it off for the group.
+- **Time spent here** is recorded on your server, for your group's Architects: who was in which
+  room of a place, or in which creation, from when to when. Never where in a room, what they did
+  or said, or anything about their device. It only counts while the app is open and in sight (not
+  in another tab or on a locked phone), and a room only once someone has stayed a few seconds.
+  Architects see the totals: time in each room and creation and each person's time (on the
+  place's Studio page), and each person's time on **People**. Members don't see it. It never
+  leaves your server, and it's deleted after 90 days.
 - The app sends no analytics or telemetry anywhere. The AI assistants' own usage statistics and
   error reports to their makers are off unless an Architect turns them on (Studio → Settings).
   Sharing how smoothly things run is a choice made on each device (Menu → Smoothness): samples say

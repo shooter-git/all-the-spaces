@@ -5,6 +5,8 @@ import { maintenanceJobs } from '../src/jobs.ts';
 vi.mock('@ats/db', () => ({
   deleteExpiredChat: vi.fn(async () => 3),
   deleteOldPerfSamples: vi.fn(async () => 5),
+  endStaleVisits: vi.fn(async () => 1),
+  deleteOldVisits: vi.fn(async () => 7),
 }));
 
 describe('maintenance jobs', () => {
@@ -17,11 +19,13 @@ describe('maintenance jobs', () => {
     expect(Date.parse((result as { at: string }).at)).not.toBeNaN();
   });
 
-  it('clears out old chat and performance samples, and says how many went', async () => {
+  it('clears out old chat, performance samples and visits, and says how many went', async () => {
     const alive = vi.fn(async () => {});
     expect(await maintenanceJobs(db, alive)({ name: 'chat-retention' })).toEqual({
       deleted: 3,
       perf: 5,
+      ended: 1,
+      visits: 7,
     });
     expect(alive).not.toHaveBeenCalled();
   });

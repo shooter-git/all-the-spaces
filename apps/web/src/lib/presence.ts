@@ -201,6 +201,9 @@ export async function joinPresence(
   };
   window.addEventListener('online', wake);
   document.addEventListener('visibilitychange', wake);
+  // Time with the app out of sight (another tab, a locked phone) isn't counted as time here.
+  const sight = () => room?.send('away', document.visibilityState !== 'visible');
+  document.addEventListener('visibilitychange', sight);
 
   let lastTeleports = viewer.teleports;
   let nextSend = 0;
@@ -265,6 +268,7 @@ export async function joinPresence(
       window.clearTimeout(retryTimer);
       window.removeEventListener('online', wake);
       document.removeEventListener('visibilitychange', wake);
+      document.removeEventListener('visibilitychange', sight);
       // The state may never have arrived (a quick visit, or the service was unreachable).
       for (const sessionId of shown) viewer.avatars.remove(sessionId);
       shown.clear();

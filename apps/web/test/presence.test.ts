@@ -221,3 +221,28 @@ describe('sending where you are', () => {
     vi.restoreAllMocks();
   });
 });
+
+describe('time here', () => {
+  it("says when the app goes out of sight and comes back, so that time isn't counted", async () => {
+    const presence = await join();
+    const sent = (lastRoom()?.sent ?? []) as [string, unknown][];
+    const away = () => sent.filter(([type]) => type === 'away');
+    let state: DocumentVisibilityState = 'hidden';
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
+    try {
+      document.dispatchEvent(new Event('visibilitychange'));
+      state = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(away()).toEqual([
+        ['away', true],
+        ['away', false],
+      ]);
+    } finally {
+      delete (document as { visibilityState?: unknown }).visibilityState;
+      presence.leave();
+    }
+    // Gone: nothing more is said.
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(away()).toHaveLength(2);
+  });
+});

@@ -11,6 +11,7 @@ import { StateView, schema, t } from '@colyseus/schema';
 import { z } from 'zod';
 import { log } from './log.ts';
 import { cpuMeter, Timings } from './stats.ts';
+import { RoomVisits, type VisitLog } from './visits.ts';
 import { spaceVoiceRoom, type Voice } from './voice.ts';
 
 /** A person walking around the space. Only sent to people nearby (see `updateViews`). */
@@ -127,6 +128,8 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
   static voice: Voice | null = null;
   /** Log how long each update takes every this many seconds (ATS_REALTIME_STATS); 0: never. */
   static statsEvery = 0;
+  /** Where visits to rooms are recorded (none: not recorded). */
+  static visits: VisitLog | null = null;
   maxClients = 200;
   state = new SpaceState();
 
@@ -156,6 +159,8 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
   private readonly onShard = (message: ShardMessage) => this.fromShard(message);
   private readonly patchTimings = new Timings();
   private readonly viewTimings = new Timings();
+  /** Time each of this shard's people spends in each room. */
+  private roomVisits: RoomVisits | null = null;
 
   async onCreate(options: { spaceId: string; shard?: number }) {
     this.setPatchRate(50); // 20 updates a second
@@ -169,6 +174,15 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     this.onMessage('voice', (client) => {
       this.voicePass(client).catch((err) => log.warn({ err }, 'voice pass failed'));
     });
+    // Their app went out of sight (another tab, a locked phone), or came back.
+    this.onMessage('away', (client, away) => {
+      this.roomVisits?.away(client.sessionId, away === true, Date.now());
+    });
+    if (SpaceRoom.visits) {
+      const visits = new RoomVisits(SpaceRoom.visits, options.spaceId);
+      this.roomVisits = visits;
+      this.clock.setInterval(() => visits.tick(Date.now()), 1000);
+    }
     // No periodic pass over who sees whom: everything that changes it (moving room, privacy,
     // people arriving and leaving, here or in another shard) updates views as it happens.
     await this.presence.subscribe(shardTopic(options.spaceId), this.onShard);
@@ -395,6 +409,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
   }
 
   onLeave(client: Client) {
+    this.roomVisits?.left(client.sessionId, Date.now());
     this.leaveVoice(client);
     this.place(client.sessionId, this.state.players.get(client.sessionId)?.room ?? '', '');
     this.state.players.delete(client.sessionId);
@@ -447,6 +462,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     if (player.moving !== pose.moving) player.moving = pose.moving;
     if (pose.at !== undefined) player.at = pose.at;
     if (player.room !== pose.room) {
+      this.roomVisits?.moved(client.sessionId, player.id, pose.room, now);
       // Voice follows you: out of the old room's (ask again for the new one).
       this.leaveVoice(client);
       this.place(client.sessionId, player.room, pose.room);

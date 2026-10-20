@@ -9,9 +9,13 @@ import {
   DEFAULT_CHAT_RETENTION_DAYS,
   deleteExpiredChat,
   deleteOldPerfSamples,
+  deleteOldVisits,
+  endStaleVisits,
   PERF_RETENTION_DAYS,
   runMigrations,
   schema,
+  VISIT_RETENTION_DAYS,
+  VISIT_STALE_MS,
 } from '../src/index.ts';
 
 const adminUrl = process.env.TEST_DATABASE_URL;
@@ -90,5 +94,57 @@ describe.skipIf(!adminUrl)('clean-up', () => {
       .values([sample(ago(PERF_RETENTION_DAYS + 1)), sample(ago(PERF_RETENTION_DAYS - 1))]);
     expect(await deleteOldPerfSamples(db, now)).toBe(1);
     expect(await db.select().from(schema.perfSamples)).toHaveLength(1);
+  });
+
+  describe('visits', () => {
+    const spaceId = '00000000-0000-4000-8000-0000000000a1';
+    const visit = (id: string, startedAt: Date, seenAt: Date, endedAt: Date | null = null) => ({
+      id: `00000000-0000-4000-8000-${id.padStart(12, '0')}`,
+      groupId: 'default',
+      userId: 'u1',
+      spaceId,
+      roomKey: 'kitchen',
+      startedAt,
+      seenAt,
+      endedAt,
+    });
+
+    beforeAll(async () => {
+      await db
+        .insert(schema.spaces)
+        .values({ id: spaceId, groupId: 'default', name: 'Home', spaceType: 'house' });
+    });
+
+    it('ends visits nobody has vouched for lately, when they were last seen', async () => {
+      const seen = new Date(now.getTime() - VISIT_STALE_MS - 1000);
+      await db
+        .insert(schema.visits)
+        .values([
+          visit('1', ago(1), seen),
+          visit('2', ago(1), new Date(now.getTime() - 30_000)),
+          visit('3', ago(2), ago(2), ago(2)),
+        ]);
+      expect(await endStaleVisits(db, now)).toBe(1);
+      const rows = await db.select().from(schema.visits).orderBy(schema.visits.id);
+      expect(rows.map((r) => r.endedAt?.getTime() ?? null)).toEqual([
+        seen.getTime(),
+        null,
+        ago(2).getTime(),
+      ]);
+      expect(await endStaleVisits(db, now)).toBe(0);
+    });
+
+    it('deletes visits once they began longer ago than the retention period', async () => {
+      const old = ago(VISIT_RETENTION_DAYS + 1);
+      await db.insert(schema.visits).values(visit('4', old, old, old));
+      expect(await deleteOldVisits(db, now)).toBe(1);
+      expect(await db.select().from(schema.visits)).toHaveLength(3);
+    });
+
+    it('is either a room or a creation, never both or neither', async () => {
+      await expect(
+        db.insert(schema.visits).values({ ...visit('5', ago(1), ago(1)), roomKey: null }),
+      ).rejects.toThrow();
+    });
   });
 });

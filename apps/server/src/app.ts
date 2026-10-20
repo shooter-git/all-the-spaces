@@ -25,6 +25,7 @@ import { spaceRoutes } from './routes/spaces.ts';
 import { studioRoutes } from './routes/studio.ts';
 import { transferRoutes } from './routes/transfer.ts';
 import { uploadRoutes } from './routes/uploads.ts';
+import { visitRoutes } from './routes/visits.ts';
 import { workspaceRoutes } from './routes/workspaces.ts';
 import { sourceOwnerRoutes } from './sources/owner-routes.ts';
 import { loadSourceHosts } from './sources/registry.ts';
@@ -104,6 +105,7 @@ export async function buildApp(ctx: AppContext) {
   await pictureRoutes(app, ctx);
   await requestRoutes(app, ctx);
   await perfRoutes(app, ctx);
+  await visitRoutes(app, ctx);
   await transferRoutes(app, ctx);
   await connectorRoutes(app, ctx);
   await sourceRoutes(app, ctx);

@@ -19,8 +19,8 @@ const alive = async () => {
 
 const maintenance = new Queue('maintenance', { connection });
 await maintenance.upsertJobScheduler('heartbeat', { every: 60_000 }, { name: 'heartbeat' });
-// Chat older than each group's retention setting, and performance samples older than 90 days,
-// are deleted once a day (at 03:30).
+// Chat older than each group's retention setting, and performance samples and visits older than
+// 90 days, are deleted once a day (at 03:30).
 await maintenance.upsertJobScheduler(
   'chat-retention',
   { pattern: '30 3 * * *' },

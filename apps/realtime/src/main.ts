@@ -7,6 +7,7 @@ import { onlyFromApp } from './cors.ts';
 import { CreationRoom } from './creation-room.ts';
 import { log } from './log.ts';
 import { SpaceRoom } from './space-room.ts';
+import { postVisits, VisitLog } from './visits.ts';
 import { Voice } from './voice.ts';
 
 // Real-time presence (SpaceRoom) and, from Phase 3, creation sessions. Shared presence in Valkey
@@ -37,6 +38,13 @@ server.define('space', SpaceRoom).filterBy(['spaceId', 'shard']);
 // the version it started on); solo and invite sessions are private.
 CreationRoom.options = { secret: env.REALTIME_SECRET };
 server.define('creation', CreationRoom).filterBy(['creationId', 'versionId', 'mode']);
+
+// Time people spend in each room and creation, for the group's Architects: coarse spans only,
+// written by the server. Visits still going when this stops end now.
+const visits = new VisitLog(postVisits(env.SERVER_INTERNAL_URL, env.REALTIME_SECRET)).begin();
+SpaceRoom.visits = visits;
+CreationRoom.visits = visits;
+server.onShutdown(() => visits.stop());
 
 await server.listen(env.ATS_PORT_REALTIME, env.HOST);
 log.info({ port: env.ATS_PORT_REALTIME }, 'realtime listening');

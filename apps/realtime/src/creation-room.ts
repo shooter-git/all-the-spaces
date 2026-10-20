@@ -9,6 +9,7 @@ import { type Client, Room } from '@colyseus/core';
 import { schema, t } from '@colyseus/schema';
 import { z } from 'zod';
 import { log } from './log.ts';
+import type { VisitLog } from './visits.ts';
 import { sessionVoiceRoom, type Voice } from './voice.ts';
 
 /**
@@ -76,6 +77,8 @@ export class CreationRoom extends Room<{ state: SessionState }> {
   static options: CreationRoomOptions;
   /** Voice chat, when the server has it set up. */
   static voice: Voice | null = null;
+  /** Where time in creations is recorded (none: not recorded). */
+  static visits: VisitLog | null = null;
   state = new SessionState();
   maxClients = LIMITS.players;
 
@@ -88,6 +91,8 @@ export class CreationRoom extends Room<{ state: SessionState }> {
   private readonly invited = new Set<string>();
   private readonly sent = new Map<string, number[]>();
   private totalBytes = 0;
+  /** Each player's visit under way (null while their app is out of sight). */
+  private readonly visitOf = new Map<string, string | null>();
 
   /** Checks the ticket against the client's options, before a room is picked (see `onJoin`). */
   static async onAuth(token: string, options: JoinOptions): Promise<CreationTicket> {
@@ -129,6 +134,13 @@ export class CreationRoom extends Room<{ state: SessionState }> {
         .pass(sessionVoiceRoom(this.roomId), { id: me.sub, name: me.name })
         .then((token) => client.send('voice', { token }))
         .catch((err) => log.warn({ err }, 'voice pass failed'));
+    });
+    // Their app went out of sight (another tab, a locked phone), or came back.
+    this.onMessage('away', (client, away) => {
+      const visit = this.visitOf.get(client.sessionId);
+      if (visit === undefined || (away === true) === (visit === null)) return;
+      if (visit) CreationRoom.visits?.end(visit);
+      this.visitOf.set(client.sessionId, away === true ? null : this.startVisit(client));
     });
     this.onMessage('invite', (client, message) => {
       const parsed = InviteMessage.safeParse(message);
@@ -176,6 +188,18 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     );
     if (!this.state.hostId) this.state.hostId = me.sub;
     this.publishCount();
+    if (CreationRoom.visits) this.visitOf.set(client.sessionId, this.startVisit(client));
+  }
+
+  private startVisit(client: Client) {
+    const me = client.auth as CreationTicket;
+    return (
+      CreationRoom.visits?.start({
+        userId: me.sub,
+        creationId: this.creationId,
+        versionId: this.versionId,
+      }) ?? null
+    );
   }
 
   onLeave(client: Client) {
@@ -183,6 +207,9 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     const me = client.auth as CreationTicket | undefined;
     this.state.players.delete(client.sessionId);
     this.sent.delete(client.sessionId);
+    const visit = this.visitOf.get(client.sessionId);
+    if (visit) CreationRoom.visits?.end(visit);
+    this.visitOf.delete(client.sessionId);
     if (
       me &&
       this.state.hostId === me.sub &&
