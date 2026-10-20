@@ -186,10 +186,13 @@ loop((dt) => {                                            // paused while the ap
 - `createStage` picks the pixel ratio, shadows and antialiasing for `portal.tier`, follows the
   screen as it turns, and widens the field of view in portrait. It also draws fewer pixels while
   frames are slow and more once they're smooth again (`stage.resolution.scale`; pass
-  `{ dynamicResolution: false }` to keep it fixed). Your own renderer can do the same with
-  `ResolutionGovernor` from `@allthespaces/portal/resolution`: call `frame(ms)` every frame and
-  set the pixel ratio from `scale` when it returns true, before you draw (resizing the canvas
-  wipes it, so doing it after drawing leaves a black frame).
+  `{ dynamicResolution: false }` to keep it fixed). Loading makes any device slow for a while, so
+  it judges frames only from 5 s after you call `portal.ready()` (or 20 s after the stage is
+  made, if you never do): a visit starts sharp instead of blurry. Your own renderer can do the
+  same with `ResolutionGovernor` from `@allthespaces/portal/resolution`: call `frame(ms)` every
+  frame once you've loaded (`portal.readyAt` says when you called `ready()`) and set the pixel
+  ratio from `scale` when it returns true, before you draw (resizing the canvas wipes it, so
+  doing it after drawing leaves a black frame).
 - `FirstPersonRig`: walk with the first stick; drag (or click to capture the mouse) to look.
 - `OrbitRig(camera, target, distance)`: drag to circle, pinch or scroll to zoom.
 - Switching scenes or rigs: `stage.dispose()` stops the loop, removes the canvas and lets go of

@@ -71,8 +71,9 @@ describe('a stage', () => {
     renderer?.setPixelRatio.mockImplementation(() => happened.at(-1)?.push('resize'));
     stage.loop(() => happened.at(-1)?.push('draw'));
     const tick = renderer?.setAnimationLoop.mock.lastCall?.[0] as (now: number) => void;
-    // Two seconds of slow frames: the resolution steps down at least once.
-    const start = performance.now();
+    // Two seconds of slow frames once it has loaded: the resolution steps down at least once.
+    portal.ready();
+    const start = performance.now() + 5000;
     for (let i = 1; i <= 70; i++) {
       happened.push([]);
       tick(start + i * 30);
@@ -82,6 +83,52 @@ describe('a stage', () => {
     expect(stepped.length).toBeGreaterThan(0);
     for (const frame of stepped) expect(frame).toEqual(['resize', 'draw']);
     stage.dispose();
+  });
+
+  /** A stage on a clock of its own: `slow(seconds)` plays slow frames (30 ms) and moves it on. */
+  const timed = async () => {
+    let clock = 1000;
+    const now = vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    const portal = await connect();
+    const stage = createStage(portal);
+    stage.loop(() => {});
+    const tick = made.renderers.at(-1)?.setAnimationLoop.mock.lastCall?.[0] as (n: number) => void;
+    const slow = (seconds: number) => {
+      const end = clock + seconds * 1000;
+      while (clock < end) {
+        clock += 30;
+        tick(clock);
+      }
+    };
+    const done = () => {
+      stage.dispose();
+      now.mockRestore();
+    };
+    return { portal, stage, slow, done };
+  };
+
+  it('keeps full resolution while the creation loads, and adapts once it has settled', async () => {
+    const { portal, stage, slow, done } = await timed();
+    // Loading: slow frames before ready() don't count…
+    slow(4);
+    expect(stage.resolution.scale).toBe(1);
+    // …nor in the few seconds after it, while the first scene settles.
+    portal.ready();
+    slow(4.5);
+    expect(stage.resolution.scale).toBe(1);
+    // From then on, slow frames draw fewer pixels.
+    slow(3);
+    expect(stage.resolution.scale).toBeLessThan(1);
+    done();
+  });
+
+  it('adapts even for a creation that never says it is ready', async () => {
+    const { stage, slow, done } = await timed();
+    slow(19);
+    expect(stage.resolution.scale).toBe(1);
+    slow(4);
+    expect(stage.resolution.scale).toBeLessThan(1);
+    done();
   });
 });
 

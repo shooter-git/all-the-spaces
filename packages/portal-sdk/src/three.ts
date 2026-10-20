@@ -16,6 +16,16 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Portal } from './portal.ts';
 import { ResolutionGovernor } from './resolution.ts';
 
+/**
+ * Loading (compiling shaders, decoding sound, building the first scene) makes frames slow for a
+ * while on any device. Dynamic resolution judges frames only from this long after the creation
+ * says it's ready (or the stage is made, if later), so it doesn't start a visit blurry and spend
+ * a minute or more climbing back.
+ */
+const SETTLE_AFTER_READY_MS = 5000;
+/** For a creation that never calls `ready()`: frames are judged from this long after the stage. */
+const SETTLE_WITHOUT_READY_MS = 20000;
+
 export interface Stage {
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
@@ -72,6 +82,12 @@ export function createStage(
   const offViewport = portal.onViewport(resize);
   resize();
 
+  const made = performance.now();
+  /** Whether frames count for dynamic resolution yet: not while the creation is still loading. */
+  const settled = (now: number) =>
+    (portal.readyAt !== null && now >= Math.max(portal.readyAt, made) + SETTLE_AFTER_READY_MS) ||
+    now >= made + SETTLE_WITHOUT_READY_MS;
+
   let paused = false;
   const offPause = portal.on('pause', () => {
     paused = true;
@@ -88,7 +104,8 @@ export function createStage(
       if (paused) return;
       // Resize before drawing: resizing the canvas wipes it, so after `frame` it would leave a
       // black frame on screen until the next one.
-      if (options.dynamicResolution !== false && resolution.frame(ms, now)) resize();
+      if (options.dynamicResolution !== false && settled(now) && resolution.frame(ms, now))
+        resize();
       frame(dt);
     });
   };

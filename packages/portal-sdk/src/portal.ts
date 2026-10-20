@@ -123,6 +123,8 @@ export class Portal {
   readonly connectors: PortalConnectors;
   /** True when running on its own (not inside All the Spaces), e.g. while you build it. */
   readonly standalone: boolean;
+  /** When you first called `ready()` (`performance.now()`), or null before then. */
+  readyAt: number | null = null;
   /** Things drawn by the app around your creation. */
   readonly ui: {
     toast: (text: string) => void;
@@ -182,6 +184,7 @@ export class Portal {
 
   /** Tell the app you've loaded and are ready to be seen (it lifts its veil). */
   ready() {
+    this.readyAt ??= performance.now();
     this.bridge.post({ type: 'ready' });
   }
 
