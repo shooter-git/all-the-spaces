@@ -7,9 +7,12 @@ import {
   type BakeInput,
   type BakeRunner,
   bakeRoom,
+  bakeSamples,
   bakeSettingsFromEnv,
   blenderBaker,
   findBlender,
+  lightmapSize,
+  surfaceArea,
 } from '../src/bake.ts';
 import { buildSpace } from '../src/build.ts';
 import { MeshBuilder } from '../src/geometry.ts';
@@ -25,6 +28,10 @@ describe('bake settings', () => {
     expect(findBlender({ PATH: dir })).toBe(join(dir, 'blender'));
     expect(findBlender({ PATH: dir, ATS_BLENDER: '/opt/b' })).toBe('/opt/b');
     expect(bakeSettingsFromEnv({ PATH: dir, ATS_BAKE_RES: '512' })?.resolution).toBe(512);
+  });
+
+  it('lets rooms have up to 2048 px lightmaps unless ATS_BAKE_RES says less', () => {
+    expect(bakeSettingsFromEnv({ PATH: dir })?.resolution).toBe(2048);
   });
 
   it('is off without Blender, or with ATS_BAKE=0', () => {
@@ -93,6 +100,76 @@ describe.skipIf(!blender)('baking with Blender', () => {
     });
   }, 120_000);
 });
+
+/** Floor, ceiling and walls of a w × d room, h high (m²). */
+const shell = (w: number, d: number, h = 2.7) => 2 * w * d + 2 * (w + d) * h;
+
+describe('lightmap size', () => {
+  it('gives every room about a centimetre a pixel, so big rooms are as sharp as small ones', () => {
+    // A 1.6 × 1.1 m nook, a 3.5 × 3.4 m office, an 8 × 11 m hall.
+    expect(lightmapSize(shell(1.6, 1.1))).toBe(512);
+    expect(lightmapSize(shell(3.5, 3.4))).toBe(1024);
+    expect(lightmapSize(shell(8.2, 10.9))).toBe(2048);
+    for (const [w, d] of [
+      [1.6, 1.1],
+      [3.5, 3.4],
+      [8.2, 10.9],
+    ] as const) {
+      const cm = Math.sqrt(shell(w, d) / 0.7 / lightmapSize(shell(w, d)) ** 2) * 100;
+      expect(cm).toBeGreaterThan(0.7);
+      expect(cm).toBeLessThan(1.42);
+    }
+  });
+
+  it('stays between 256 and 2048, and never over the most asked for (ATS_BAKE_RES)', () => {
+    expect(lightmapSize(0)).toBe(256);
+    expect(lightmapSize(0.5)).toBe(256);
+    expect(lightmapSize(5000)).toBe(2048);
+    expect(lightmapSize(shell(8.2, 10.9), 1024)).toBe(1024);
+    expect(lightmapSize(shell(1.6, 1.1), 8)).toBe(8);
+  });
+
+  it('takes fewer samples a pixel in lightmaps over 1024 px', () => {
+    expect(bakeSamples(512, 128)).toBe(128);
+    expect(bakeSamples(1024, 128)).toBe(128);
+    expect(bakeSamples(2048, 128)).toBe(64);
+    expect(bakeSamples(2048, 1)).toBe(1);
+  });
+
+  it("measures the room's surfaces", () => {
+    const { positions, faces } = flat(room());
+    expect(surfaceArea(positions, faces)).toBeCloseTo(shell(4, 3, 2.5));
+    // A triangle and a pentagon (fanned).
+    expect(surfaceArea([0, 0, 0, 2, 0, 0, 0, 0, 2], [[0, 1, 2]])).toBeCloseTo(2);
+    expect(
+      surfaceArea([0, 0, 0, 1, 0, 0, 1, 1, 0, 0.5, 1.5, 0, 0, 1, 0], [[0, 1, 2, 3, 4]]),
+    ).toBeCloseTo(1.25);
+  });
+
+  it('bakes each room at its own size and says what it was', async () => {
+    const { run, baked } = fakeBaker();
+    const result = await bakeRoom(
+      room(),
+      new MeshBuilder(),
+      { rect: [0, 0, 4, 3], base: 0, top: 2.5, outdoor: false, doorways: [] },
+      { run, samples: 128 },
+    );
+    expect(baked[0]?.resolution).toBe(1024);
+    expect(baked[0]?.samples).toBe(128);
+    expect(result.ok && result.lightmap.size).toBe(1024);
+  });
+});
+
+function flat(b: MeshBuilder) {
+  const positions: number[] = [];
+  const faces: number[][] = [];
+  for (const g of b.groups.values()) {
+    const offset = positions.length / 3;
+    positions.push(...g.positions);
+    for (const f of g.faces) faces.push(f.map((i) => i + offset));
+  }
+  return { positions, faces };
+}
 
 /** Stands in for Blender: a flat grey lightmap of the asked size, and one UV pair per vertex. */
 function fakeBaker() {
@@ -187,7 +264,7 @@ describe('incremental bakes', () => {
       reused: 0,
       failure: null,
     });
-    for (const r of indoor) expect(r.lightmap).toBeDefined();
+    for (const r of indoor) expect(r.lightmap?.size).toBe(8);
 
     // The same plan again: nothing is baked, and every room comes out byte-identical.
     const again = fakeBaker();

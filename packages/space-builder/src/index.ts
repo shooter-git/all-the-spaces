@@ -9,10 +9,14 @@ export {
   type BakeRunner,
   type BakeSettings,
   bakeQualityFromEnv,
+  bakeSamples,
   bakeSettingsFromEnv,
   blenderBaker,
   blenderError,
   findBlender,
+  LIGHTMAP_MAX,
+  LIGHTMAP_MIN,
+  lightmapSize,
 } from './bake.ts';
 export {
   type BuildOptions,

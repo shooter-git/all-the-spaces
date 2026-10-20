@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { buildSpace } from '@ats/space-builder';
-import type { SpaceManifest } from '@ats/space-format';
+import { SpaceManifest } from '@ats/space-format';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   DETAIL_SIGHT,
@@ -9,6 +9,7 @@ import {
   distanceToRoom,
   holdsLighterDetail,
   lighterCost,
+  lightmapBytes,
   MAX_SIGHT,
   needsSunShadows,
   roomAt,
@@ -124,5 +125,39 @@ describe('drawing for where you are', () => {
     expect(needsSunShadows(rooms([{ lightmap: baked }, { lightmap: baked }]))).toBe(false);
     expect(needsSunShadows(rooms([{ lightmap: baked }, {}]))).toBe(true);
     expect(needsSunShadows(rooms([{ lightmap: baked, isOutdoor: true }]))).toBe(true);
+  });
+});
+
+/** A room of the sample, lit with a lightmap of this size (or one that doesn't say). */
+function lit(size?: number) {
+  const room = structuredClone(building.rooms[0] as SpaceManifest['rooms'][number]);
+  room.lightmap = {
+    path: 'chunks/lightmap.webp',
+    bytes: 1000,
+    sha256: '0'.repeat(64),
+    intensity: 2,
+    ...(size ? { size } : {}),
+  };
+  return room;
+}
+
+describe('lightmap memory', () => {
+  it('counts each room at the size its lightmap was baked', () => {
+    const mipmapped = (n: number) => Math.round(n * n * 4 * (4 / 3));
+    expect(lightmapBytes(lit(512))).toBe(mipmapped(512));
+    expect(lightmapBytes(lit(2048))).toBe(mipmapped(2048));
+    expect(detailCost(lit(2048), 'lod0') - detailCost(lit(512), 'lod0')).toBe(
+      mipmapped(2048) - mipmapped(512),
+    );
+    expect(lightmapBytes({ ...lit(512), lightmap: undefined })).toBe(0);
+  });
+
+  it('reads places built before lightmaps said their size, which are all 1024 px', () => {
+    const old = structuredClone(building);
+    old.rooms = [lit()];
+    const parsed = SpaceManifest.parse(JSON.parse(JSON.stringify(old)));
+    const room = parsed.rooms[0] as SpaceManifest['rooms'][number];
+    expect(room.lightmap?.size).toBeUndefined();
+    expect(lightmapBytes(room)).toBe(Math.round(1024 * 1024 * 4 * (4 / 3)));
   });
 });

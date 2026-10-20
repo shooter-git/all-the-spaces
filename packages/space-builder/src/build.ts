@@ -346,11 +346,11 @@ export async function buildSpace(input: unknown, options: BuildOptions = {}): Pr
     );
     let lightmap: Room['lightmap'];
     if (baked.ok) {
-      const { image, intensity, seconds, reused } = baked.lightmap;
+      const { image, intensity, size, seconds, reused } = baked.lightmap;
       const sha256 = createHash('sha256').update(image).digest('hex');
       const path = put(`${sha256}.webp`, image);
       resources.add(path);
-      lightmap = { path, bytes: image.byteLength, sha256, intensity };
+      lightmap = { path, bytes: image.byteLength, sha256, intensity, size };
       stats.bakeSeconds += seconds;
       stats.lighting.baked++;
       if (reused) stats.lighting.reused++;
