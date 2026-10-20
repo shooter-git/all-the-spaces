@@ -2,21 +2,28 @@ import { createHash } from 'node:crypto';
 import type { AssetCredit, PolyHaven, TextureSet } from '@ats/assets';
 import type { MaterialName } from '@ats/space-format';
 import {
+  type Accessor,
   Document,
   Logger,
   type Material,
+  type Mesh,
   type Node,
   NodeIO,
+  type Primitive,
+  Root,
   type Texture,
 } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import {
   dedup,
+  dequantizePrimitive,
   getBounds,
+  joinPrimitives,
   mergeDocuments,
   meshopt,
   prune,
   simplifyPrimitive,
+  transformPrimitive,
   unpartition,
   weldPrimitive,
 } from '@gltf-transform/functions';
@@ -25,6 +32,7 @@ import sharp from 'sharp';
 import { FLOORS, SURFACES, type TextureChoice } from './catalog.ts';
 import type { MeshBuilder, SurfaceKey, V3 } from './geometry.ts';
 import { hexToLinear, MATERIALS } from './materials.ts';
+import { MODEL_LIMITS } from './models.ts';
 
 export interface GlbNode {
   name: string;
@@ -380,24 +388,35 @@ async function composeRoom(
       ]);
     for (const child of merged.listChildren()) inner.addChild(child as Node);
     merged.dispose();
-    if (detail.modelTriangles < 1) {
-      inner.traverse((n) => {
-        for (const prim of n.getMesh()?.listPrimitives() ?? []) {
-          weldPrimitive(prim);
-          simplifyPrimitive(prim, {
-            simplifier: MeshoptSimplifier,
-            ratio: detail.modelTriangles,
-            error: 0.004,
-          });
-        }
+    // One draw per material instead of one per part (a door model can be hundreds of parts).
+    const model = joinModel(doc, inner, `${placed.name}:model`) ?? inner;
+    const prims = () => {
+      const out: Primitive[] = [];
+      model.traverse((n) => {
+        out.push(...(n.getMesh()?.listPrimitives() ?? []));
       });
+      return out;
+    };
+    // Library models skip checkModels: hold each to the same triangle budget a made one has.
+    const triangles = prims().reduce((t, p) => t + triangleCount(p), 0);
+    const ratio = Math.min(1, MODEL_LIMITS.triangles / triangles) * detail.modelTriangles;
+    if (ratio < 1) {
+      for (const prim of prims()) {
+        weldPrimitive(prim);
+        simplifyPrimitive(prim, {
+          simplifier: MeshoptSimplifier,
+          ratio,
+          // Bringing a model down to the budget may take more than the small error lod1 allows.
+          error: triangles > MODEL_LIMITS.triangles ? 0.05 : 0.004,
+        });
+      }
     }
     const half = placed.angle / 2;
     holder
       .setTranslation(placed.position)
       .setRotation([0, Math.sin(half), 0, Math.cos(half)])
       .setScale([placed.scale, placed.scale, placed.scale])
-      .addChild(inner);
+      .addChild(model);
     scene.addChild(holder);
   }
 
@@ -412,6 +431,96 @@ async function composeRoom(
   }
 
   return { doc, credits, surfaceTextures };
+}
+
+const triangleCount = (prim: Primitive) =>
+  prim.getMode() === 4
+    ? (prim.getIndices()?.getCount() ?? prim.getAttribute('POSITION')?.getCount() ?? 0) / 3
+    : 0;
+
+/**
+ * A model's parts as one mesh with one primitive per material (and vertex layout), in the space
+ * of `root`, on a new node named `name`. Returns null, leaving the model as it is, when a part
+ * is animated, skinned, morphed or carries an extension that joining would lose.
+ */
+function joinModel(doc: Document, root: Node, name: string): Node | null {
+  const parts: { node: Node; mesh: Mesh }[] = [];
+  let joinable = doc.getRoot().listAnimations().length === 0;
+  root.traverse((node) => {
+    if (node.getSkin() || node.getCamera() || node.listExtensions().length) joinable = false;
+    const mesh = node.getMesh();
+    if (!mesh) return;
+    if (mesh.listExtensions().length) joinable = false;
+    for (const prim of mesh.listPrimitives())
+      if (prim.listTargets().length || prim.listExtensions().length) joinable = false;
+    parts.push({ node, mesh });
+  });
+  if (!joinable || !parts.length) return null;
+
+  // Each part in the root's space, on its own copy (a mesh can be used by several parts).
+  const groups = new Map<string, Primitive[]>();
+  for (const { node, mesh } of parts) {
+    const matrix = node.getWorldMatrix();
+    for (const src of mesh.listPrimitives()) {
+      if (!src.getAttribute('POSITION')) continue;
+      const prim = src.clone();
+      for (const semantic of prim.listSemantics())
+        prim.setAttribute(semantic, (prim.getAttribute(semantic) as Accessor).clone());
+      const indices = prim.getIndices();
+      if (indices) prim.setIndices(indices.clone());
+      dequantizePrimitive(prim);
+      transformPrimitive(prim, matrix);
+      const layout = prim
+        .listSemantics()
+        .sort()
+        .map((s) => {
+          const a = prim.getAttribute(s) as Accessor;
+          return `${s}:${a.getElementSize()}:${a.getComponentType()}:${a.getNormalized()}`;
+        });
+      const key = [
+        doc
+          .getRoot()
+          .listMaterials()
+          .indexOf(prim.getMaterial() as Material),
+        prim.getMode(),
+        !!prim.getIndices(),
+        ...layout,
+      ].join('|');
+      const group = groups.get(key);
+      if (group) group.push(prim);
+      else groups.set(key, [prim]);
+    }
+  }
+  const joined = doc.createMesh(name);
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      joined.addPrimitive(group[0] as Primitive);
+      continue;
+    }
+    joined.addPrimitive(joinPrimitives(group, { skipValidation: true }));
+    for (const prim of group) disposePrimitive(prim);
+  }
+
+  // The old parts go: nothing else in the room uses them (each placement merges its own copy).
+  const meshes = new Set(parts.map((p) => p.mesh));
+  const nodes: Node[] = [];
+  root.traverse((n) => {
+    nodes.push(n);
+  });
+  for (const n of nodes) n.dispose();
+  for (const mesh of meshes) {
+    if (mesh.listParents().some((p) => !(p instanceof Root))) continue;
+    for (const prim of mesh.listPrimitives()) disposePrimitive(prim);
+    mesh.dispose();
+  }
+  return doc.createNode(name).setMesh(joined);
+}
+
+/** A primitive and whichever of its accessors nothing else uses. */
+function disposePrimitive(prim: Primitive) {
+  const accessors = [...prim.listAttributes(), prim.getIndices()];
+  prim.dispose();
+  for (const a of accessors) if (a?.listParents().every((p) => p instanceof Root)) a.dispose();
 }
 
 /**

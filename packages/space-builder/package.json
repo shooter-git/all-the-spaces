@@ -9,7 +9,8 @@
   },
   "bin": {
     "ats-space-build": "./src/cli.ts",
-    "ats-space": "./src/space-cli.ts"
+    "ats-space": "./src/space-cli.ts",
+    "ats-space-stats": "./src/stats-cli.ts"
   },
   "scripts": {
     "typecheck": "tsc -p .",
