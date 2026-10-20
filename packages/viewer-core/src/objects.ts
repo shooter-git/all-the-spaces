@@ -9,9 +9,11 @@ import {
   type PerspectiveCamera,
   Raycaster,
   ShaderMaterial,
+  Sphere,
   Vector2,
   Vector3,
 } from 'three';
+import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 
 /** How far away you can reach an object from (metres). */
 const REACH = 4.5;
@@ -19,6 +21,8 @@ const REACH = 4.5;
 const GLOW = new Color('#4da3ff');
 /** How far the halo reaches out from an object's surface (metres): about two inches. */
 const HALO_WIDTH = 0.05;
+/** Shapes with more triangles than this get a bounds tree once they're within reach. */
+const DENSE_TRIANGLES = 2000;
 
 /** A material's rim glow: how strong it is right now (0 when the object no longer shimmers). */
 type Rim = { value: number };
@@ -117,13 +121,12 @@ function haloFor(mesh: Mesh, uniforms: HaloUniforms): Mesh[] {
  */
 export class RoomObjects {
   private highlighted = new Set<string>();
-  /** Shimmering materials in loaded rooms (collected afresh now and then, as rooms come and go). */
+  /** Shimmering materials in loaded rooms (collected afresh as rooms come and go). */
   private shimmering: MeshStandardMaterial[] = [];
   private readonly halo: HaloUniforms = {
     haloStrength: { value: 0 },
     haloWidth: { value: HALO_WIDTH },
   };
-  private sinceCollect = 0;
   private readonly raycaster = new Raycaster();
   private readonly ndc = new Vector2();
   private time = 0;
@@ -155,13 +158,13 @@ export class RoomObjects {
     this.collect();
   }
 
-  private collect() {
+  /** Finds the shimmering materials afresh: call when rooms have been added or removed. */
+  collect() {
     const found = new Set<MeshStandardMaterial>();
     this.root.traverse((o) => {
       for (const m of materialsOf(o)) if (m.userData.shimmer) found.add(m);
     });
     this.shimmering = [...found];
-    this.sinceCollect = 0;
   }
 
   /** Called for each room as it arrives. */
@@ -191,7 +194,13 @@ export class RoomObjects {
           },
         );
         m.material = Array.isArray(m.material) ? materials : (materials[0] as Material);
-        if (!m.children.some((c) => c.userData.halo)) m.add(...haloFor(m, this.halo));
+        if (!m.children.some((c) => c.userData.halo)) {
+          const halos = haloFor(m, this.halo);
+          m.add(...halos);
+          // Rooms don't work out where their things are every frame (see `freeze`): place the
+          // halos once, on the mesh they glow around.
+          for (const h of halos) settle(h);
+        }
       }
     });
   }
@@ -211,16 +220,40 @@ export class RoomObjects {
       m.emissive.copy(m.userData.shimmerBase as Color).lerp(GLOW, k);
       (m.userData.rim as Rim).value = rim;
     }
-    // Rooms come and go: drop materials of rooms that have been unloaded.
-    this.sinceCollect += dt;
-    if (this.sinceCollect > 2) this.collect();
+  }
+
+  /**
+   * The shapes a ray from where it starts could hit within `far`: only those drawn now, in rooms
+   * within reach, whose bounds are within reach. Testing every shape in the place (thousands)
+   * would go through the triangles of every wall the ray passes, however far away. Dense ones
+   * get a bounds tree, so testing them takes a few steps instead of every triangle.
+   */
+  private reachable(far: number): Mesh[] {
+    const origin = this.raycaster.ray.origin;
+    const out: Mesh[] = [];
+    const visit = (o: Object3D) => {
+      if (!o.visible) return;
+      if (o instanceof Mesh && !o.userData.halo) {
+        if (worldSphere(o).distanceToPoint(origin) <= far) {
+          accelerate(o);
+          out.push(o);
+        }
+      }
+      for (const c of o.children) visit(c);
+    };
+    if (!this.root.visible) return out;
+    // Each room as a whole first: most are out of reach.
+    for (const room of this.root.children) {
+      if (room.visible && worldBox(room).distanceToPoint(origin) <= far) visit(room);
+    }
+    return out;
   }
 
   /** The object under a point on screen (within reach), if any. */
   pick(camera: PerspectiveCamera, x: number, y: number, rect: DOMRect): string | null {
     this.ndc.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.ndc, camera);
-    for (const hit of this.raycaster.intersectObject(this.root, true)) {
+    for (const hit of this.raycaster.intersectObjects(this.reachable(this.raycaster.far), false)) {
       if (!shown(hit.object)) continue;
       const key = keyOf(hit.object);
       if (key) return key;
@@ -244,6 +277,8 @@ export class RoomObjects {
     const n = 9;
     const far = this.raycaster.far;
     this.raycaster.far = 40;
+    this.raycaster.setFromCamera(this.ndc.set(0, 0), camera);
+    const candidates = this.reachable(this.raycaster.far);
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
         const x = box.left + (box.width * (i + 0.5)) / n;
@@ -253,7 +288,7 @@ export class RoomObjects {
           -((y - rect.top) / rect.height) * 2 + 1,
         );
         this.raycaster.setFromCamera(this.ndc, camera);
-        for (const hit of this.raycaster.intersectObject(this.root, true)) {
+        for (const hit of this.raycaster.intersectObjects(candidates, false)) {
           if (!shown(hit.object)) continue;
           const key = keyOf(hit.object);
           if (key) {
@@ -278,6 +313,49 @@ export class RoomObjects {
     const c = new Box3().setFromObject(found).getCenter(new Vector3());
     return [c.x, c.y, c.z];
   }
+}
+
+/** Places something added to a room (frozen yet or not; see `freeze`), once. */
+function settle(o: Object3D) {
+  o.updateWorldMatrix(true, false);
+  o.matrixAutoUpdate = false;
+  o.matrixWorldAutoUpdate = false;
+}
+
+/** Where things are in the place, worked out once (rooms don't move; see `freeze`). */
+const spheres = new WeakMap<Mesh, Sphere>();
+const boxes = new WeakMap<Object3D, Box3>();
+
+function worldSphere(mesh: Mesh): Sphere {
+  let s = spheres.get(mesh);
+  if (!s) {
+    const g = mesh.geometry;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    s = (g.boundingSphere ?? new Sphere()).clone().applyMatrix4(mesh.matrixWorld);
+    spheres.set(mesh, s);
+  }
+  return s;
+}
+
+function worldBox(room: Object3D): Box3 {
+  let b = boxes.get(room);
+  if (!b) {
+    b = new Box3().setFromObject(room);
+    boxes.set(room, b);
+  }
+  return b;
+}
+
+/** Gives a dense shape a bounds tree (once), leaving its geometry as it is. */
+function accelerate(mesh: Mesh) {
+  if ((mesh as { isInstancedMesh?: boolean }).isInstancedMesh) return;
+  const g = mesh.geometry;
+  if (!g.boundsTree) {
+    const triangles = (g.index?.count ?? g.getAttribute('position')?.count ?? 0) / 3;
+    if (triangles <= DENSE_TRIANGLES) return;
+    g.boundsTree = new MeshBVH(g, { indirect: true });
+  }
+  mesh.raycast = acceleratedRaycast;
 }
 
 function materialsOf(o: Object3D): MeshStandardMaterial[] {

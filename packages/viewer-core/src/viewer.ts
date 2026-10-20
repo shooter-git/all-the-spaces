@@ -45,8 +45,9 @@ import { InputState } from './input.ts';
 import { RoomObjects } from './objects.ts';
 import { FrameStats } from './perf.ts';
 import { CollisionWorld, PlayerController } from './physics.ts';
-import { roomAt } from './rooms.ts';
+import { needsSunShadows, roomAt } from './rooms.ts';
 import { disposeObject, RoomStreamer, type StreamStats } from './streamer.ts';
+import { sharpen } from './textures.ts';
 
 /** The device's quality tier: the protocol's tiers, which creations get too. */
 export type Quality = Tier;
@@ -96,6 +97,10 @@ export interface ViewerStats extends StreamStats {
   resolutionScale: number;
   /** The quality this device started at. */
   quality: Quality;
+  /** Ambient occlusion: on, given up for now (frames were slow), or not on this tier at all. */
+  ambientOcclusion: 'on' | 'off' | 'none';
+  /** Whether the sun casts shadows as you walk (not in places whose light is all baked). */
+  sunShadows: boolean;
 }
 
 export interface TravelTarget {
@@ -189,6 +194,10 @@ export class SpaceViewer {
   private composer: EffectComposer | null = null;
   private gtao: GTAOPass | null = null;
   private readonly baseUrl: string;
+  /** Each room's lighting image, shared by its full and lighter detail. */
+  private readonly lightmaps = new Map<string, Promise<Texture>>();
+  /** How sharply textures seen at a glance (a floor ahead of you) are drawn. */
+  private readonly anisotropy: number;
 
   constructor(container: HTMLElement, options: ViewerOptions) {
     this.container = container;
@@ -206,16 +215,24 @@ export class SpaceViewer {
     });
     this.fullPixelRatio = Math.min(window.devicePixelRatio, quality === 'low' ? 1.5 : 2);
     this.renderer.setPixelRatio(this.fullPixelRatio);
+    // When frames are slow, ambient occlusion goes before any pixels do (it draws everything a
+    // second time), and pixels go only while fewer of them make frames faster: a frame held up by
+    // the processor (too many things to draw) only gets blurrier with fewer pixels.
     this.resolution =
       options.dynamicResolution === false
         ? null
-        : new ResolutionGovernor({ min: quality === 'low' ? 0.55 : 0.6 });
+        : new ResolutionGovernor({
+            min: quality === 'low' ? 0.55 : 0.6,
+            detectCpuBound: true,
+            shed: () => this.setAmbientOcclusion(false),
+            restore: () => this.setAmbientOcclusion(true),
+          });
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = AgXToneMapping;
     this.renderer.toneMappingExposure = this.manifest.lighting.exposure;
     this.renderer.info.autoReset = false;
-    // Soft sun shadows on mid and high tiers.
-    this.renderer.shadowMap.enabled = quality !== 'low';
+    // Soft sun shadows on mid and high tiers, in places that have any light that isn't baked.
+    this.renderer.shadowMap.enabled = quality !== 'low' && needsSunShadows(this.manifest);
     this.renderer.shadowMap.type = PCFShadowMap;
     this.renderer.domElement.style.display = 'block';
     // Always fills its container, however many pixels are drawn (dynamic resolution).
@@ -223,6 +240,13 @@ export class SpaceViewer {
     this.renderer.domElement.style.height = '100%';
     this.renderer.domElement.style.touchAction = 'none';
     container.appendChild(this.renderer.domElement);
+    this.anisotropy = Math.min(
+      this.renderer.capabilities.getMaxAnisotropy(),
+      quality === 'low' ? 4 : 8,
+    );
+    // Nothing in the scene itself moves it; rooms are placed once (see `freeze`). Only what moves
+    // (the sun, doors, people) works out where it is each frame.
+    this.scene.matrixAutoUpdate = false;
 
     this.setupLighting();
     this.setupPostprocessing();
@@ -249,6 +273,7 @@ export class SpaceViewer {
       // furniture doesn't also cast them in real time, which would draw it all a second time.
       const baked = Boolean(this.manifest.rooms.find((r) => r.key === key)?.lightmap);
       this.prepareMaterials(object, !baked);
+      sharpen(object, this.anisotropy);
       this.objects.prepare(object);
       await this.applyLightmap(key, object);
       // Compile the room's shaders and upload its textures now, while the place is opening, so
@@ -261,6 +286,8 @@ export class SpaceViewer {
             if ((value as Texture)?.isTexture) this.renderer.initTexture(value as Texture);
       });
     };
+    // What's in the rooms changes only as rooms come and go.
+    this.streamer.onRoomsChanged = () => this.objects.collect();
     this.scene.add(this.streamer.root);
     this.scene.add(this.avatars.root);
 
@@ -274,10 +301,9 @@ export class SpaceViewer {
             roomKey: options.start.roomKey,
           }
         : null;
-    const spawn =
-      resume ??
-      this.manifest.spawns.find((s) => s.key === options.spawnKey) ??
-      this.manifest.spawns[0];
+    const planned =
+      this.manifest.spawns.find((s) => s.key === options.spawnKey) ?? this.manifest.spawns[0];
+    const spawn = resume ?? (planned && { ...planned, yaw: radians(planned.yaw) });
     if (spawn) {
       this.player.teleport(spawn.position, spawn.yaw);
       this.setRoom(this.manifest.rooms.find((r) => r.key === spawn.roomKey) ?? null);
@@ -368,6 +394,10 @@ export class SpaceViewer {
     const composer = new EffectComposer(this.renderer, target);
     composer.addPass(new RenderPass(this.scene, this.camera));
     const gtao = new GTAOPass(this.scene, this.camera, 1, 1);
+    // At half resolution: soft shading doesn't need every pixel, and it costs a quarter as much.
+    const setSize = gtao.setSize.bind(gtao);
+    gtao.setSize = (width: number, height: number) =>
+      setSize(Math.max(1, Math.round(width / 2)), Math.max(1, Math.round(height / 2)));
     gtao.output = GTAOPass.OUTPUT.Default;
     gtao.blendIntensity = 0.85;
     gtao.updateGtaoMaterial({
@@ -399,15 +429,25 @@ export class SpaceViewer {
     const baked = this.manifest.rooms.find((r) => r.key === roomKey)?.lightmap;
     const architecture = object.getObjectByName('architecture');
     if (!baked || !architecture) return;
+    let loading = this.lightmaps.get(roomKey);
+    if (!loading) {
+      loading = new TextureLoader()
+        .loadAsync(new URL(baked.path, this.baseUrl).toString())
+        .then((t) => {
+          t.flipY = false;
+          t.colorSpace = SRGBColorSpace;
+          t.channel = 1; // the second UV set, made for the lightmap
+          return t;
+        });
+      this.lightmaps.set(roomKey, loading);
+    }
     let texture: Texture;
     try {
-      texture = await new TextureLoader().loadAsync(new URL(baked.path, this.baseUrl).toString());
+      texture = await loading;
     } catch {
+      this.lightmaps.delete(roomKey); // tried again with the room's next file
       return; // keep real-time lighting
     }
-    texture.flipY = false;
-    texture.colorSpace = SRGBColorSpace;
-    texture.channel = 1; // the second UV set, made for the lightmap
     architecture.traverse((o) => {
       if (!(o instanceof Mesh) || !o.geometry.getAttribute('uv1')) return;
       const old = o.material as MeshStandardMaterial;
@@ -422,6 +462,13 @@ export class SpaceViewer {
       old.dispose();
       o.receiveShadow = false;
     });
+  }
+
+  /** Turns ambient occlusion on or off (when frames are slow); true if that changed anything. */
+  private setAmbientOcclusion(on: boolean): boolean {
+    if (!this.gtao || this.gtao.enabled === on) return false;
+    this.gtao.enabled = on;
+    return true;
   }
 
   private prepareMaterials(object: Object3D, castsShadows = true) {
@@ -546,6 +593,8 @@ export class SpaceViewer {
       this.streamer.focus(this.room.key);
     }
     this.checkLift();
+    // Rooms far from you are drawn lighter (open-plan places see every room at once).
+    this.streamer.look(this.camera.position.x, this.camera.position.y, this.camera.position.z);
 
     this.avatars.update(dt);
     this.doors.update(dt, [p, ...this.avatars.positions()]);
@@ -658,7 +707,7 @@ export class SpaceViewer {
   rideLift(link: Link, stopIndex: number) {
     const stop = link.stops[stopIndex];
     if (!stop) return;
-    this.player.teleport(stop.position, stop.yaw);
+    this.player.teleport(stop.position, radians(stop.yaw));
     this.walkTarget = null;
     this.teleports++;
     this.landing = stop.roomKey;
@@ -724,6 +773,8 @@ export class SpaceViewer {
       pixelRatio: this.renderer.getPixelRatio(),
       resolutionScale: this.resolution?.scale ?? 1,
       quality: this.quality,
+      ambientOcclusion: !this.gtao ? 'none' : this.gtao.enabled ? 'on' : 'off',
+      sunShadows: this.renderer.shadowMap.enabled,
     };
   }
 
@@ -895,6 +946,9 @@ export class SpaceViewer {
     this.renderer.domElement.remove();
   }
 }
+
+/** Places give facing directions (spawns, lift stops) in degrees; the player turns in radians. */
+export const radians = (degrees: number) => (degrees * Math.PI) / 180;
 
 /**
  * Blender bakes the light arriving at each surface; three.js divides a basic material's lightmap

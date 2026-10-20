@@ -111,6 +111,35 @@ export function roomViews(manifest: SpaceManifest, current: string): Map<string,
   return out;
 }
 
+/**
+ * Rooms in full detail further away than this (metres, from you to the nearest part of the room)
+ * are drawn with their lighter detail (lod1) when it's held, and without their smallest things.
+ * Open-plan places see every room at once; only the ones near you need every triangle.
+ */
+export const NEAR_DETAIL_M = 8;
+/** A room drawn lighter comes back to full detail only this much closer (so it doesn't flicker). */
+export const NEAR_DETAIL_HYSTERESIS_M = 1;
+/** Things smaller than this (radius, metres) aren't drawn in rooms beyond `NEAR_DETAIL_M`. */
+export const SMALL_THING_M = 0.15;
+
+/** How far a point is from a room (metres; 0 inside it). */
+export function distanceToRoom(room: Room, x: number, y: number, z: number): number {
+  const { min, max } = room.bounds;
+  const dx = Math.max(min[0] - x, 0, x - max[0]);
+  const dy = Math.max(min[1] - y, 0, y - max[1]);
+  const dz = Math.max(min[2] - z, 0, z - max[2]);
+  return Math.hypot(dx, dy, dz);
+}
+
+/**
+ * Whether a place needs the sun's shadows drawn as you walk: not when every room is indoors with
+ * its light baked (shadows included). Real-time shadows draw everything again from the sun each
+ * frame, and every surface looks them up.
+ */
+export function needsSunShadows(manifest: SpaceManifest): boolean {
+  return manifest.rooms.some((r) => r.isOutdoor || !r.lightmap);
+}
+
 /** Graphics memory a room's lighting image takes (1024 px square, RGBA, with mipmaps). */
 const LIGHTMAP_BYTES = Math.round(1024 * 1024 * 4 * (4 / 3));
 /** Geometry takes more room on the graphics card than in its compressed file. */
@@ -119,6 +148,22 @@ const GEOMETRY_EXPANSION = 4;
 /** Roughly what holding a room in full detail costs in graphics memory (bytes). */
 export function detailCost(room: Room, lod: Lod): number {
   return room.lods[lod].bytes * GEOMETRY_EXPANSION + (room.lightmap ? LIGHTMAP_BYTES : 0);
+}
+
+/**
+ * Whether the device can hold every room's lighter detail (lod1) beside its full detail, to draw
+ * rooms further away with. Only when the whole place fits both ways, so nothing loads as you walk.
+ */
+export function holdsLighterDetail(manifest: SpaceManifest, lod: Lod, budget: number): boolean {
+  if (lod !== 'lod0') return false;
+  let used = 0;
+  for (const r of manifest.rooms) used += detailCost(r, 'lod0') + lighterCost(r);
+  return used <= budget;
+}
+
+/** What holding a room's lighter detail beside its full detail adds (they share the lighting). */
+export function lighterCost(room: Room): number {
+  return room.lods.lod1.bytes * GEOMETRY_EXPANSION;
 }
 
 /**

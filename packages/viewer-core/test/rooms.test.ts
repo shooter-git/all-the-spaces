@@ -6,7 +6,11 @@ import {
   DETAIL_SIGHT,
   detailCost,
   detailRooms,
+  distanceToRoom,
+  holdsLighterDetail,
+  lighterCost,
   MAX_SIGHT,
+  needsSunShadows,
   roomAt,
   roomDistances,
   roomViews,
@@ -92,5 +96,33 @@ describe('what to hold in full detail', () => {
     for (const r of building.rooms)
       if (!some.includes(r.key)) expect(d.get(r.key) ?? 99).toBeGreaterThanOrEqual(furthestHeld);
     expect(detailRooms(building, 'garden', 'lod0', 1)).toEqual(['garden']);
+  });
+});
+
+describe('drawing for where you are', () => {
+  it('measures how far you are from a room (nothing inside it)', () => {
+    const lobby = building.rooms.find((r) => r.key === 'lobby');
+    if (!lobby) throw new Error('no lobby');
+    const { min, max } = lobby.bounds;
+    expect(distanceToRoom(lobby, (min[0] + max[0]) / 2, min[1] + 1, (min[2] + max[2]) / 2)).toBe(0);
+    expect(distanceToRoom(lobby, max[0] + 3, min[1] + 1, max[2] + 4)).toBeCloseTo(5);
+    expect(distanceToRoom(lobby, max[0], max[1] + 2, max[2])).toBeCloseTo(2);
+  });
+
+  it('holds lighter detail too only when the whole place fits both ways', () => {
+    const both = building.rooms.reduce((n, r) => n + detailCost(r, 'lod0') + lighterCost(r), 0);
+    expect(holdsLighterDetail(building, 'lod0', both)).toBe(true);
+    expect(holdsLighterDetail(building, 'lod0', both - 1)).toBe(false);
+    // Devices that draw lighter detail everywhere already.
+    expect(holdsLighterDetail(building, 'lod1', both * 10)).toBe(false);
+  });
+
+  it('draws the sun’s shadows unless every room is indoors and baked', () => {
+    const baked = { path: 'l.webp', bytes: 1, sha256: '', intensity: 1 };
+    const rooms = (list: Partial<SpaceManifest['rooms'][number]>[]) =>
+      ({ ...building, rooms: list }) as SpaceManifest;
+    expect(needsSunShadows(rooms([{ lightmap: baked }, { lightmap: baked }]))).toBe(false);
+    expect(needsSunShadows(rooms([{ lightmap: baked }, {}]))).toBe(true);
+    expect(needsSunShadows(rooms([{ lightmap: baked, isOutdoor: true }]))).toBe(true);
   });
 });

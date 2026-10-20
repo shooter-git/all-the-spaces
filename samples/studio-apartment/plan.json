@@ -228,5 +228,5 @@
       "size": [0.5, 1.4, 0.5]
     }
   ],
-  "spawns": [{ "key": "front-door", "room": "hall", "at": [0.8, 1.0], "yaw": -1.5708 }]
+  "spawns": [{ "key": "front-door", "room": "hall", "at": [0.8, 1.0], "yaw": -90 }]
 }

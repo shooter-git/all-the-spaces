@@ -96,6 +96,7 @@ export const Link = z.object({
   key: z.string(),
   kind: z.enum(['elevator']),
   name: z.string(),
+  /** Each stop's `yaw` is the way you face arriving there, in degrees (like a spawn's). */
   stops: z
     .array(z.object({ floorKey: z.string(), roomKey: z.string(), position: Vec3, yaw: z.number() }))
     .min(2),
@@ -106,7 +107,7 @@ export const Spawn = z.object({
   key: z.string(),
   roomKey: z.string(),
   position: Vec3,
-  /** Facing direction in radians around +Y (0 looks along -Z). */
+  /** Facing direction in degrees around +Y (0 looks along -Z), as the plan gives it. */
   yaw: z.number(),
 });
 export type Spawn = z.infer<typeof Spawn>;
