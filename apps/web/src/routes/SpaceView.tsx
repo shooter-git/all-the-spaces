@@ -41,6 +41,8 @@ import { Joystick } from './space-view/Joystick.tsx';
 import { PeopleSheet } from './space-view/PeopleSheet.tsx';
 import { PerfPanel } from './space-view/PerfPanel.tsx';
 import { isTouch, pickQuality } from './space-view/quality.ts';
+import { RoomTitle } from './space-view/RoomTitle.tsx';
+import { SpaceSettings } from './space-view/SpaceSettings.tsx';
 import { TouchLook } from './space-view/TouchLook.tsx';
 import { TravelMenu } from './space-view/TravelMenu.tsx';
 import { useRequestsOverlay } from './space-view/useRequestsOverlay.ts';
@@ -79,7 +81,8 @@ export function SpaceView({ me }: { me: Me }) {
   const host = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<SpaceViewer | null>(null);
   const [manifest, setManifest] = useState<SpaceManifest | null>(null);
-  const [menu, setMenu] = useState(false);
+  /** A sheet opened from the menu: the rooms to go to, or sound and settings. */
+  const [sheet, setSheet] = useState<'rooms' | 'settings' | null>(null);
   const [showPerf, setShowPerf] = useState(() =>
     new URLSearchParams(window.location.search).has('perf'),
   );
@@ -550,77 +553,13 @@ export function SpaceView({ me }: { me: Me }) {
       )}
 
       <div className="space-hud" hidden={Boolean(journey)}>
-        <div className="space-top">
-          <button
-            type="button"
-            className="space-icon-button"
-            onClick={() => navigate('/')}
-            aria-label="Leave the space"
-          >
-            <Icon name="back" />
-            <span className="space-wide-only">Leave</span>
-          </button>
-          {room && (
-            <div className="space-chip" aria-live="polite">
-              <strong>{room.name}</strong>
-              {multiFloor && <span>{floorName}</span>}
-            </div>
-          )}
-          <div className="ats-row" style={{ gap: 8 }}>
-            {!reviewing && presence?.voice && <VoiceButton voice={voice} />}
-            {!reviewing && (
-              <button
-                type="button"
-                className="space-icon-button"
-                onClick={() => setPeopleOpen(true)}
-                aria-label={
-                  live === 'reconnecting'
-                    ? 'People here: reconnecting'
-                    : `People here: ${live === 'offline' ? 'offline' : people.length}`
-                }
-                title={
-                  live === 'offline'
-                    ? 'Live presence is offline'
-                    : live === 'reconnecting'
-                      ? 'Reconnecting to live presence…'
-                      : undefined
-                }
-              >
-                <Icon name="people" />
-                {live === 'offline' || live === 'reconnecting' ? 'Offline' : people.length}
-              </button>
-            )}
-            <button
-              type="button"
-              className="space-icon-button space-chat-button"
-              onClick={() => (chatOpen ? closeChat() : openChat())}
-              aria-label={`Chat${chat.totalUnread ? `: ${chat.totalUnread} unread` : ''}`}
-              aria-expanded={chatOpen}
-            >
-              <Icon name="chat" />
-              <span className="space-wide-only">Chat</span>
-              {chat.totalUnread > 0 && (
-                <span className="space-badge">
-                  {chat.totalUnread > 99 ? '99+' : chat.totalUnread}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              className="space-icon-button"
-              onClick={() => setMenu(true)}
-              aria-label={`Open menu${notifications.unread ? `: ${notifications.unread} new notifications` : ''}`}
-            >
-              <Icon name="more" />
-              <span className="space-wide-only">Menu</span>
-              {notifications.unread > 0 && (
-                <span className="space-badge">
-                  {notifications.unread > 99 ? '99+' : notifications.unread}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+        {room && (
+          <RoomTitle
+            roomKey={room.key}
+            name={room.name}
+            under={(multiFloor ? floorName : manifest?.name) ?? null}
+          />
+        )}
 
         {/* Refreshing reloads the page: offered in the space, never inside a creation (the HUD
             is hidden there). */}
@@ -637,7 +576,7 @@ export function SpaceView({ me }: { me: Me }) {
         <div className="space-bottom">
           {touch ? <Joystick viewer={viewerRef} /> : <span />}
           {!touch && ready && !locked && !focus && !pointed && !ask && (
-            <div className="space-chip space-hint">
+            <div className="washi-glass space-hint">
               Click to look around · W A S D to walk · Shift to run · Esc to stop
             </div>
           )}
@@ -664,15 +603,137 @@ export function SpaceView({ me }: { me: Me }) {
           {ready && !reviewing && !ask && (
             <button
               type="button"
-              className="space-icon-button space-ask"
+              className="space-glass-button space-ask"
               onClick={() => setAsk({})}
             >
-              <Icon name="plus" />
-              Ask for something
+              <span className="washi-glass">
+                <Icon name="plus" size={16} />
+                Ask for something
+              </span>
             </button>
           )}
         </div>
       </div>
+
+      {/* Over the view (not the loading screen): the same corner menu as inside a creation. */}
+      {ready && !journey && (
+        <CreationMenu
+          label="Menu"
+          attention={chat.totalUnread > 0 || notifications.unread > 0 || voice.speaking.length > 0}
+          aside={
+            (voice.status === 'on' || voice.status === 'muted') && (
+              <button
+                type="button"
+                className="creation-menu-mic"
+                data-on={voice.status === 'on'}
+                onClick={voice.toggleMic}
+                aria-label={
+                  voice.status === 'on' ? 'Mute your microphone' : 'Unmute your microphone'
+                }
+              >
+                <span className="creation-menu-glass">
+                  <Icon name={voice.status === 'on' ? 'mic' : 'micOff'} />
+                </span>
+              </button>
+            )
+          }
+        >
+          {room && (
+            <div className="creation-menu-note">
+              {[manifest?.name, room.name, multiFloor ? floorName : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </div>
+          )}
+          <button
+            type="button"
+            className="creation-menu-item"
+            onClick={() => (chatOpen ? closeChat() : openChat())}
+            aria-label={`${chatOpen ? 'Close chat' : 'Chat'}${chat.totalUnread ? `: ${chat.totalUnread} unread` : ''}`}
+            aria-expanded={chatOpen}
+          >
+            <Icon name="chat" />
+            {chatOpen ? 'Close chat' : 'Chat'}
+            {chat.totalUnread > 0 && (
+              <span className="creation-menu-count">
+                {chat.totalUnread > 99 ? '99+' : chat.totalUnread}
+              </span>
+            )}
+          </button>
+          {!reviewing && (
+            <button
+              type="button"
+              className="creation-menu-item"
+              onClick={() => setPeopleOpen(true)}
+              aria-label={
+                live === 'reconnecting'
+                  ? 'People here: reconnecting'
+                  : `People here: ${live === 'offline' ? 'offline' : people.length}`
+              }
+              title={
+                live === 'offline'
+                  ? 'Live presence is offline'
+                  : live === 'reconnecting'
+                    ? 'Reconnecting to live presence…'
+                    : undefined
+              }
+            >
+              <Icon name="people" />
+              People here
+              <span className="creation-menu-aside">
+                {live === 'offline' || live === 'reconnecting' ? 'Offline' : people.length}
+              </span>
+            </button>
+          )}
+          {!reviewing && presence?.voice && (
+            <div data-keep-open>
+              <VoiceButton voice={voice} />
+            </div>
+          )}
+          {(manifest?.rooms.length ?? 0) > 1 && (
+            <button type="button" className="creation-menu-item" onClick={() => setSheet('rooms')}>
+              <Icon name="map" />
+              Go to another room
+            </button>
+          )}
+          <button
+            type="button"
+            className="creation-menu-item"
+            onClick={() => setNotificationsOpen(true)}
+            aria-label={`Notifications${notifications.unread ? `: ${notifications.unread} new` : ''}`}
+          >
+            <Icon name="bell" />
+            Notifications
+            {notifications.unread > 0 && (
+              <span className="creation-menu-count">
+                {notifications.unread > 99 ? '99+' : notifications.unread}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            className="creation-menu-item"
+            onClick={() => navigate('/requests')}
+          >
+            <Icon name="list" />
+            My requests
+          </button>
+          <button type="button" className="creation-menu-item" onClick={() => setSheet('settings')}>
+            <Icon name="settings" />
+            Sound and settings
+          </button>
+          <div className="creation-menu-rule" />
+          <button
+            type="button"
+            className="creation-menu-item"
+            data-wrap
+            onClick={() => navigate('/')}
+          >
+            <Icon name="back" />
+            Leave {manifest?.name ?? 'the space'}
+          </button>
+        </CreationMenu>
+      )}
 
       <div className="space-loading" data-done={ready || Boolean(journey) || released}>
         <div className="ats-stack" style={{ alignItems: 'center', gap: 12 }}>
@@ -923,18 +984,16 @@ export function SpaceView({ me }: { me: Me }) {
         />
       )}
 
-      {menu && manifest && (
-        <TravelMenu
-          viewer={viewerRef}
+      {sheet === 'rooms' && manifest && (
+        <TravelMenu viewer={viewerRef} onClose={() => setSheet(null)} />
+      )}
+      {sheet === 'settings' && (
+        <SpaceSettings
           sound={soundPrefs}
           onSound={(prefs) => sound.setPrefs(prefs)}
-          onClose={() => setMenu(false)}
           showPerf={showPerf}
           onTogglePerf={() => setShowPerf((v) => !v)}
-          onLeave={() => navigate('/')}
-          unread={notifications.unread}
-          onNotifications={() => setNotificationsOpen(true)}
-          onRequests={() => navigate('/requests')}
+          onClose={() => setSheet(null)}
         />
       )}
     </div>

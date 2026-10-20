@@ -1,9 +1,9 @@
 // Phones, in real browser engines (Chromium as Android, WebKit as iPhone), portrait and landscape:
-// inside a space every control answers a tap, pop-ups take taps and scroll, the 3D view still
-// walks and looks without moving the page, a creation's Back and Chat stay reachable, and held
-// sideways the way into a creation puts its picture beside the words, with the way in on screen.
-// Turned sideways and back (with fingers down that never lift, as phones can lose them in a
-// turn), the page stays put, the top bar and its pop-ups still take taps, and the walking stops.
+// inside a space everything in the corner menu answers a tap, pop-ups take taps and scroll, the 3D
+// view still walks and looks without moving the page, a creation's Back and Chat stay reachable,
+// and held sideways the way into a creation puts its picture beside the words, with the way in on
+// screen. Turned sideways and back (with fingers down that never lift, as phones can lose them in a
+// turn), the page stays put, the menu and its pop-ups still take taps, and the walking stops.
 // Runs against the built app like the axe checks (`pnpm --filter @ats/web build`, then
 // `pnpm --filter @ats/web test:axe`). The server is played by fixtures; the space is a row of
 // small rooms drawn with software WebGL. WebKit needs its system libraries (`playwright install
@@ -63,7 +63,7 @@ function floorGltf() {
 }
 
 const chunk = { path: 'chunks/floor.gltf', bytes: 1, sha256: 'a'.repeat(64) };
-/** Enough rooms that the menu's "Go to…" list is longer than a phone's screen. */
+/** Enough rooms that the "Go to another room" list is longer than a phone's screen. */
 const room = (i: number) => ({
   key: `room${i}`,
   floorKey: 'ground',
@@ -85,7 +85,7 @@ const manifest = {
   name: 'Test house',
   spaceType: 'house',
   floors: [{ key: 'ground', name: 'Ground', index: 0, elevation: 0 }],
-  rooms: Array.from({ length: 24 }, (_, i) => room(i)),
+  rooms: Array.from({ length: 40 }, (_, i) => room(i)),
   links: [],
   spawns: [{ key: 'start', roomKey: 'room0', position: [0, 0, 0], yaw: 0 }],
   lighting: { sky: '#dfe8f1', ground: '#c2b6a4', sunDirection: [0.4, 1, 0.3], exposure: 1 },
@@ -354,71 +354,60 @@ run('touch in a space (phones)', () => {
       Math.round(window.visualViewport?.offsetTop ?? 0),
     ]);
 
-  /** Every control in the top bar is on top where it's drawn, and opens what it should. */
-  async function topBarAnswers(tab: Page) {
-    const button = (name: RegExp) => tab.getByRole('button', { name });
-    await reachable(button(/^People here/));
-    await button(/^People here/).tap();
+  /** The corner menu: its button, and the item named, each on top where it's drawn, tapped. */
+  async function choose(tab: Page, name: RegExp) {
+    const open = tab.locator('.creation-menu').getByRole('button', { name: /^Menu/ });
+    await reachable(open);
+    await open.tap();
+    const item = tab.locator('.creation-menu-panel').getByRole('button', { name });
+    await reachable(item);
+    await item.tap();
+  }
+
+  /** Everything in the corner menu is on top where it's drawn, and opens what it should. */
+  async function menuAnswers(tab: Page) {
+    await choose(tab, /^People here/);
     const people = tab.getByRole('dialog', { name: 'People here' });
     await people.waitFor({ timeout: 5000 });
     await reachable(people.getByRole('button', { name: 'Close' }));
     await people.getByRole('button', { name: 'Close' }).tap();
     await people.waitFor({ state: 'detached', timeout: 5000 });
 
-    await reachable(button(/^Chat/));
-    await button(/^Chat/).tap();
+    await choose(tab, /^Chat/);
     const chat = tab.getByRole('complementary', { name: 'Chat' });
     await chat.waitFor({ timeout: 5000 });
-    await button(/^Chat/).tap();
+    await choose(tab, /^Close chat/);
     await chat.waitFor({ state: 'detached', timeout: 5000 });
 
-    await reachable(button(/^Open menu/));
-    await button(/^Open menu/).tap();
-    const menu = tab.getByRole('dialog', { name: 'Menu' });
-    await menu.waitFor({ timeout: 5000 });
-    const room = menu.getByRole('button', { name: 'Room 3' });
+    await choose(tab, /^Sound and settings/);
+    const settings = tab.getByRole('dialog', { name: 'Sound and settings' });
+    await settings.waitFor({ timeout: 5000 });
+    await reachable(settings.getByRole('button', { name: 'Close' }));
+    await settings.getByRole('button', { name: 'Close' }).tap();
+    await settings.waitFor({ state: 'detached', timeout: 5000 });
+
+    await choose(tab, /^Go to another room/);
+    const rooms = tab.getByRole('dialog', { name: 'Go to another room' });
+    await rooms.waitFor({ timeout: 5000 });
+    const room = rooms.getByRole('button', { name: 'Room 3', exact: true });
     await reachable(room);
     await room.tap();
-    await menu.waitFor({ state: 'detached', timeout: 5000 });
+    await rooms.waitFor({ state: 'detached', timeout: 5000 });
     await expect.poll(async () => (await pose(tab)).roomKey, { timeout: 10_000 }).toBe('room3');
 
-    await reachable(button(/^Leave/));
-    await button(/^Leave/).tap();
+    await choose(tab, /^Leave/);
     await tab.waitForURL(`${base}/`, { timeout: 5000 });
   }
 
   for (const p of PHONES) {
     describe(p.name, () => {
-      it('every control in the top bar answers a tap', { timeout: 90_000 }, async () => {
+      it('everything in the corner menu answers a tap', { timeout: 90_000 }, async () => {
         const context = await phone(p);
         try {
           const tab = await enter(context);
-          const button = (name: RegExp) => tab.getByRole('button', { name });
-
-          await reachable(button(/^People here/));
-          await button(/^People here/).tap();
-          const people = tab.getByRole('dialog', { name: 'People here' });
-          await people.waitFor();
-          await people.getByRole('button', { name: 'Close' }).tap();
-          await people.waitFor({ state: 'detached' });
-
-          await reachable(button(/^Chat/));
-          await button(/^Chat/).tap();
-          const chat = tab.getByRole('complementary', { name: 'Chat' });
-          await chat.waitFor();
-          await button(/^Chat/).tap();
-          await chat.waitFor({ state: 'detached' });
-
-          await reachable(button(/^Open menu/));
-          await button(/^Open menu/).tap();
-          const menu = tab.getByRole('dialog', { name: 'Menu' });
-          await menu.waitFor();
-          await menu.getByRole('button', { name: 'Close' }).tap();
-          await menu.waitFor({ state: 'detached' });
-
-          await reachable(button(/^Leave/));
-          await button(/^Leave/).tap();
-          await tab.waitForURL(`${base}/`);
+          // Nothing else at the top: the menu is the space's one control up there.
+          expect(await tab.getByRole('button', { name: /^People here/ }).count()).toBe(0);
+          await menuAnswers(tab);
         } finally {
           await context.close();
         }
@@ -449,27 +438,39 @@ run('touch in a space (phones)', () => {
           await picker.getByRole('button', { name: 'Not now' }).tap();
           await picker.waitFor({ state: 'detached' });
 
-          // The menu's list of rooms: longer than any phone's screen.
-          await tab.getByRole('button', { name: /^Open menu/ }).tap();
-          const menu = tab.getByRole('dialog', { name: 'Menu' });
-          await menu.waitFor();
-          expect(await menu.evaluate(scrollableByTouch)).toEqual({
+          // The corner menu: held sideways it's taller than the screen, and scrolls on its own.
+          await tab.locator('.creation-menu').getByRole('button', { name: /^Menu/ }).tap();
+          const panel = tab.locator('.creation-menu-panel');
+          await panel.waitFor();
+          const menu = await panel.evaluate(scrollableByTouch);
+          expect(menu.blocked).toEqual([]);
+          if (menu.overflows) expect(menu.scroller).toBe(true);
+          if (p.name.endsWith('landscape')) expect(menu.overflows).toBe(true);
+          const leave = panel.getByRole('button', { name: /^Leave/ });
+          await reachable(leave);
+          await panel.getByRole('button', { name: /^Go to another room/ }).scrollIntoViewIfNeeded();
+
+          // Its list of rooms: longer than any phone's screen.
+          await panel.getByRole('button', { name: /^Go to another room/ }).tap();
+          const rooms = tab.getByRole('dialog', { name: 'Go to another room' });
+          await rooms.waitFor();
+          expect(await rooms.evaluate(scrollableByTouch)).toEqual({
             scroller: true,
             overflows: true,
             blocked: [],
           });
           if (p.engine === 'chromium') {
-            const box = await menu.boundingBox();
-            if (!box) throw new Error('no menu');
+            const box = await rooms.boundingBox();
+            if (!box) throw new Error('no rooms');
             const x = box.x + box.width / 2;
             await drag(tab, [x, box.y + box.height - 40], [x, box.y + 40]);
-            await expect.poll(() => menu.evaluate((d) => d.scrollTop)).toBeGreaterThan(50);
+            await expect.poll(() => rooms.evaluate((d) => d.scrollTop)).toBeGreaterThan(50);
             expect(await tab.evaluate(() => window.scrollY)).toBe(0);
           }
-          const far = menu.getByRole('button', { name: 'Room 20' });
+          const far = rooms.getByRole('button', { name: 'Room 20', exact: true });
           await reachable(far);
           await far.tap();
-          await menu.waitFor({ state: 'detached' });
+          await rooms.waitFor({ state: 'detached' });
           await expect
             .poll(async () => (await pose(tab)).roomKey, { timeout: 10_000 })
             .toBe('room20');
@@ -637,7 +638,7 @@ run('touch in a space (phones)', () => {
         }
       });
 
-      it('turned sideways and back: the top bar and its pop-ups still take taps', {
+      it('turned sideways and back: the menu and its pop-ups still take taps', {
         timeout: 90_000,
       }, async () => {
         const context = await phone(p);
@@ -656,7 +657,7 @@ run('touch in a space (phones)', () => {
           await turn(tab);
           // The page settles over the next frames drawn (and timers up to 1.5 s), not at once.
           await expect.poll(() => still(tab), { timeout: FRAMES_MS }).toEqual([0, 0, 0, 0]);
-          await topBarAnswers(tab);
+          await menuAnswers(tab);
         } finally {
           await context.close();
         }
@@ -754,7 +755,7 @@ run('touch in a space (phones)', () => {
               .poll(async () => (await pose(tab)).yaw, { timeout: FRAMES_MS })
               .not.toBeCloseTo(later.yaw, 2);
           }
-          await topBarAnswers(tab);
+          await menuAnswers(tab);
         } finally {
           await context.close();
         }

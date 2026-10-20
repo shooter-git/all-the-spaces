@@ -44,20 +44,10 @@ html.ats-still-page body {
     calc(12px + var(--ats-safe-bottom)) calc(12px + var(--ats-safe-left));
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-end;
   color: #2e2c33;
 }
 .space-hud > * {
-  pointer-events: auto;
-}
-.space-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  pointer-events: none;
-}
-.space-top > * {
   pointer-events: auto;
 }
 .space-chip {
@@ -105,7 +95,86 @@ html.ats-still-page body {
 }
 .space-hint {
   margin-inline: auto;
-  color: #2e2c33;
+  padding: 8px 14px;
+  border-radius: 11px;
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+/* The space's controls over the view are washi glass, as the corner menu (CreationMenu): 44 px to
+   tap, a 34 px pane to look at. Glass that carries words is a little denser, to stay readable
+   over a bright sky. */
+.space-glass-button {
+  min-height: var(--ats-touch);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.space-glass-button > .washi-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px 0 10px;
+  border-radius: 11px;
+  font: 500 0.9rem var(--ats-font);
+  white-space: nowrap;
+}
+.washi-glass.space-hint,
+.space-glass-button > .washi-glass,
+.washi-glass.space-room-title {
+  background: rgb(245 241 238 / 0.56);
+}
+.space-glass-button:focus-visible {
+  outline: none;
+}
+.space-glass-button:focus-visible > .washi-glass {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 2px;
+}
+
+/* The room just walked into, named for a moment at the top (RoomTitle), clear of the corner menu. */
+.space-hud > .space-room-title {
+  position: absolute;
+  top: calc(11px + var(--ats-safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 200px - var(--ats-safe-left) - var(--ats-safe-right));
+  padding: 7px 18px 8px;
+  border-radius: 11px;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+.space-hud > .space-room-title[data-shown="false"] {
+  opacity: 0;
+}
+.space-room-title strong,
+.space-room-title span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.space-room-title strong {
+  font: 700 1.05rem / 1.15 var(--ats-font-display);
+  letter-spacing: 0.01em;
+}
+.space-room-title span {
+  margin-top: 3px;
+  color: #57525c;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+@media (prefers-reduced-motion: reduce) {
+  .space-hud > .space-room-title {
+    transition: none;
+  }
 }
 .space-lift {
   display: flex;
@@ -208,30 +277,6 @@ html.ats-still-page body {
   gap: 6px;
 }
 
-.space-chat-button {
-  position: relative;
-}
-.space-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 20px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--ats-accent);
-  color: var(--ats-accent-text);
-  font-size: 0.72rem;
-  line-height: 20px;
-  text-align: center;
-}
-
-/* Narrow phones: icon-only buttons keep the top bar on one line. */
-@media (max-width: 480px) {
-  .space-wide-only {
-    display: none;
-  }
-}
-
 /* Landscape: the chat panel sits on the right; keep the controls beside it, not under it. */
 @media (orientation: landscape) {
   .space-root[data-chat="open"] .space-hud {
@@ -291,7 +336,7 @@ html.ats-still-page body {
   display: none;
 }
 
-/* A new version of the app is ready: under the top bar, with a way to refresh. */
+/* A new version of the app is ready: near the top, with a way to refresh. */
 .space-update {
   position: absolute;
   top: calc(64px + var(--ats-safe-top));
@@ -321,7 +366,7 @@ html.ats-still-page body {
   text-align: center;
   pointer-events: none;
 }
-/* With a new version offered (.space-update), the labels under the top bar move down. */
+/* With a new version offered (.space-update), the labels near the top move down. */
 .space-root[data-update] .space-draft {
   top: calc(124px + var(--ats-safe-top));
 }
@@ -359,6 +404,7 @@ html.ats-still-page body {
    whatever is inside them uses the light palette, so it stays readable in dark mode too. */
 .space-chip,
 .space-icon-button,
+.space-glass-button,
 .space-focus,
 .ask-select-tip {
   --ats-text: #2e2c33;

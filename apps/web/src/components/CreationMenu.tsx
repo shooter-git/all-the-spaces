@@ -5,9 +5,10 @@ import './creation-menu.css';
 const AWAKE_MS = 4000;
 
 /**
- * The app's controls over a creation: one small glass button in the top-left corner, which opens
- * a menu (Back, Chat, voice…). It fades to a faint mark while nothing happens, so the creation has
- * the whole screen, and wakes when something needs the person (a message, someone talking).
+ * The app's controls over a creation, and over a space as you walk around it: one small glass
+ * button in the top-left corner, which opens a menu (Back, Chat, voice…). It fades to a faint mark
+ * while nothing happens, so the view has the whole screen, and wakes when something needs the
+ * person (a message, someone talking).
  *
  * Items are plain buttons with the class `creation-menu-item`; tapping one closes the menu,
  * unless it's inside an element marked `data-keep-open` (the microphone, say).
@@ -15,12 +16,15 @@ const AWAKE_MS = 4000;
 export function CreationMenu({
   label,
   attention = false,
+  aside,
   children,
 }: {
   /** What the button is called, e.g. "Menu". */
   label: string;
   /** Something new is waiting (a message, someone talking): a dot on the button, and it wakes. */
   attention?: boolean;
+  /** Beside the button, and never faded: the microphone while voice chat is on. */
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -75,24 +79,27 @@ export function CreationMenu({
 
   return (
     <div ref={root} className="creation-menu" data-open={open} data-idle={idle && !open}>
-      <button
-        ref={button}
-        type="button"
-        className="creation-menu-button"
-        aria-label={attention ? `${label}: something new` : label}
-        aria-expanded={open}
-        aria-controls={id}
-        onPointerEnter={wake}
-        onFocus={wake}
-        onClick={() => (open ? close(false) : setOpen(true))}
-      >
-        <span className="creation-menu-glass">
-          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-            <path d="M3.5 6.2h12.8M3.5 10.1h8.6M3.5 14h10.6" />
-          </svg>
-          {attention && <span className="creation-menu-dot" />}
-        </span>
-      </button>
+      <div className="creation-menu-bar">
+        <button
+          ref={button}
+          type="button"
+          className="creation-menu-button"
+          aria-label={attention ? `${label}: something new` : label}
+          aria-expanded={open}
+          aria-controls={id}
+          onPointerEnter={wake}
+          onFocus={wake}
+          onClick={() => (open ? close(false) : setOpen(true))}
+        >
+          <span className="creation-menu-glass">
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path d="M3.5 6.2h12.8M3.5 10.1h8.6M3.5 14h10.6" />
+            </svg>
+            {attention && <span className="creation-menu-dot" />}
+          </span>
+        </button>
+        {aside}
+      </div>
       {open && (
         // biome-ignore lint/a11y/useKeyWithClickEvents: the items are buttons (Enter and Space click them); this only closes the menu after one is used
         <nav
