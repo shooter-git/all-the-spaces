@@ -1,7 +1,7 @@
 {
   "name": "@allthespaces/portal",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Everything a creation needs to live inside All the Spaces: who's here, multiplayer, saving, input, sound and 3D helpers.",
   "license": "MIT",
   "repository": {
