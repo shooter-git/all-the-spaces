@@ -81,6 +81,35 @@ async function sheet(n: number) {
   return io.writeBinary(doc);
 }
 
+/** A desk: a maple top, and a steel rail along its front edge with its top at `rail`. */
+async function desk(rail: number) {
+  const doc = new Document();
+  const buffer = doc.createBuffer();
+  const block = (name: string, color: [number, number, number, number], min: V3, max: V3) => {
+    const p: number[] = [];
+    for (const x of [min[0], max[0]])
+      for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) p.push(x, y, z);
+    const idx = [0, 1, 3, 0, 3, 2, 4, 6, 7, 4, 7, 5, 2, 3, 7, 2, 7, 6];
+    return doc.createNode(name).setMesh(
+      doc.createMesh().addPrimitive(
+        doc
+          .createPrimitive()
+          .setAttribute(
+            'POSITION',
+            doc.createAccessor().setType('VEC3').setArray(new Float32Array(p)).setBuffer(buffer),
+          )
+          .setIndices(doc.createAccessor().setArray(new Uint16Array(idx)).setBuffer(buffer))
+          .setMaterial(doc.createMaterial(name).setBaseColorFactor(color)),
+      ),
+    );
+  };
+  doc
+    .createScene()
+    .addChild(block('maple', [0.8, 0.6, 0.4, 1], [0, 0.73, 0], [1.4, 0.75, 0.7]))
+    .addChild(block('steel', [0.1, 0.1, 0.1, 1], [0, 0.7, 0], [1.4, rail, 0.03]));
+  return io.writeBinary(doc);
+}
+
 const placed = (
   glb: Uint8Array,
   at: { angle: number; position: V3 } = { angle: 0.5, position: [1, 0, 2] },
@@ -132,6 +161,35 @@ describe('a placed model', () => {
     expect(min[1]).toBeCloseTo(0, 3);
     expect(min[0] + max[0]).toBeCloseTo(0, 3);
     expect(min[2] + max[2]).toBeCloseTo(0, 3);
+  });
+
+  /** How far the rail's top ends up above the desktop (metres; below is negative). */
+  async function railAbove(rail: number) {
+    const glb = await desk(rail);
+    const { doc } = await chunk(glb, FULL_DETAIL, placed(glb, { angle: 0, position: [0, 0, 0] }));
+    const top = new Map<string, number>();
+    for (const node of doc.getRoot().listNodes()) {
+      const m = node.getWorldMatrix();
+      for (const prim of node.getMesh()?.listPrimitives() ?? []) {
+        const pos = prim.getAttribute('POSITION');
+        const name = prim.getMaterial()?.getName() ?? '';
+        const v: number[] = [];
+        for (let i = 0; i < (pos?.getCount() ?? 0); i++) {
+          pos?.getElement(i, v);
+          const y = m[1] * (v[0] ?? 0) + m[5] * (v[1] ?? 0) + m[9] * (v[2] ?? 0) + m[13];
+          top.set(name, Math.max(top.get(name) ?? -Infinity, y));
+        }
+      }
+    }
+    return (top.get('steel') ?? 0) - (top.get('maple') ?? 0);
+  }
+
+  it('moves a smaller part flush with a larger one out of it, so they stop flickering', async () => {
+    expect(await railAbove(0.75)).toBeCloseTo(0.0005, 4);
+  });
+
+  it('moves a smaller part just under a larger one further under it', async () => {
+    expect(await railAbove(0.74999)).toBeCloseTo(-0.0005, 4);
   });
 
   it('is held to the triangle budget, and simplified further for rooms next door', async () => {

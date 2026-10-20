@@ -13,15 +13,16 @@ import {
   Root,
   type Texture,
 } from '@gltf-transform/core';
-import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, EXTMeshoptCompression, EXTTextureWebP } from '@gltf-transform/extensions';
 import {
   dedup,
   dequantizePrimitive,
   getBounds,
   joinPrimitives,
   mergeDocuments,
-  meshopt,
   prune,
+  quantize,
+  reorder,
   simplifyPrimitive,
   transformPrimitive,
   unpartition,
@@ -203,13 +204,21 @@ export async function writeChunk(
     }
   }
 
+  // As meshopt({ level: 'medium' }), but positions on a grid four times finer: a joined model
+  // shares one grid the size of the whole model, and on the coarser one parts set apart by
+  // `separateFlush` (half a millimetre) could land on the same plane again.
   await doc.transform(
     unpartition(),
     dedup(),
     // Keep attributes no material uses yet: the lightmap UVs (TEXCOORD_1) are used by the viewer.
     prune({ keepAttributes: true }),
-    meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+    reorder({ encoder: MeshoptEncoder, target: 'size' }),
+    quantize({ quantizePosition: 16 }),
   );
+  doc
+    .createExtension(EXTMeshoptCompression)
+    .setRequired(true)
+    .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE });
   for (const b of doc.getRoot().listBuffers()) b.setURI('geometry.bin');
 
   const { json, resources } = await io.writeJSON(doc);
@@ -389,7 +398,7 @@ async function composeRoom(
     for (const child of merged.listChildren()) inner.addChild(child as Node);
     merged.dispose();
     // One draw per material instead of one per part (a door model can be hundreds of parts).
-    const model = joinModel(doc, inner, `${placed.name}:model`) ?? inner;
+    const model = joinModel(doc, inner, `${placed.name}:model`, placed.scale) ?? inner;
     const prims = () => {
       const out: Primitive[] = [];
       model.traverse((n) => {
@@ -441,9 +450,10 @@ const triangleCount = (prim: Primitive) =>
 /**
  * A model's parts as one mesh with one primitive per material (and vertex layout), in the space
  * of `root`, on a new node named `name`. Returns null, leaving the model as it is, when a part
- * is animated, skinned, morphed or carries an extension that joining would lose.
+ * is animated, skinned, morphed or carries an extension that joining would lose. `scale` is how
+ * many metres one of the model's units becomes in the room.
  */
-function joinModel(doc: Document, root: Node, name: string): Node | null {
+function joinModel(doc: Document, root: Node, name: string, scale: number): Node | null {
   const parts: { node: Node; mesh: Mesh }[] = [];
   let joinable = doc.getRoot().listAnimations().length === 0;
   root.traverse((node) => {
@@ -458,7 +468,7 @@ function joinModel(doc: Document, root: Node, name: string): Node | null {
   if (!joinable || !parts.length) return null;
 
   // Each part in the root's space, on its own copy (a mesh can be used by several parts).
-  const groups = new Map<string, Primitive[]>();
+  const copies: Primitive[] = [];
   for (const { node, mesh } of parts) {
     const matrix = node.getWorldMatrix();
     for (const src of mesh.listPrimitives()) {
@@ -470,26 +480,32 @@ function joinModel(doc: Document, root: Node, name: string): Node | null {
       if (indices) prim.setIndices(indices.clone());
       dequantizePrimitive(prim);
       transformPrimitive(prim, matrix);
-      const layout = prim
-        .listSemantics()
-        .sort()
-        .map((s) => {
-          const a = prim.getAttribute(s) as Accessor;
-          return `${s}:${a.getElementSize()}:${a.getComponentType()}:${a.getNormalized()}`;
-        });
-      const key = [
-        doc
-          .getRoot()
-          .listMaterials()
-          .indexOf(prim.getMaterial() as Material),
-        prim.getMode(),
-        !!prim.getIndices(),
-        ...layout,
-      ].join('|');
-      const group = groups.get(key);
-      if (group) group.push(prim);
-      else groups.set(key, [prim]);
+      copies.push(prim);
     }
+  }
+  separateFlush(copies, scale);
+
+  const groups = new Map<string, Primitive[]>();
+  for (const prim of copies) {
+    const layout = prim
+      .listSemantics()
+      .sort()
+      .map((s) => {
+        const a = prim.getAttribute(s) as Accessor;
+        return `${s}:${a.getElementSize()}:${a.getComponentType()}:${a.getNormalized()}`;
+      });
+    const key = [
+      doc
+        .getRoot()
+        .listMaterials()
+        .indexOf(prim.getMaterial() as Material),
+      prim.getMode(),
+      !!prim.getIndices(),
+      ...layout,
+    ].join('|');
+    const group = groups.get(key);
+    if (group) group.push(prim);
+    else groups.set(key, [prim]);
   }
   const joined = doc.createMesh(name);
   for (const group of groups.values()) {
@@ -515,6 +531,153 @@ function joinModel(doc: Document, root: Node, name: string): Node | null {
   }
   return doc.createNode(name).setMesh(joined);
 }
+
+/** Faces of two parts closer than this (metres in the room) lie on one another. */
+const FLUSH_M = 0.0003;
+/** How far apart such faces end up (metres): too little to see, enough for the depth buffer. */
+const APART_M = 0.0005;
+
+/** One part's faces in one plane: how far along the normal, how much area, where in the plane. */
+interface FlushFace {
+  part: number;
+  material: Material | null;
+  d: number;
+  area: number;
+  min: [number, number];
+  max: [number, number];
+}
+
+/**
+ * Parts of a model whose faces lie on one another (a desk's frame flush with its top, a label on
+ * its plate, a deck resting in a shelf's frame) flicker as you look around, neither in front of
+ * the other. Moves the smaller of each such pair half a millimetre further the way it already
+ * was, or out of the larger one when they're exactly flush (as a label sits on its plate). Parts
+ * of the same material are left alone: they look the same whichever is in front. `parts` are in
+ * the model's own units, `scale` metres each.
+ */
+export function separateFlush(parts: Primitive[], scale: number) {
+  const flush = FLUSH_M / scale;
+  const apart = APART_M / scale;
+  const touch = 0.000001 / scale;
+  // Faces by their direction; each part's faces in one plane taken together.
+  const byNormal = new Map<string, { n: V3; u: V3; v: V3; faces: Map<string, FlushFace> }>();
+  const a: number[] = [];
+  const b: number[] = [];
+  const c: number[] = [];
+  parts.forEach((prim, part) => {
+    const pos = prim.getAttribute('POSITION');
+    if (!pos || prim.getMode() !== 4) return;
+    const idx = prim.getIndices();
+    const count = idx ? idx.getCount() : pos.getCount();
+    for (let i = 0; i + 2 < count; i += 3) {
+      pos.getElement(idx ? idx.getScalar(i) : i, a);
+      pos.getElement(idx ? idx.getScalar(i + 1) : i + 1, b);
+      pos.getElement(idx ? idx.getScalar(i + 2) : i + 2, c);
+      const e1: V3 = [
+        (b[0] ?? 0) - (a[0] ?? 0),
+        (b[1] ?? 0) - (a[1] ?? 0),
+        (b[2] ?? 0) - (a[2] ?? 0),
+      ];
+      const e2: V3 = [
+        (c[0] ?? 0) - (a[0] ?? 0),
+        (c[1] ?? 0) - (a[1] ?? 0),
+        (c[2] ?? 0) - (a[2] ?? 0),
+      ];
+      const x = e1[1] * e2[2] - e1[2] * e2[1];
+      const y = e1[2] * e2[0] - e1[0] * e2[2];
+      const z = e1[0] * e2[1] - e1[1] * e2[0];
+      const len = Math.hypot(x, y, z);
+      if (len < 1e-12) continue;
+      const key = [x, y, z].map((k) => Math.round((k / len) * 500)).join(',');
+      let dir = byNormal.get(key);
+      if (!dir) {
+        const n: V3 = [x / len, y / len, z / len];
+        // Two directions along the plane, the same for every face facing this way.
+        const away: V3 = Math.abs(n[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+        const u = normalize(cross(n, away));
+        dir = { n, u, v: cross(n, u), faces: new Map() };
+        byNormal.set(key, dir);
+      }
+      const d = dot(dir.n, a);
+      const id = `${part}|${Math.round(d / touch)}`;
+      let face = dir.faces.get(id);
+      if (!face) {
+        face = {
+          part,
+          material: prim.getMaterial(),
+          d,
+          area: 0,
+          min: [Infinity, Infinity],
+          max: [-Infinity, -Infinity],
+        };
+        dir.faces.set(id, face);
+      }
+      face.area += len / 2;
+      for (const p of [a, b, c]) {
+        const pu = dot(dir.u, p);
+        const pv = dot(dir.v, p);
+        face.min = [Math.min(face.min[0], pu), Math.min(face.min[1], pv)];
+        face.max = [Math.max(face.max[0], pu), Math.max(face.max[1], pv)];
+      }
+    }
+  });
+
+  // How far each part moves along each direction (the biggest move asked for wins).
+  const moves = new Map<number, Map<V3, number>>();
+  const overlap = (p: FlushFace, q: FlushFace) =>
+    Math.min(p.max[0], q.max[0]) - Math.max(p.min[0], q.min[0]) > apart &&
+    Math.min(p.max[1], q.max[1]) - Math.max(p.min[1], q.min[1]) > apart;
+  for (const { n, faces } of byNormal.values()) {
+    const list = [...faces.values()].sort((p, q) => p.d - q.d);
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i] as FlushFace;
+      for (let j = i + 1; j < list.length; j++) {
+        const q = list[j] as FlushFace;
+        if (q.d - p.d >= flush) break;
+        if (p.part === q.part || p.material === q.material || !overlap(p, q)) continue;
+        const [small, large] = p.area <= q.area ? [p, q] : [q, p];
+        const gap = small.d - large.d;
+        const side = Math.abs(gap) < touch ? 1 : Math.sign(gap);
+        const move = side * (apart - Math.abs(gap));
+        const mine = moves.get(small.part) ?? new Map<V3, number>();
+        if (Math.abs(move) > Math.abs(mine.get(n) ?? 0)) mine.set(n, move);
+        moves.set(small.part, mine);
+      }
+    }
+  }
+
+  for (const [part, mine] of moves) {
+    const offset: V3 = [0, 0, 0];
+    for (const [n, move] of mine) {
+      offset[0] += n[0] * move;
+      offset[1] += n[1] * move;
+      offset[2] += n[2] * move;
+    }
+    const pos = parts[part]?.getAttribute('POSITION');
+    if (!pos) continue;
+    const p: number[] = [];
+    for (let i = 0; i < pos.getCount(); i++) {
+      pos.getElement(i, p);
+      pos.setElement(i, [
+        (p[0] ?? 0) + offset[0],
+        (p[1] ?? 0) + offset[1],
+        (p[2] ?? 0) + offset[2],
+      ]);
+    }
+  }
+}
+
+const dot = (p: ArrayLike<number>, q: ArrayLike<number>) =>
+  (p[0] ?? 0) * (q[0] ?? 0) + (p[1] ?? 0) * (q[1] ?? 0) + (p[2] ?? 0) * (q[2] ?? 0);
+const cross = (p: V3, q: V3): V3 => [
+  p[1] * q[2] - p[2] * q[1],
+  p[2] * q[0] - p[0] * q[2],
+  p[0] * q[1] - p[1] * q[0],
+];
+const normalize = (p: V3): V3 => {
+  const l = Math.hypot(...p) || 1;
+  return [p[0] / l, p[1] / l, p[2] / l];
+};
 
 /** A primitive and whichever of its accessors nothing else uses. */
 function disposePrimitive(prim: Primitive) {
