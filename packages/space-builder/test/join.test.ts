@@ -3,7 +3,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { getBounds } from '@gltf-transform/functions';
 import { MeshoptDecoder } from 'meshoptimizer';
 import { describe, expect, it } from 'vitest';
-import type { V3 } from '../src/geometry.ts';
+import { MeshBuilder, type V3 } from '../src/geometry.ts';
 import {
   FULL_DETAIL,
   MaterialLibrary,
@@ -192,6 +192,69 @@ describe('a placed model', () => {
     expect(await railAbove(0.74999)).toBeCloseTo(-0.0005, 4);
   });
 
+  it('lays a stack of flush layers half a millimetre apart, the largest at the back', async () => {
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const square = (name: string, half: number, color: [number, number, number, number]) => {
+      const p = [
+        -half,
+        0.5 - half,
+        0,
+        half,
+        0.5 - half,
+        0,
+        half,
+        0.5 + half,
+        0,
+        -half,
+        0.5 + half,
+        0,
+      ];
+      return doc.createNode(name).setMesh(
+        doc.createMesh().addPrimitive(
+          doc
+            .createPrimitive()
+            .setAttribute(
+              'POSITION',
+              doc.createAccessor().setType('VEC3').setArray(new Float32Array(p)).setBuffer(buffer),
+            )
+            .setIndices(
+              doc
+                .createAccessor()
+                .setArray(new Uint16Array([0, 1, 2, 0, 2, 3]))
+                .setBuffer(buffer),
+            )
+            .setMaterial(doc.createMaterial(name).setBaseColorFactor(color)),
+        ),
+      );
+    };
+    doc
+      .createScene()
+      .addChild(square('poster', 0.4, [0.9, 0.9, 0.9, 1]))
+      .addChild(square('splash', 0.2, [0.2, 0.3, 0.6, 1]))
+      .addChild(square('dot', 0.05, [0.8, 0.2, 0.2, 1]));
+    const glb = await io.writeBinary(doc);
+    const { doc: out } = await chunk(
+      glb,
+      FULL_DETAIL,
+      placed(glb, { angle: 0, position: [0, 0, 0] }),
+    );
+    const depth = new Map<string, number>();
+    for (const node of out.getRoot().listNodes()) {
+      const m = node.getWorldMatrix();
+      for (const prim of node.getMesh()?.listPrimitives() ?? []) {
+        const pos = prim.getAttribute('POSITION');
+        const v: number[] = [];
+        pos?.getElement(0, v);
+        const z = m[2] * (v[0] ?? 0) + m[6] * (v[1] ?? 0) + m[10] * (v[2] ?? 0) + m[14];
+        depth.set(prim.getMaterial()?.getName() ?? '', z);
+      }
+    }
+    const poster = depth.get('poster') ?? 0;
+    expect((depth.get('splash') ?? 0) - poster).toBeCloseTo(0.0005, 4);
+    expect((depth.get('dot') ?? 0) - poster).toBeCloseTo(0.001, 4);
+  });
+
   it('is held to the triangle budget, and simplified further for rooms next door', async () => {
     const glb = await sheet(200); // 80,000 triangles
     const full = chunkStats((await chunk(glb)).json).triangles;
@@ -199,5 +262,86 @@ describe('a placed model', () => {
     expect(full).toBeGreaterThan(MODEL_LIMITS.triangles / 4);
     const medium = chunkStats((await chunk(glb, MEDIUM_DETAIL)).json).triangles;
     expect(medium).toBeLessThan(full);
+  });
+});
+
+describe('a room', () => {
+  /** A frame 4 cm deep, placed so its front is exactly on a wall's face (z = 1). */
+  async function frameOnWall(width = 2) {
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const p: number[] = [];
+    for (const x of [-0.25, 0.25])
+      for (const y of [0, 0.5]) for (const z of [-0.04, 0]) p.push(x, y, z);
+    // Front (z = 0) facing out of the wall, back facing into it.
+    const idx = [1, 7, 3, 1, 5, 7, 0, 6, 4, 0, 2, 6];
+    doc.createScene().addChild(
+      doc.createNode('frame').setMesh(
+        doc.createMesh().addPrimitive(
+          doc
+            .createPrimitive()
+            .setAttribute(
+              'POSITION',
+              doc.createAccessor().setType('VEC3').setArray(new Float32Array(p)).setBuffer(buffer),
+            )
+            .setIndices(doc.createAccessor().setArray(new Uint16Array(idx)).setBuffer(buffer))
+            .setMaterial(doc.createMaterial('frame').setBaseColorFactor([0.2, 0.2, 0.2, 1])),
+        ),
+      ),
+    );
+    const wall = new MeshBuilder();
+    wall.quad(
+      'plaster',
+      [-width / 2, 0, 1],
+      [width / 2, 0, 1],
+      [width / 2, 2, 1],
+      [-width / 2, 2, 1],
+    );
+    // Centred on its footprint: the front (z = 0) is 2 cm in front of the middle.
+    const glb = await io.writeBinary(doc);
+    const { gltf, resources } = await writeChunk(
+      [{ name: 'architecture', mesh: wall }],
+      [placed(glb, { angle: 0, position: [0, 0.5, 0.98] })],
+      new MaterialLibrary(null),
+    );
+    await MeshoptDecoder.ready;
+    return io.readJSON({
+      json: JSON.parse(new TextDecoder().decode(gltf)),
+      resources: Object.fromEntries(resources) as Record<string, Uint8Array<ArrayBuffer>>,
+    });
+  }
+
+  /** How far in front of the wall each material reaches, after the room is stored. */
+  async function fronts(width?: number) {
+    const doc = await frameOnWall(width);
+    const front = new Map<string, number>();
+    for (const node of doc.getRoot().listNodes()) {
+      const m = node.getWorldMatrix();
+      for (const prim of node.getMesh()?.listPrimitives() ?? []) {
+        const pos = prim.getAttribute('POSITION');
+        const name = prim.getMaterial()?.getName() ?? '';
+        const v: number[] = [];
+        for (let i = 0; i < (pos?.getCount() ?? 0); i++) {
+          pos?.getElement(i, v);
+          const z = m[2] * (v[0] ?? 0) + m[6] * (v[1] ?? 0) + m[10] * (v[2] ?? 0) + m[14];
+          front.set(name, Math.max(front.get(name) ?? -Infinity, z));
+        }
+      }
+    }
+    return front;
+  }
+
+  it('brings something flush with a wall half a millimetre out of it', async () => {
+    const front = await fronts();
+    expect(front.get('plaster')).toBeCloseTo(1, 5);
+    expect((front.get('frame') ?? 0) - 1).toBeCloseTo(0.0005, 4);
+  });
+
+  it('keeps it out of a wall too big for half a millimetre to survive being stored', async () => {
+    // 50 m across: positions are stored 0.76 mm apart, so the gap is three of those.
+    const front = await fronts(50);
+    const gap = (front.get('frame') ?? 0) - (front.get('plaster') ?? 0);
+    expect(gap).toBeGreaterThan(0.0015);
+    expect(gap).toBeLessThan(0.004);
   });
 });
