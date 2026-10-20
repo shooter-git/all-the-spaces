@@ -25,6 +25,11 @@ export const Player = schema(
     yaw: t.float32(),
     room: t.string(),
     moving: t.boolean(),
+    /**
+     * When they took this pose, in ms on their own clock since joining (0: their app doesn't
+     * say). Viewers draw movement on this clock, so uneven delivery doesn't make uneven walking.
+     */
+    at: t.uint32(),
   },
   'Player',
 );
@@ -66,10 +71,14 @@ const Pose = z.object({
   moving: z.boolean(),
   /** Set when jumping (quick travel, lift) rather than walking. */
   teleport: z.boolean().optional(),
+  /** When the pose was taken: ms since joining, on the sender's clock (older apps don't send it). */
+  at: z.number().int().min(1).max(0xffffffff).optional(),
 });
 
 const MAX_SPEED = 8; // m/s — generous running speed; anything faster must be a declared teleport
 const MAX_TELEPORTS_PER_10S = 6;
+/** How far a sender's clock may run ahead of the time since they joined, as the server sees it. */
+const CLOCK_SLACK_MS = 2000;
 
 export interface SpaceRoomOptions {
   secret: string;
@@ -93,6 +102,8 @@ interface Shared {
   yaw: number;
   room: string;
   moving: boolean;
+  /** Their own time for the pose (see `Player.at`); missing from older servers. */
+  at?: number;
 }
 type ShardMessage =
   | { t: 'people'; from: string; people: Shared[] }
@@ -128,6 +139,8 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
   };
   private readonly lastPose = new Map<string, { x: number; y: number; z: number; at: number }>();
   private readonly teleports = new Map<string, number[]>();
+  /** When each client joined (for checking the times they send). */
+  private readonly joinedAt = new Map<string, number>();
   /** Players each client currently receives. */
   private readonly visible = new Map<string, Set<string>>();
   /** The voice room each client was given a pass for. */
@@ -218,6 +231,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
         yaw: p.yaw,
         room: p.room,
         moving: p.moving,
+        at: p.at,
       });
     }
     this.moved.clear();
@@ -251,6 +265,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
       if (player.z !== p.z) player.z = p.z;
       if (player.yaw !== p.yaw) player.yaw = p.yaw;
       if (player.moving !== p.moving) player.moving = p.moving;
+      if (p.at !== undefined && player.at !== p.at) player.at = p.at;
       if (arrived || moved) {
         this.place(p.s, player.room, p.room);
         player.room = p.room;
@@ -354,6 +369,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
       raw(data, options, cb);
     };
     this.visible.set(client.sessionId, new Set());
+    this.joinedAt.set(client.sessionId, Date.now());
     // One live avatar per person: joining from a second tab replaces the first.
     for (const other of this.clients) {
       if (other !== client && (other.auth as Auth)?.sub === auth.sub) other.leave(4000);
@@ -369,6 +385,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
       yaw: 0,
       room: '',
       moving: false,
+      at: 0,
     });
     this.state.players.set(client.sessionId, player);
     this.state.roster.set(
@@ -388,6 +405,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     this.publish({ t: 'left', from: this.roomId, s: client.sessionId });
     this.lastPose.delete(client.sessionId);
     this.teleports.delete(client.sessionId);
+    this.joinedAt.delete(client.sessionId);
   }
 
   private handlePose(client: Client, message: unknown) {
@@ -398,6 +416,15 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     // Nobody can be somewhere they may not see (their client doesn't even know it exists).
     if (!canSeeRoom(this.access, (client.auth as Auth).sub, pose.room)) return;
     const now = Date.now();
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    // Their clock only goes forward, and not faster than the server's.
+    if (
+      pose.at !== undefined &&
+      (pose.at <= player.at ||
+        pose.at > now - (this.joinedAt.get(client.sessionId) ?? now) + CLOCK_SLACK_MS)
+    )
+      return;
     const last = this.lastPose.get(client.sessionId);
     if (last && !pose.teleport) {
       const dt = Math.max(0.05, (now - last.at) / 1000);
@@ -411,8 +438,6 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
       this.teleports.set(client.sessionId, recent);
     }
     this.lastPose.set(client.sessionId, { x: pose.x, y: pose.y, z: pose.z, at: now });
-    const player = this.state.players.get(client.sessionId);
-    if (!player) return;
     this.moved.add(client.sessionId);
     // Only touch what changed: every changed field is encoded for every nearby person.
     if (player.x !== pose.x) player.x = pose.x;
@@ -420,6 +445,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     if (player.z !== pose.z) player.z = pose.z;
     if (player.yaw !== pose.yaw) player.yaw = pose.yaw;
     if (player.moving !== pose.moving) player.moving = pose.moving;
+    if (pose.at !== undefined) player.at = pose.at;
     if (player.room !== pose.room) {
       // Voice follows you: out of the old room's (ask again for the new one).
       this.leaveVoice(client);

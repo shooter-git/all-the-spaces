@@ -33,7 +33,7 @@ const BUSY_ROOM = 'lobby';
 const IN_BUSY_ROOM = Math.min(30, PEOPLE);
 const WARMUP_S = 20; // past the service's first stats window, while its code is still being compiled
 const MEASURE_S = 45;
-const SEND_EVERY_MS = 66; // same as the web client
+const SEND_EVERY_MS = 50; // same as the web client
 /** Chance someone (outside the busy room) goes next door on reaching where they were heading. */
 const WANDER = 0.1;
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -124,6 +124,9 @@ interface Person {
   pos: [number, number, number];
   target: [number, number];
   bytes: number;
+  /** When they joined: poses carry the time since, as the web client's do. */
+  joined: number;
+  at: number;
 }
 
 async function connect(i: number, roomKey: string): Promise<Person> {
@@ -143,6 +146,8 @@ async function connect(i: number, roomKey: string): Promise<Person> {
     pos: randomPoint(roomKey),
     target: [0, 0],
     bytes: 0,
+    joined: performance.now(),
+    at: 0,
   };
   person.target = [person.pos[0], person.pos[2]];
   const ws = (room.connection.transport as unknown as { ws: WebSocket }).ws;
@@ -164,7 +169,8 @@ function randomPoint(roomKey: string): [number, number, number] {
 function send(p: Person, teleport = false) {
   const [x, y, z] = p.pos;
   const yaw = Math.atan2(p.target[0] - x, p.target[1] - z);
-  p.room.send('pose', { x, y, z, yaw, room: p.roomKey, moving: !teleport, teleport });
+  p.at = Math.max(p.at + 1, Math.round(performance.now() - p.joined));
+  p.room.send('pose', { x, y, z, yaw, room: p.roomKey, moving: !teleport, teleport, at: p.at });
 }
 
 /** Walk towards a random spot in the room at 1.4 m/s; pick a new one on arrival. */
