@@ -255,6 +255,64 @@ describe('a placed model', () => {
     expect((depth.get('dot') ?? 0) - poster).toBeCloseTo(0.001, 4);
   });
 
+  it('sets apart flush parts of one material too (the top of a pot under its rim)', async () => {
+    // A pot: its body's top and its rim's top in one plane, one material, shaded differently.
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const clay = doc.createMaterial('clay').setBaseColorFactor([0.7, 0.4, 0.25, 1]);
+    const disc = (name: string, r: number, normal: [number, number, number]) => {
+      const p: number[] = [0, 0.3, 0];
+      const n: number[] = [0, 1, 0];
+      const idx: number[] = [];
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        p.push(r * Math.cos(a), 0.3, r * Math.sin(a));
+        n.push(...normal);
+        idx.push(0, 1 + ((i + 1) % 16), 1 + i);
+      }
+      const accessor = (type: 'VEC3', values: number[]) =>
+        doc.createAccessor().setType(type).setArray(new Float32Array(values)).setBuffer(buffer);
+      return doc.createNode(name).setMesh(
+        doc.createMesh().addPrimitive(
+          doc
+            .createPrimitive()
+            .setAttribute('POSITION', accessor('VEC3', p))
+            .setAttribute('NORMAL', accessor('VEC3', n))
+            .setIndices(doc.createAccessor().setArray(new Uint16Array(idx)).setBuffer(buffer))
+            .setMaterial(clay),
+        ),
+      );
+    };
+    doc
+      .createScene()
+      .addChild(disc('body', 0.13, [0.6, 0.8, 0]))
+      .addChild(disc('rim', 0.138, [0, 1, 0]));
+    const glb = await io.writeBinary(doc);
+    const { doc: out } = await chunk(
+      glb,
+      FULL_DETAIL,
+      placed(glb, { angle: 0, position: [0, 0, 0] }),
+    );
+    const heights = new Set<string>();
+    for (const node of out.getRoot().listNodes()) {
+      const m = node.getWorldMatrix();
+      for (const prim of node.getMesh()?.listPrimitives() ?? []) {
+        const pos = prim.getAttribute('POSITION');
+        const v: number[] = [];
+        for (let i = 0; i < (pos?.getCount() ?? 0); i++) {
+          pos?.getElement(i, v);
+          heights.add(
+            (m[1] * (v[0] ?? 0) + m[5] * (v[1] ?? 0) + m[9] * (v[2] ?? 0) + m[13]).toFixed(4),
+          );
+        }
+      }
+    }
+    // Two heights half a millimetre apart, not one.
+    const [low = 0, high = 0] = [...heights].map(Number).sort((a, b) => a - b);
+    expect(heights.size).toBe(2);
+    expect(high - low).toBeCloseTo(0.0005, 4);
+  });
+
   it('is held to the triangle budget, and simplified further for rooms next door', async () => {
     const glb = await sheet(200); // 80,000 triangles
     const full = chunkStats((await chunk(glb)).json).triangles;
