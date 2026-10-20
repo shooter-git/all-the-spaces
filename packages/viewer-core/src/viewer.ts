@@ -122,7 +122,12 @@ export interface Pose {
 /** The shared space: renders the rooms around you and lets you walk through them. */
 export class SpaceViewer {
   readonly scene = new Scene();
-  readonly camera = new PerspectiveCamera(70, 1, 0.05, 200);
+  /**
+   * Your body keeps everything at least 10 cm from your eyes (28 cm to each side, 10 cm above your
+   * head), so the view starts there: every doubling of this distance doubles how finely depth is
+   * told apart, so surfaces a hair apart don't flicker from across a room.
+   */
+  readonly camera = new PerspectiveCamera(70, 1, 0.1, 200);
   readonly renderer: WebGLRenderer;
   readonly input = new InputState();
   readonly player = new PlayerController();
