@@ -102,4 +102,6 @@ export const groupSettings = pgTable('group_settings', {
   chatRetentionDays: integer('chat_retention_days').default(90),
   /** Voice chat in the space and in creations (when the server has it). */
   voice: boolean('voice').notNull().default(true),
+  /** Records where people spend time (visits); turning it off deletes the group's visits. */
+  visits: boolean('visits').notNull().default(true),
 });

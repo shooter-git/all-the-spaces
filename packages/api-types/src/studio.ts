@@ -169,6 +169,8 @@ export interface FieldPerf {
  */
 export interface PlaceVisits {
   days: number;
+  /** False when the group's Architects turned visit records off (Group settings): nothing then. */
+  recording: boolean;
   /** Every room of the live version, and any since removed that people spent time in. */
   rooms: {
     key: string;

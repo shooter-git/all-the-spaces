@@ -55,7 +55,8 @@ Homes are sensitive, so All the Spaces is private by default:
   in another tab or on a locked phone), and a room only once someone has stayed a few seconds.
   Architects see the totals: time in each room and creation and each person's time (on the
   place's Studio page), and each person's time on **People**. Members don't see it. It never
-  leaves your server, and it's deleted after 90 days.
+  leaves your server, and it's deleted after 90 days. An Architect can turn it off for the group
+  (Group settings → Record where people spend time), which also deletes what was recorded.
 - The app sends no analytics or telemetry anywhere. The AI assistants' own usage statistics and
   error reports to their makers are off unless an Architect turns them on (Studio → Settings).
   Sharing how smoothly things run is a choice made on each device (Menu → Smoothness): samples say

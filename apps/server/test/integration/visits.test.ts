@@ -111,6 +111,7 @@ describe.skipIf(!adminUrl)('visits', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json() as PlaceVisits;
     expect(body.days).toBe(90);
+    expect(body.recording).toBe(true);
     const room = (key: string) => body.rooms.find((r) => r.key === key);
     expect(body.rooms[0]).toMatchObject({ key: 'living', name: 'Living room', people: 1 });
     expect(room('living')?.seconds).toBeCloseTo(30 * 60, -1);
@@ -158,5 +159,58 @@ describe.skipIf(!adminUrl)('visits', () => {
     );
     expect(time.get(sam)).toBeGreaterThanOrEqual(30 * 60 - 5);
     expect(time.get(pat)).toBe(5 * 60);
+  });
+
+  it('lets Architects turn visit records off: what was recorded goes, and nothing more is', async () => {
+    const url = `/api/groups/${groupId}/visit-settings`;
+    const get = (cookie: string) => app.inject({ method: 'GET', url, headers: { cookie } });
+    const put = (cookie: string, visits: boolean) =>
+      app.inject({ method: 'PUT', url, headers: { cookie }, payload: { visits } });
+    expect((await get(architectCookie)).json()).toEqual({ visits: true });
+    // Only Architects decide.
+    expect((await get(memberCookie)).statusCode).toBe(403);
+    expect((await put(memberCookie, false)).statusCode).toBe(403);
+    expect(await db.select().from(schema.visits)).toHaveLength(4);
+
+    expect((await put(architectCookie, false)).statusCode).toBe(200);
+    expect((await get(architectCookie)).json()).toEqual({ visits: false });
+    expect(await db.select().from(schema.visits)).toHaveLength(0);
+    // Nothing more is recorded, in rooms or creations.
+    const now = Date.now();
+    const again: VisitBatch['started'] = [
+      { id: ids[6] as string, userId: sam, spaceId, roomKey: 'living', startedAt: now },
+      { id: ids[7] as string, userId: sam, creationId, versionId, startedAt: now },
+    ];
+    expect((await send({ started: again, going: [ids[0] as string] })).json()).toEqual({
+      recorded: 0,
+    });
+    expect(await db.select().from(schema.visits)).toHaveLength(0);
+    // The Studio page says it's off; People shows no time.
+    expect((await totals(architectCookie)).json()).toMatchObject({
+      recording: false,
+      rooms: [],
+      creations: [],
+      people: [],
+    });
+    const people = await app.inject({
+      method: 'GET',
+      url: `/api/groups/${groupId}/people`,
+      headers: { cookie: architectCookie },
+    });
+    expect(
+      (people.json().people as { secondsHere: number }[]).every((p) => p.secondsHere === 0),
+    ).toBe(true);
+    // The group's activity says who turned it off.
+    const activity = await app.inject({
+      method: 'GET',
+      url: `/api/groups/${groupId}/activity`,
+      headers: { cookie: architectCookie },
+    });
+    expect(activity.json().entries[0]).toMatchObject({ action: 'visits.settings_changed' });
+
+    // Turned back on, it starts again from nothing.
+    expect((await put(architectCookie, true)).statusCode).toBe(200);
+    expect((await send({ started: again })).json()).toEqual({ recorded: 2 });
+    expect((await totals(architectCookie)).json()).toMatchObject({ recording: true });
   });
 });

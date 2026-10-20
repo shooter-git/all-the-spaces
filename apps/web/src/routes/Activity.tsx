@@ -76,6 +76,10 @@ function describe(e: ActivityEntry): string {
       return `${who} changed the chat settings`;
     case 'chat.reported':
       return `${who} reported a chat message`;
+    case 'visits.settings_changed':
+      return d.visits
+        ? `${who} turned on recording where people spend time`
+        : `${who} turned off recording where people spend time, and deleted what was recorded`;
     case 'studio.settings':
       return `${who} changed the Studio settings`;
     case 'backup.settings_changed':

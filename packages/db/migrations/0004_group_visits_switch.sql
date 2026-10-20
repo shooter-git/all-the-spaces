@@ -1,0 +1,1 @@
+ALTER TABLE "group_settings" ADD COLUMN "visits" boolean DEFAULT true NOT NULL;

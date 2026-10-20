@@ -27,6 +27,13 @@ export const usableInvite = (i: InviteLink) =>
 export const saveGroup = (groupId: string, g: { name?: string; themeColor?: string }) =>
   api(`/api/groups/${groupId}`, { method: 'PUT', json: g });
 
+/** Whether the group records where people spend time (Architects). */
+export const loadVisitSettings = (groupId: string) =>
+  api<{ visits: boolean }>(`/api/groups/${groupId}/visit-settings`);
+/** Turning it off also deletes what was recorded. */
+export const saveVisitSettings = (groupId: string, visits: boolean) =>
+  api(`/api/groups/${groupId}/visit-settings`, { method: 'PUT', json: { visits } });
+
 export const loadActivity = (groupId: string, opts: { before?: string; all?: boolean } = {}) => {
   const q = new URLSearchParams();
   if (opts.before) q.set('before', opts.before);

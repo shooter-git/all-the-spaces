@@ -59,7 +59,10 @@ the service it never touches the database: it posts batches to the server's inte
 and once a minute names every visit still going. A visit nobody has vouched for in three minutes
 (its real-time service stopped or restarted) ends when it was last seen; a stopping service ends
 its own. Visits are spans only, never positions; they're kept 90 days (worker) and summed up for
-Architects (`GET /api/spaces/:id/visits`), counting overlapping time once per person.
+Architects (`GET /api/spaces/:id/visits`), counting overlapping time once per person. A group's
+Architects can turn visits off (`group_settings.visits`): the server then drops that group's
+visits from every batch and deletes what it had, and the nightly clean-up also removes any that
+a batch in flight at the time slipped in.
 
 ## Voice chat
 
