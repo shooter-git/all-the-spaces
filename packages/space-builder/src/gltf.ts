@@ -213,7 +213,7 @@ export async function writeChunk(
     // Keep attributes no material uses yet: the lightmap UVs (TEXCOORD_1) are used by the viewer.
     prune({ keepAttributes: true }),
     reorder({ encoder: MeshoptEncoder, target: 'size' }),
-    quantize({ quantizePosition: 16 }),
+    quantize({ quantizePosition: POSITION_BITS }),
   );
   doc
     .createExtension(EXTMeshoptCompression)
@@ -439,6 +439,15 @@ async function composeRoom(
     }
   }
 
+  // Things placed flush against each other or the room (a frame on its wall, a door frame
+  // against the one beside it, a rug's edge at the skirting) set half a millimetre apart.
+  // A big room takes a moment: the server answers others in between.
+  await separateAllFlush(
+    () => roomParts(scene),
+    1,
+    () => new Promise((resolve) => setImmediate(resolve)),
+  );
+
   return { doc, credits, surfaceTextures };
 }
 
@@ -483,7 +492,12 @@ function joinModel(doc: Document, root: Node, name: string, scale: number): Node
       copies.push(prim);
     }
   }
-  separateFlush(copies, scale);
+  // Joined, the model is stored on one grid as big as the whole model.
+  const grid = gridOf(copies);
+  const pieces = () => copies.map((prim) => ({ prim, grid }));
+  const moved = separateFlush(pieces(), scale);
+  // Once more (see separateAllFlush).
+  if (moved.size) separateFlush(pieces(), scale, moved);
 
   const groups = new Map<string, Primitive[]>();
   for (const prim of copies) {
@@ -537,134 +551,354 @@ const FLUSH_M = 0.0003;
 /** How far apart such faces end up (metres): too little to see, enough for the depth buffer. */
 const APART_M = 0.0005;
 
+/** Something that may lie on something else: one primitive, and where it is. */
+export interface FlushPart {
+  prim: Primitive;
+  /**
+   * Part of the room itself (walls, floors, trim). Something else lying on it moves out, so a
+   * picture or a frame shows on its wall; two such surfaces settle it as two parts would.
+   */
+  room?: boolean;
+  /** Places the part's positions in the space compared (column-major); none: they already are. */
+  matrix?: ArrayLike<number>;
+  /**
+   * The object it's part of, in a room: parts of one object were set apart when it was put
+   * together (see joinModel), so they're only compared with other things now.
+   */
+  owner?: object;
+  /**
+   * The step between the positions its mesh will be stored at (compared units). Faces further
+   * apart than half a millimetre could still land on one step, so they're kept three apart.
+   */
+  grid?: number;
+}
+
+/** A face that moved: its plane (along `n`, before), and how far along `n` it went. */
+export interface FlushMove {
+  n: V3;
+  d: number;
+  by: number;
+}
+
 /** One part's faces in one plane: how far along the normal, how much area, where in the plane. */
 interface FlushFace {
   part: number;
-  material: Material | null;
   d: number;
   area: number;
-  min: [number, number];
-  max: [number, number];
+  minU: number;
+  minV: number;
+  maxU: number;
+  maxV: number;
+}
+
+/** Faces facing one way (within about half a degree), with two directions along their plane. */
+interface FlushDirection {
+  n: V3;
+  u: V3;
+  v: V3;
+  faces: Map<number, FlushFace>;
 }
 
 /**
- * Parts of a model whose faces lie on one another (a desk's frame flush with its top, a label on
- * its plate, a deck resting in a shelf's frame) flicker as you look around, neither in front of
- * the other. Moves the smaller of each such pair half a millimetre further the way it already
- * was, or out of the larger one when they're exactly flush (as a label sits on its plate). Parts
- * of the same material are left alone: they look the same whichever is in front. `parts` are in
- * the model's own units, `scale` metres each.
+ * Parts whose faces lie on one another (a desk's frame flush with its top, a label on its
+ * plate, splashes of paint on a poster, a door frame against the wall, a rug's edge at the
+ * skirting) flicker as you look around, neither in front of the other. Lays them in layers half
+ * a millimetre apart, moving each face that has to move (every point of the part in that plane,
+ * so nothing opens up): the room's own surfaces stay and whatever lies on them comes out; among
+ * the rest the larger stays and the smaller goes the way it already was, or on top when they're
+ * exactly flush (as a label sits on its plate). Parts of the same material are left alone: they
+ * look the same whichever is in front. Returns the parts that moved. `scale` is how many metres
+ * one unit of the compared space is.
  */
-export function separateFlush(parts: Primitive[], scale: number) {
+export function separateFlush(
+  parts: FlushPart[],
+  scale: number,
+  /** What moved last time (by part): nothing goes back the way it came. */
+  before?: Map<number, FlushMove[]>,
+): Map<number, FlushMove[]> {
   const flush = FLUSH_M / scale;
   const apart = APART_M / scale;
   const touch = 0.000001 / scale;
-  // Faces by their direction; each part's faces in one plane taken together.
-  const byNormal = new Map<string, { n: V3; u: V3; v: V3; faces: Map<string, FlushFace> }>();
-  const a: number[] = [];
-  const b: number[] = [];
-  const c: number[] = [];
-  parts.forEach((prim, part) => {
-    const pos = prim.getAttribute('POSITION');
-    if (!pos || prim.getMode() !== 4) return;
-    const idx = prim.getIndices();
-    const count = idx ? idx.getCount() : pos.getCount();
+  // Directions found so far, by a coarse key; faces join the one they're within half a degree of.
+  const directions = new Map<number, FlushDirection[]>();
+  const direction = (x: number, y: number, z: number): FlushDirection => {
+    const key =
+      ((Math.round(x * 20) + 20) * 41 + Math.round(y * 20) + 20) * 41 + Math.round(z * 20) + 20;
+    let near = directions.get(key);
+    if (!near) {
+      near = [];
+      directions.set(key, near);
+    }
+    for (const d of near) if (d.n[0] * x + d.n[1] * y + d.n[2] * z > 0.99996) return d;
+    const n: V3 = [x, y, z];
+    const away: V3 = Math.abs(x) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    const u = normalize(cross(n, away));
+    const dir = { n, u, v: cross(n, u), faces: new Map<number, FlushFace>() };
+    near.push(dir);
+    return dir;
+  };
+  parts.forEach(({ prim, matrix }, part) => {
+    const at = flushPositions(prim, matrix);
+    if (!at) return;
+    const idx = prim.getIndices()?.getArray();
+    const count = idx ? idx.length : at.length / 3;
     for (let i = 0; i + 2 < count; i += 3) {
-      pos.getElement(idx ? idx.getScalar(i) : i, a);
-      pos.getElement(idx ? idx.getScalar(i + 1) : i + 1, b);
-      pos.getElement(idx ? idx.getScalar(i + 2) : i + 2, c);
-      const e1: V3 = [
-        (b[0] ?? 0) - (a[0] ?? 0),
-        (b[1] ?? 0) - (a[1] ?? 0),
-        (b[2] ?? 0) - (a[2] ?? 0),
-      ];
-      const e2: V3 = [
-        (c[0] ?? 0) - (a[0] ?? 0),
-        (c[1] ?? 0) - (a[1] ?? 0),
-        (c[2] ?? 0) - (a[2] ?? 0),
-      ];
-      const x = e1[1] * e2[2] - e1[2] * e2[1];
-      const y = e1[2] * e2[0] - e1[0] * e2[2];
-      const z = e1[0] * e2[1] - e1[1] * e2[0];
-      const len = Math.hypot(x, y, z);
+      const ia = 3 * (idx ? (idx[i] ?? 0) : i);
+      const ib = 3 * (idx ? (idx[i + 1] ?? 0) : i + 1);
+      const ic = 3 * (idx ? (idx[i + 2] ?? 0) : i + 2);
+      const ax = at[ia] ?? 0;
+      const ay = at[ia + 1] ?? 0;
+      const az = at[ia + 2] ?? 0;
+      const ux = (at[ib] ?? 0) - ax;
+      const uy = (at[ib + 1] ?? 0) - ay;
+      const uz = (at[ib + 2] ?? 0) - az;
+      const vx = (at[ic] ?? 0) - ax;
+      const vy = (at[ic + 1] ?? 0) - ay;
+      const vz = (at[ic + 2] ?? 0) - az;
+      const nx = uy * vz - uz * vy;
+      const ny = uz * vx - ux * vz;
+      const nz = ux * vy - uy * vx;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
       if (len < 1e-12) continue;
-      const key = [x, y, z].map((k) => Math.round((k / len) * 500)).join(',');
-      let dir = byNormal.get(key);
-      if (!dir) {
-        const n: V3 = [x / len, y / len, z / len];
-        // Two directions along the plane, the same for every face facing this way.
-        const away: V3 = Math.abs(n[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
-        const u = normalize(cross(n, away));
-        dir = { n, u, v: cross(n, u), faces: new Map() };
-        byNormal.set(key, dir);
-      }
-      const d = dot(dir.n, a);
-      const id = `${part}|${Math.round(d / touch)}`;
+      const dir = direction(nx / len, ny / len, nz / len);
+      const d = dir.n[0] * ax + dir.n[1] * ay + dir.n[2] * az;
+      const id = part * 1e9 + Math.round(d / touch);
       let face = dir.faces.get(id);
       if (!face) {
         face = {
           part,
-          material: prim.getMaterial(),
           d,
           area: 0,
-          min: [Infinity, Infinity],
-          max: [-Infinity, -Infinity],
+          minU: Infinity,
+          minV: Infinity,
+          maxU: -Infinity,
+          maxV: -Infinity,
         };
         dir.faces.set(id, face);
       }
       face.area += len / 2;
-      for (const p of [a, b, c]) {
-        const pu = dot(dir.u, p);
-        const pv = dot(dir.v, p);
-        face.min = [Math.min(face.min[0], pu), Math.min(face.min[1], pv)];
-        face.max = [Math.max(face.max[0], pu), Math.max(face.max[1], pv)];
+      for (const k of [ia, ib, ic]) {
+        const x = at[k] ?? 0;
+        const y = at[k + 1] ?? 0;
+        const z = at[k + 2] ?? 0;
+        const pu = dir.u[0] * x + dir.u[1] * y + dir.u[2] * z;
+        const pv = dir.v[0] * x + dir.v[1] * y + dir.v[2] * z;
+        if (pu < face.minU) face.minU = pu;
+        if (pu > face.maxU) face.maxU = pu;
+        if (pv < face.minV) face.minV = pv;
+        if (pv > face.maxV) face.maxV = pv;
       }
     }
   });
 
-  // How far each part moves along each direction (the biggest move asked for wins).
-  const moves = new Map<number, Map<V3, number>>();
+  // Faces in one plane (each within `flush` of the next) are laid in layers: the room's own
+  // surfaces first, then the larger before the smaller, each on top of what it overlaps where
+  // that was laid (or under it, if it was already a little under), half a millimetre apart.
+  const moves = new Map<string, FlushMove & { part: number }>();
   const overlap = (p: FlushFace, q: FlushFace) =>
-    Math.min(p.max[0], q.max[0]) - Math.max(p.min[0], q.min[0]) > apart &&
-    Math.min(p.max[1], q.max[1]) - Math.max(p.min[1], q.min[1]) > apart;
-  for (const { n, faces } of byNormal.values()) {
-    const list = [...faces.values()].sort((p, q) => p.d - q.d);
-    for (let i = 0; i < list.length; i++) {
-      const p = list[i] as FlushFace;
-      for (let j = i + 1; j < list.length; j++) {
-        const q = list[j] as FlushFace;
-        if (q.d - p.d >= flush) break;
-        if (p.part === q.part || p.material === q.material || !overlap(p, q)) continue;
-        const [small, large] = p.area <= q.area ? [p, q] : [q, p];
-        const gap = small.d - large.d;
-        const side = Math.abs(gap) < touch ? 1 : Math.sign(gap);
-        const move = side * (apart - Math.abs(gap));
-        const mine = moves.get(small.part) ?? new Map<V3, number>();
-        if (Math.abs(move) > Math.abs(mine.get(n) ?? 0)) mine.set(n, move);
-        moves.set(small.part, mine);
+    Math.min(p.maxU, q.maxU) - Math.max(p.minU, q.minU) > apart &&
+    Math.min(p.maxV, q.maxV) - Math.max(p.minV, q.minV) > apart;
+  const grid = (f: FlushFace) => parts[f.part]?.grid ?? 0;
+  /** How close two faces may be before they're flush, and how far apart they're set. */
+  const within = (p: FlushFace, q: FlushFace) => Math.max(flush, 2 * grid(p), 2 * grid(q));
+  const away = (p: FlushFace, q: FlushFace) => Math.max(apart, 3 * grid(p), 3 * grid(q));
+  const room = (f: FlushFace) => Boolean(parts[f.part]?.room);
+  const owner = (f: FlushFace) => parts[f.part]?.owner;
+  /**
+   * Whether a face lies on one laid already (where it was laid), close enough to flicker. In a
+   * room, one object's own parts were laid when it was put together (see joinModel).
+   */
+  const fights = (face: FlushFace, l: { face: FlushFace; d: number }) =>
+    face.part !== l.face.part &&
+    (!owner(face) || owner(face) !== owner(l.face) || (room(face) && room(l.face))) &&
+    Math.abs(face.d - l.d) < within(face, l.face) &&
+    parts[face.part]?.prim.getMaterial() !== parts[l.face.part]?.prim.getMaterial() &&
+    overlap(face, l.face);
+  /** Whether moving a face `by` along `n` would take it back the way it came last time. */
+  const back = (face: FlushFace, n: V3, by: number) =>
+    (before?.get(face.part) ?? []).some((m) => {
+      const same = dot(m.n, n);
+      if (Math.abs(same) < 0.99) return false;
+      const now = same > 0 ? m.d + m.by : -(m.d + m.by);
+      return Math.abs(face.d - now) < within(face, face) && same * m.by * by < 0;
+    });
+  for (const near of directions.values()) {
+    for (const { n, faces } of near) {
+      const list = [...faces.values()].sort((p, q) => p.d - q.d);
+      let first = 0;
+      for (let i = 1; i <= list.length; i++) {
+        const next = list[i];
+        const last = list[i - 1] as FlushFace;
+        if (next && next.d - last.d < within(next, last)) continue;
+        const plane = list.slice(first, i);
+        first = i;
+        if (plane.length < 2) continue;
+        // The room's own surfaces first, then what moved last time (it stays put if it can),
+        // then the larger before the smaller.
+        const moved = (f: FlushFace) => Boolean(before?.has(f.part));
+        plane.sort(
+          (p, q) =>
+            Number(room(q)) - Number(room(p)) ||
+            Number(moved(q)) - Number(moved(p)) ||
+            q.area - p.area,
+        );
+        const laid: { face: FlushFace; d: number }[] = [];
+        for (const face of plane) {
+          const under = laid.filter((l) => fights(face, l));
+          let d = face.d;
+          if (under.length) {
+            // Something on the room comes out of it; otherwise it goes the way it already was.
+            const below =
+              !(!room(face) && under.some((l) => room(l.face))) &&
+              face.d < Math.min(...under.map((l) => l.d)) - touch;
+            d = below
+              ? Math.min(face.d, ...under.map((l) => l.d - away(face, l.face)))
+              : Math.max(face.d, ...under.map((l) => l.d + away(face, l.face)));
+            if (back(face, n, d - face.d)) d = face.d;
+          }
+          laid.push({ face, d });
+          if (Math.abs(d - face.d) > touch)
+            moves.set(`${face.part}|${n.join(',')}|${Math.round(face.d / touch)}`, {
+              part: face.part,
+              n,
+              d: face.d,
+              by: d - face.d,
+            });
+        }
       }
     }
   }
 
-  for (const [part, mine] of moves) {
-    const offset: V3 = [0, 0, 0];
-    for (const [n, move] of mine) {
-      offset[0] += n[0] * move;
-      offset[1] += n[1] * move;
-      offset[2] += n[2] * move;
-    }
-    const pos = parts[part]?.getAttribute('POSITION');
+  // Every point of a part in a moving face's plane goes with it (the edges of the faces around
+  // it too, so the part stays closed).
+  const byPart = new Map<number, FlushMove[]>();
+  for (const m of moves.values()) byPart.set(m.part, [...(byPart.get(m.part) ?? []), m]);
+  const onPlane = flush / 6;
+  const v: number[] = [];
+  for (const [index, faces] of byPart) {
+    const part = parts[index] as FlushPart;
+    let pos = part.prim.getAttribute('POSITION');
     if (!pos) continue;
-    const p: number[] = [];
+    if (pos.listParents().filter((p) => p !== part.prim && !(p instanceof Root)).length) {
+      pos = pos.clone();
+      part.prim.setAttribute('POSITION', pos);
+    }
+    const m = part.matrix;
+    const k = (i: number) => m?.[i] ?? 0;
     for (let i = 0; i < pos.getCount(); i++) {
-      pos.getElement(i, p);
-      pos.setElement(i, [
-        (p[0] ?? 0) + offset[0],
-        (p[1] ?? 0) + offset[1],
-        (p[2] ?? 0) + offset[2],
-      ]);
+      pos.getElement(i, v);
+      const [x = 0, y = 0, z = 0] = v;
+      const p: V3 = m
+        ? [
+            k(0) * x + k(4) * y + k(8) * z + k(12),
+            k(1) * x + k(5) * y + k(9) * z + k(13),
+            k(2) * x + k(6) * y + k(10) * z + k(14),
+          ]
+        : [x, y, z];
+      const shift: V3 = [0, 0, 0];
+      let moved = false;
+      for (const f of faces) {
+        if (Math.abs(dot(f.n, p) - f.d) > onPlane) continue;
+        shift[0] += f.n[0] * f.by;
+        shift[1] += f.n[1] * f.by;
+        shift[2] += f.n[2] * f.by;
+        moved = true;
+      }
+      if (!moved) continue;
+      // Into the part's own space (rooms turn and scale what they place, but never shear it).
+      const local = m ? unrotate(m, shift) : shift;
+      pos.setElement(i, [x + local[0], y + local[1], z + local[2]]);
     }
   }
+  return byPart;
+}
+
+/** A part's positions where they're compared (x, y, z after each other), or null if it has none. */
+function flushPositions(prim: Primitive, matrix?: ArrayLike<number>): Float32Array | null {
+  const pos = prim.getAttribute('POSITION');
+  if (!pos || prim.getMode() !== 4 || !prim.getMaterial()) return null;
+  const out = new Float32Array(pos.getCount() * 3);
+  const e: number[] = [];
+  const m = (k: number) => matrix?.[k] ?? 0;
+  for (let i = 0; i < pos.getCount(); i++) {
+    pos.getElement(i, e);
+    const [x = 0, y = 0, z = 0] = e;
+    if (!matrix) out.set([x, y, z], i * 3);
+    else {
+      out[i * 3] = m(0) * x + m(4) * y + m(8) * z + m(12);
+      out[i * 3 + 1] = m(1) * x + m(5) * y + m(9) * z + m(13);
+      out[i * 3 + 2] = m(2) * x + m(6) * y + m(10) * z + m(14);
+    }
+  }
+  return out;
+}
+
+/**
+ * `separateFlush`, and once more for what landed on something that moved the other way (a face
+ * of a part moved in one direction can carry its edges onto another): never back the way it
+ * came, so nothing goes back and forth. `between` runs between the two (to let other work in).
+ */
+async function separateAllFlush(
+  parts: () => FlushPart[],
+  scale: number,
+  between: () => Promise<void> = async () => {},
+) {
+  const moved = separateFlush(parts(), scale);
+  if (!moved.size) return;
+  await between();
+  separateFlush(parts(), scale, moved);
+}
+
+/**
+ * Every part of a room (its surfaces, furniture and models), for `separateFlush`: each primitive
+ * where it is in the room. A mesh several nodes share is left out (moving it would move them all).
+ */
+export function roomParts(scene: { listChildren(): Node[] }): FlushPart[] {
+  const out: FlushPart[] = [];
+  for (const top of scene.listChildren()) {
+    const room = top.getName() === 'architecture';
+    top.traverse((node) => {
+      const mesh = node.getMesh();
+      if (!mesh || mesh.listParents().filter((p) => !(p instanceof Root)).length > 1) return;
+      const matrix = node.getWorldMatrix();
+      const grid = gridOf(mesh.listPrimitives()) * Math.hypot(matrix[0], matrix[1], matrix[2]);
+      for (const prim of mesh.listPrimitives()) out.push({ prim, room, owner: top, matrix, grid });
+    });
+  }
+  return out;
+}
+
+/** Bits each position is stored with (see writeChunk). */
+const POSITION_BITS = 16;
+
+/** The step between stored positions of a mesh made of these primitives (its own units). */
+function gridOf(prims: Primitive[]): number {
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  for (const prim of prims) {
+    const pos = prim.getAttribute('POSITION');
+    if (!pos?.getCount()) continue;
+    const lo = pos.getMin([]);
+    const hi = pos.getMax([]);
+    for (let k = 0; k < 3; k++) {
+      min[k] = Math.min(min[k] as number, lo[k] ?? 0);
+      max[k] = Math.max(max[k] as number, hi[k] ?? 0);
+    }
+  }
+  const size = Math.max(0, ...max.map((v, k) => v - (min[k] as number)));
+  return Number.isFinite(size) ? size / (2 ** POSITION_BITS - 1) : 0;
+}
+
+/** A move in the room as a move in a node's own space: its turn undone, then its scale. */
+function unrotate(m: ArrayLike<number>, v: V3): V3 {
+  const col = (k: number): V3 => [m[k] ?? 0, m[k + 1] ?? 0, m[k + 2] ?? 0];
+  const out: V3 = [0, 0, 0];
+  for (let k = 0; k < 3; k++) {
+    const axis = col(k * 4);
+    const s2 = dot(axis, axis) || 1;
+    out[k] = dot(axis, v) / s2;
+  }
+  return out;
 }
 
 const dot = (p: ArrayLike<number>, q: ArrayLike<number>) =>
