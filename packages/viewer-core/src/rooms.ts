@@ -140,14 +140,21 @@ export function needsSunShadows(manifest: SpaceManifest): boolean {
   return manifest.rooms.some((r) => r.isOutdoor || !r.lightmap);
 }
 
-/** Graphics memory a room's lighting image takes (1024 px square, RGBA, with mipmaps). */
-const LIGHTMAP_BYTES = Math.round(1024 * 1024 * 4 * (4 / 3));
+/**
+ * Graphics memory a room's lighting image takes (square, RGBA, with mipmaps). Places built
+ * before lightmaps were sized to their rooms don't say, and all have 1024 px.
+ */
+export function lightmapBytes(room: Room): number {
+  if (!room.lightmap) return 0;
+  const size = room.lightmap.size ?? 1024;
+  return Math.round(size * size * 4 * (4 / 3));
+}
 /** Geometry takes more room on the graphics card than in its compressed file. */
 const GEOMETRY_EXPANSION = 4;
 
 /** Roughly what holding a room in full detail costs in graphics memory (bytes). */
 export function detailCost(room: Room, lod: Lod): number {
-  return room.lods[lod].bytes * GEOMETRY_EXPANSION + (room.lightmap ? LIGHTMAP_BYTES : 0);
+  return room.lods[lod].bytes * GEOMETRY_EXPANSION + lightmapBytes(room);
 }
 
 /**

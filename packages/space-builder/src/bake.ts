@@ -16,10 +16,37 @@ const SCRIPT = fileURLToPath(new URL('../blender/bake_room.py', import.meta.url)
 
 /** How finely and how carefully each room is baked (ATS_BAKE_RES, ATS_BAKE_SAMPLES). */
 export interface BakeQuality {
-  /** Lightmap width and height, in pixels. */
+  /** The largest lightmap a room may get (width and height, pixels); see lightmapSize. */
   resolution: number;
-  /** Cycles samples per pixel. */
+  /** Cycles samples per pixel (fewer in lightmaps over 1024 px; see bakeSamples). */
   samples: number;
+}
+
+/** The smallest and largest lightmap a room gets (square, pixels). */
+export const LIGHTMAP_MIN = 256;
+export const LIGHTMAP_MAX = 2048;
+/** How much surface a lightmap pixel covers, ideally: about 1 cm, wherever you stand. */
+export const LIGHTMAP_TEXEL_M = 0.01;
+/** Roughly the share of a lightmap Blender's packing fills (the rest is margins and gaps). */
+const PACKED = 0.7;
+
+/**
+ * A room's lightmap size from how much surface it has (m²): about 1 cm a pixel, as the nearest
+ * power of two from 256 to 2048, and no more than `max` (ATS_BAKE_RES). A nook gets 512, an
+ * office 1024, a big hall 2048, so each looks as sharp as the others.
+ */
+export function lightmapSize(area: number, max = LIGHTMAP_MAX): number {
+  const side = Math.sqrt(area / PACKED) / LIGHTMAP_TEXEL_M;
+  const size = 2 ** Math.round(Math.log2(Math.max(side, 1)));
+  return Math.min(max, LIGHTMAP_MAX, Math.max(LIGHTMAP_MIN, size));
+}
+
+/**
+ * Samples per pixel for a lightmap this size: fewer over 1024 px, so a big room bakes in about
+ * twice the time rather than four times (it still gets more samples per square centimetre).
+ */
+export function bakeSamples(size: number, samples: number): number {
+  return size > 1024 ? Math.max(1, Math.round((samples * 1024) / size)) : samples;
 }
 
 /** What `bake_room.py` reads (see its docstring); `hdri` is the sky's file on this machine. */
@@ -96,13 +123,13 @@ export interface BakeSettings extends Partial<BakeQuality> {
   progress?: (p: BakeProgress) => void;
 }
 
-/** ATS_BAKE_RES and ATS_BAKE_SAMPLES, or the defaults (1024 pixels, 128 samples). */
+/** ATS_BAKE_RES (the largest lightmap) and ATS_BAKE_SAMPLES, or the defaults (2048, 128). */
 export function bakeQualityFromEnv(env: {
   ATS_BAKE_RES?: string | number | undefined;
   ATS_BAKE_SAMPLES?: string | number | undefined;
 }): BakeQuality {
   return {
-    resolution: Number(env.ATS_BAKE_RES ?? 1024),
+    resolution: Number(env.ATS_BAKE_RES ?? LIGHTMAP_MAX),
     samples: Number(env.ATS_BAKE_SAMPLES ?? 128),
   };
 }
@@ -196,6 +223,8 @@ export interface BakedLightmap {
   /** WebP image, sRGB-encoded; multiply by `intensity` to get linear irradiance. */
   image: Uint8Array;
   intensity: number;
+  /** Width and height, in pixels. */
+  size: number;
   /** How long the bake took (0 when it was reused from an earlier build). */
   seconds: number;
   /** Kept from an earlier build: nothing that goes into this room's bake changed. */
@@ -263,6 +292,7 @@ export async function bakeRoom(
   for (const d of room.doorways) doorPanel(occluders, d);
 
   const [x0, z0, x1, z1] = room.rect;
+  const resolution = lightmapSize(surfaceArea(positions, faces), settings.resolution);
   const input: BakeInput = {
     receiver: { positions, faces, faceGroup, groups },
     occluders: flatten(occluders),
@@ -271,8 +301,8 @@ export async function bakeRoom(
     hdriStrength: 1,
     // Aligns Blender's sky with three.js's so sunlight falls the same way in both.
     hdriRotation: Math.PI,
-    resolution: settings.resolution ?? 1024,
-    samples: settings.samples ?? 128,
+    resolution,
+    samples: bakeSamples(resolution, settings.samples ?? 128),
     margin: 6,
   };
   const putUv2 = (bytes: Uint8Array) => {
@@ -300,7 +330,14 @@ export async function bakeRoom(
       putUv2(entry.uv2);
       return {
         ok: true,
-        lightmap: { image: entry.image, intensity: entry.intensity, seconds: 0, reused: true },
+        lightmap: {
+          image: entry.image,
+          intensity: entry.intensity,
+          // Kept before sizes were recorded: every room was baked at the size asked for.
+          size: entry.size ?? resolution,
+          seconds: 0,
+          reused: true,
+        },
       };
     }
   }
@@ -324,8 +361,13 @@ export async function bakeRoom(
     return { ok: false, error: 'The bake came back the wrong size', timedOut: false };
   const { image, intensity } = await encodeLightmap(floats, meta.width, meta.height);
   if (cache)
-    await cache.put(key, writeCacheEntry({ image, intensity, uv2: out.uv2 })).catch(() => {});
-  return { ok: true, lightmap: { image, intensity, seconds: meta.seconds, reused: false } };
+    await cache
+      .put(key, writeCacheEntry({ image, intensity, size: meta.width, uv2: out.uv2 }))
+      .catch(() => {});
+  return {
+    ok: true,
+    lightmap: { image, intensity, size: meta.width, seconds: meta.seconds, reused: false },
+  };
 }
 
 /**
@@ -356,10 +398,46 @@ function receiverInput(receiver: MeshBuilder) {
   return { positions, faces, faceGroup, groups, ranges };
 }
 
+/** The surface area of a mesh's faces (m²; each face a fan of triangles). */
+export function surfaceArea(positions: number[], faces: number[][]): number {
+  const p = (i = 0): V3 => [
+    positions[i * 3] ?? 0,
+    positions[i * 3 + 1] ?? 0,
+    positions[i * 3 + 2] ?? 0,
+  ];
+  let area = 0;
+  for (const f of faces) {
+    const a = p(f[0]);
+    for (let k = 1; k + 1 < f.length; k++) {
+      const b = p(f[k]);
+      const c = p(f[k + 1]);
+      const u: V3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+      const v: V3 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+      area +=
+        Math.hypot(
+          u[1] * v[2] - u[2] * v[1],
+          u[2] * v[0] - u[0] * v[2],
+          u[0] * v[1] - u[1] * v[0],
+        ) / 2;
+    }
+  }
+  return area;
+}
+
 /** A kept bake: a small JSON header (intensity and sizes), then the UVs, then the image. */
-function writeCacheEntry(e: { image: Uint8Array; intensity: number; uv2: Uint8Array }) {
+function writeCacheEntry(e: {
+  image: Uint8Array;
+  intensity: number;
+  size: number;
+  uv2: Uint8Array;
+}) {
   const head = new TextEncoder().encode(
-    JSON.stringify({ intensity: e.intensity, uv2: e.uv2.byteLength, image: e.image.byteLength }),
+    JSON.stringify({
+      intensity: e.intensity,
+      size: e.size,
+      uv2: e.uv2.byteLength,
+      image: e.image.byteLength,
+    }),
   );
   const out = new Uint8Array(4 + head.byteLength + e.uv2.byteLength + e.image.byteLength);
   new DataView(out.buffer).setUint32(0, head.byteLength);
@@ -375,13 +453,14 @@ function readCacheEntry(bytes: Uint8Array) {
     const size = view.getUint32(0);
     const head = JSON.parse(new TextDecoder().decode(bytes.subarray(4, 4 + size))) as {
       intensity: number;
+      size?: number;
       uv2: number;
       image: number;
     };
     const uv2 = bytes.slice(4 + size, 4 + size + head.uv2);
     const image = bytes.slice(4 + size + head.uv2, 4 + size + head.uv2 + head.image);
     if (uv2.byteLength !== head.uv2 || image.byteLength !== head.image) return null;
-    return { intensity: head.intensity, uv2, image };
+    return { intensity: head.intensity, size: head.size, uv2, image };
   } catch {
     return null;
   }

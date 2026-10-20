@@ -108,8 +108,8 @@ A room whose bake inputs haven't changed since an earlier build of the same plac
 |---|---|---|
 | `ATS_BLENDER` | `blender` on the `PATH` | Blender to bake with when there's no supervisor (3.4 or newer) |
 | `ATS_BAKE` | on | `0` turns baking off |
-| `ATS_BAKE_RES` | `1024` | Lightmap size per room (`512` is plenty while developing) |
-| `ATS_BAKE_SAMPLES` | `128` | Quality; `64` is about twice as fast |
+| `ATS_BAKE_RES` | `2048` | The largest lightmap a room gets. Each room's is sized to its surfaces (about 1 cm a pixel: 512 for a nook, 1024 for an office, 2048 for a big hall); `512` is plenty while developing |
+| `ATS_BAKE_SAMPLES` | `128` | Quality; `64` is about twice as fast. Lightmaps over 1024 px take proportionally fewer |
 | `ATS_BAKE_CPUS` | `2` | CPUs for each room's bake (the supervisor's setting) |
 | `ATS_BAKE_PARALLEL` | host CPUs / `ATS_BAKE_CPUS` | Rooms baked at once, across every build (the supervisor's setting) |
 | `ATS_CHECK_CPUS` | `4` (or the host's CPUs if fewer) | CPUs for building and playing a creation in its checks (the supervisor's setting) |

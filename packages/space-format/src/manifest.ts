@@ -68,8 +68,13 @@ export const Room = z.object({
   /**
    * Baked lighting for the room's walls, floor and ceiling (light from the sky and ceiling
    * lights bouncing around, with soft shadows). The image is sRGB; multiply by `intensity`.
+   * `size` is its width and height in pixels (sized to the room; places built before it was
+   * recorded have 1024).
    */
-  lightmap: ChunkRef.extend({ intensity: z.number().positive() }).optional(),
+  lightmap: ChunkRef.extend({
+    intensity: z.number().positive(),
+    size: z.number().int().positive().optional(),
+  }).optional(),
   /**
    * The things in this room that can be picked out (and hold creations). Keys are stable across
    * rebuilds, so creations follow their objects when a space is reshaped.
