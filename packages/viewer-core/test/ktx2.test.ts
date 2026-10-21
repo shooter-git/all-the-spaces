@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { deflateSync } from 'node:zlib';
 import { Document, NodeIO } from '@gltf-transform/core';
@@ -90,16 +91,17 @@ async function texturedModel() {
   return new NodeIO().writeBinary(doc);
 }
 
-/** three.js's own Basis transcoder (the one the app serves), run here without a worker. */
-async function transcoder() {
-  const dir = dirname(
-    createRequire(import.meta.url).resolve('three/examples/jsm/libs/basis/basis_transcoder.js'),
-  );
-  const make = runInNewContext(`${readFileSync(join(dir, 'basis_transcoder.js'), 'utf8')}; BASIS`, {
-    WebAssembly,
-    console,
-    performance,
-  }) as (o: { wasmBinary: Uint8Array }) => Promise<BasisModule>;
+/**
+ * A Basis transcoder as the app's Content-Security-Policy lets it run: WebAssembly allowed
+ * ('wasm-unsafe-eval'), JavaScript made from strings not ('unsafe-eval'). `dir` holds
+ * basis_transcoder.js and .wasm; by default the viewer's own (basis/).
+ */
+async function transcoder(dir = fileURLToPath(new URL('../basis/', import.meta.url))) {
+  const make = runInNewContext(
+    `${readFileSync(join(dir, 'basis_transcoder.js'), 'utf8')}; BASIS`,
+    { WebAssembly, console, performance },
+    { contextCodeGeneration: { strings: false, wasm: true } },
+  ) as (o: { wasmBinary: Uint8Array }) => Promise<BasisModule>;
   const basis = await make({ wasmBinary: readFileSync(join(dir, 'basis_transcoder.wasm')) });
   basis.initializeBasis();
   return basis;
@@ -206,6 +208,18 @@ function loadedRoom(
     parser: { json, associations: new Map([[map, { textures: 0 }]]) },
   } as unknown as GLTF;
 }
+
+describe('the texture transcoder', () => {
+  it("runs where JavaScript can't be made from strings, as the app's CSP has it", async () => {
+    const basis = await transcoder();
+    expect(typeof basis.KTX2File).toBe('function');
+    // three.js's own build can't: under the CSP its workers fail and KTX2 places never open.
+    const three = dirname(
+      createRequire(import.meta.url).resolve('three/examples/jsm/libs/basis/basis_transcoder.js'),
+    );
+    await expect(transcoder(three)).rejects.toThrow(/Code generation from strings disallowed/);
+  });
+});
 
 describe('rooms sharing a texture file', () => {
   it('hold one copy of a KTX2 texture, its compressed pixels included', () => {

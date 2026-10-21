@@ -34,7 +34,7 @@ import {
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import type { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
@@ -43,6 +43,7 @@ import { type AudioOut, SpaceAudio } from './audio.ts';
 import { AvatarLayer } from './avatars.ts';
 import { closedDoors, SwingingDoors } from './doors.ts';
 import { InputState } from './input.ts';
+import { ktx2Loader } from './ktx2.ts';
 import { RoomObjects } from './objects.ts';
 import { FrameStats } from './perf.ts';
 import { CollisionWorld, PlayerController } from './physics.ts';
@@ -268,8 +269,7 @@ export class SpaceViewer {
     this.scene.add(this.doors.root);
     this.avatars.onStep = (p) =>
       this.audio.remoteStep(p, roomAt(this.manifest, p.x, p.y + 0.1, p.z));
-    // Its transcoder is served with the app's own files (bundled from three.js; no CDN).
-    this.ktx2 = new KTX2Loader().detectSupport(this.renderer);
+    this.ktx2 = ktx2Loader(this.renderer);
     this.streamer = new RoomStreamer(this.manifest, options.baseUrl, this.world, {
       maxDetail: quality === 'low' ? 'lod1' : 'lod0',
       detailBudget: DETAIL_BUDGETS[quality],
