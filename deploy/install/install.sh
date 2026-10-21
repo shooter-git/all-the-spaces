@@ -611,10 +611,12 @@ wait_healthy() { # wait_healthy SECONDS
 
 # The asset cache's volume, made before the app image had its folder, belongs to root, where the
 # server (user node) can't download anything: places were built with flat colours and simple
-# shapes. Given to node on every start; quick, and harmless when it already is.
+# shapes. Given to node on every start; quick, and harmless when it already is. The server runs
+# with every capability dropped, so this one-off container gets back only the one chown needs.
 own_asset_cache() {
-  dc run --rm --no-deps -T --user 0 server chown -R node:node /var/cache/ats-assets \
-    >/dev/null 2>&1 || true
+  dc run --rm --no-deps -T --user 0 --cap-add CHOWN server \
+    chown -R node:node /var/cache/ats-assets >/dev/null 2>&1 ||
+    warn "Couldn't give the asset cache to the server: places may build without textures"
 }
 
 # Starts everything and waits for it all to be healthy (see wait_healthy).
