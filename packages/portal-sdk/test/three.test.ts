@@ -122,6 +122,22 @@ describe('a stage', () => {
     done();
   });
 
+  it('never steps time backwards, even when the first frame began before the loop did', async () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(2000);
+    const portal = await connect();
+    const stage = createStage(portal);
+    const steps: number[] = [];
+    stage.loop((dt) => steps.push(dt));
+    const tick = made.renderers.at(-1)?.setAnimationLoop.mock.lastCall?.[0] as (n: number) => void;
+    // A slow start: the first frame is stamped a second before `loop` read the clock.
+    tick(1010);
+    tick(1040);
+    expect(steps[0]).toBe(0);
+    expect(steps[1]).toBeCloseTo(0.03);
+    stage.dispose();
+    now.mockRestore();
+  });
+
   it('adapts even for a creation that never says it is ready', async () => {
     const { stage, slow, done } = await timed();
     slow(19);
