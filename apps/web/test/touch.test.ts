@@ -1,6 +1,6 @@
 // Phones, in real browser engines (Chromium as Android, WebKit as iPhone), portrait and landscape:
 // inside a space everything in the corner menu answers a tap, pop-ups take taps and scroll, the 3D
-// view still walks and looks without moving the page, a creation's Back and Chat stay reachable,
+// view still walks and looks without moving the page, a creation's Chat and Leave stay reachable,
 // and held sideways the way into a creation puts its picture beside the words, with the way in on
 // screen. Turned sideways and back (with fingers down that never lift, as phones can lose them in a
 // turn), the page stays put, the menu and its pop-ups still take taps, and the walking stops.
@@ -761,7 +761,7 @@ run('touch in a space (phones)', () => {
         }
       });
 
-      it("a creation: the app's Back and Chat, and its link card, take taps", {
+      it("a creation: the app's Chat and Leave, and its link card, take taps", {
         timeout: 90_000,
       }, async () => {
         const context = await phone(p);
@@ -775,7 +775,7 @@ run('touch in a space (phones)', () => {
           // The veil lifts: wait until it's gone, not a fixed time (WebKit can be slower).
           await tab.locator('.passage').waitFor({ state: 'detached', timeout: 15_000 });
           await tab.waitForTimeout(300);
-          // The app's one control: a small glass button in the corner, opening Back, Chat…
+          // The app's one control: a small glass button in the corner, opening Chat… and Leave, last.
           const menu = tab.locator('.creation-menu');
           const open = menu.getByRole('button', { name: /^Menu/ });
           await reachable(open);
@@ -796,9 +796,9 @@ run('touch in a space (phones)', () => {
           if (process.env.WEB_TOUCH_SHOTS)
             await tab.screenshot({ path: `${process.env.WEB_TOUCH_SHOTS}/closed-${p.name}.png` });
           await open.tap();
-          const back = menu.getByRole('button', { name: /^Back to/ });
-          await reachable(back);
-          await back.tap();
+          const leave = menu.getByRole('button', { name: `Leave ${creation.title}`, exact: true });
+          await reachable(leave);
+          await leave.tap();
           await tab
             .locator('iframe.creation-frame')
             .waitFor({ state: 'detached', timeout: 15_000 });
