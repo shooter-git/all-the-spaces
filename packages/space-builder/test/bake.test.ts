@@ -1,6 +1,7 @@
 import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import {
   BakeError,
@@ -17,6 +18,7 @@ import {
 import { buildSpace } from '../src/build.ts';
 import { MeshBuilder } from '../src/geometry.ts';
 import { MaterialLibrary, writeChunk } from '../src/gltf.ts';
+import { isKtx2 } from '../src/ktx2.ts';
 import { MATERIALS } from '../src/materials.ts';
 
 describe('bake settings', () => {
@@ -286,6 +288,55 @@ describe('incremental bakes', () => {
     expect(c.stats.lighting).toMatchObject({ baked: indoor.length, reused: indoor.length - 1 });
     expect(lod0(c.manifest, 'hall')).toBe(lod0(a.manifest, 'hall'));
     expect(lod0(c.manifest, 'quiet')).not.toBe(lod0(a.manifest, 'quiet'));
+  });
+
+  it('keeps lightmaps as KTX2, and converts ones kept as WebP without baking them again', async () => {
+    const own = new Map<string, Uint8Array>();
+    const store = {
+      get: async (key: string) => own.get(key) ?? null,
+      put: async (key: string, data: Uint8Array) => void own.set(key, data),
+    };
+    const first = await buildSpace(plan(), {
+      bake: { run: fakeBaker().run, cache: store, resolution: 8, samples: 1 },
+    });
+    const lit = first.manifest.rooms.filter((r) => r.lightmap);
+    expect(lit.length).toBeGreaterThan(0);
+    for (const r of lit) {
+      expect(r.lightmap?.path).toMatch(/^chunks\/[0-9a-f]{64}\.ktx2$/);
+      expect(isKtx2(first.files.get(r.lightmap?.path ?? '') as Uint8Array)).toBe(true);
+    }
+
+    // As an earlier build kept them: the same bake, as WebP.
+    const parts = (entry: Uint8Array) => {
+      const n = new DataView(entry.buffer, entry.byteOffset).getUint32(0);
+      const head = JSON.parse(new TextDecoder().decode(entry.subarray(4, 4 + n)));
+      return { n, head, image: entry.subarray(4 + n + head.uv2) };
+    };
+    const webp = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: { r: 90, g: 90, b: 90 } },
+    })
+      .webp()
+      .toBuffer();
+    for (const [key, entry] of own) {
+      const { n, head } = parts(entry);
+      const uv2 = entry.subarray(4 + n, 4 + n + head.uv2);
+      const json = new TextEncoder().encode(JSON.stringify({ ...head, image: webp.byteLength }));
+      const out = new Uint8Array(4 + json.byteLength + uv2.byteLength + webp.byteLength);
+      new DataView(out.buffer).setUint32(0, json.byteLength);
+      out.set(json, 4);
+      out.set(uv2, 4 + json.byteLength);
+      out.set(webp, 4 + json.byteLength + uv2.byteLength);
+      own.set(key, out);
+    }
+    const again = fakeBaker();
+    const b = await buildSpace(plan(), {
+      bake: { run: again.run, cache: store, resolution: 8, samples: 1 },
+    });
+    expect(again.baked.length).toBe(0);
+    for (const r of b.manifest.rooms.filter((r) => r.lightmap))
+      expect(isKtx2(b.files.get(r.lightmap?.path ?? '') as Uint8Array)).toBe(true);
+    // Converted once: kept as KTX2 from now on.
+    for (const entry of own.values()) expect(isKtx2(parts(entry).image)).toBe(true);
   });
 
   it('builds the place anyway when baking fails, and says why', async () => {

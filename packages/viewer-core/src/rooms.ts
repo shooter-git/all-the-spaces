@@ -141,13 +141,15 @@ export function needsSunShadows(manifest: SpaceManifest): boolean {
 }
 
 /**
- * Graphics memory a room's lighting image takes (square, RGBA, with mipmaps). Places built
+ * Graphics memory a room's lighting image takes (square, with mipmaps): a byte a pixel as KTX2,
+ * which stays compressed (ASTC or BC7), four as the WebP of places built before. Places built
  * before lightmaps were sized to their rooms don't say, and all have 1024 px.
  */
 export function lightmapBytes(room: Room): number {
   if (!room.lightmap) return 0;
   const size = room.lightmap.size ?? 1024;
-  return Math.round(size * size * 4 * (4 / 3));
+  const perPixel = room.lightmap.path.endsWith('.ktx2') ? 1 : 4;
+  return Math.round(size * size * perPixel * (4 / 3));
 }
 /** Geometry takes more room on the graphics card than in its compressed file. */
 const GEOMETRY_EXPANSION = 4;
