@@ -98,7 +98,9 @@ export function createStage(
   const loop: Stage['loop'] = (frame) => {
     let last = performance.now();
     renderer.setAnimationLoop((now) => {
-      const ms = now - last;
+      // A frame's timestamp is when that frame began, which can be before `loop` was called (after a
+      // slow start, by a second or more): never a negative step, or the creation runs backwards.
+      const ms = Math.max(0, now - last);
       const dt = Math.min(0.1, ms / 1000);
       last = now;
       if (paused) return;
