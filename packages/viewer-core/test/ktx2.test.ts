@@ -185,7 +185,8 @@ describe('textures in a built room', () => {
             error += Math.abs((out[(y * 64 + x) * 4 + c] ?? 0) - (pixel(x, y)[c] ?? 0));
       expect(error / (64 * 64 * 3)).toBeLessThan(6);
     }
-  });
+    // Starting the encoders (WebAssembly in worker threads) takes seconds on a busy machine.
+  }, 30_000);
 });
 
 /** A loaded room as GLTFLoader gives it: one mesh, its colour map read from `file`. */
