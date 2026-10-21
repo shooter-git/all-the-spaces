@@ -348,7 +348,7 @@ export async function buildSpace(input: unknown, options: BuildOptions = {}): Pr
     if (baked.ok) {
       const { image, intensity, size, seconds, reused } = baked.lightmap;
       const sha256 = createHash('sha256').update(image).digest('hex');
-      const path = put(`${sha256}.webp`, image);
+      const path = put(`${sha256}.ktx2`, image);
       resources.add(path);
       lightmap = { path, bytes: image.byteLength, sha256, intensity, size };
       stats.bakeSeconds += seconds;

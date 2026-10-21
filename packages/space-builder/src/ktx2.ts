@@ -2,10 +2,11 @@ import { availableParallelism } from 'node:os';
 import { Worker } from 'node:worker_threads';
 
 /**
- * What a texture holds, which decides how it's compressed: colour (sRGB), or numbers the shader
- * reads (normals; roughness, metalness and occlusion), whose errors show up differently.
+ * What a texture holds, which decides how it's compressed: colour (sRGB), numbers the shader
+ * reads (normals; roughness, metalness and occlusion), whose errors show up differently, or a
+ * room's baked light.
  */
-export type TextureKind = 'color' | 'normal' | 'data';
+export type TextureKind = 'color' | 'normal' | 'data' | 'lightmap';
 
 /** Basis Universal settings for each kind of texture (see ktx2-encoder's options). */
 export const KTX2_SETTINGS = {
@@ -15,7 +16,18 @@ export const KTX2_SETTINGS = {
   // UASTC: normal maps' small errors become bumpy lighting, and ETC1S's blocks show in them
   // (sharper than their WebP even at its fastest level; higher levels take 4–15× longer).
   normal: { isUASTC: true, uastcLDRQualityLevel: 0, needSupercompression: true, srgb: false },
+  // UASTC: smooth gradients that ETC1S would break into blocks; it reads back as close to the
+  // bake as the WebP it replaces did (closer, measured), at a quarter of RGBA's memory.
+  lightmap: { isUASTC: true, uastcLDRQualityLevel: 0, needSupercompression: true, srgb: true },
 } as const;
+
+/** The first bytes of every KTX2 file. */
+const KTX2_ID = [0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/** Whether these bytes are a KTX2 file (not, say, a WebP from before). */
+export function isKtx2(bytes: Uint8Array): boolean {
+  return KTX2_ID.every((b, i) => bytes[i] === b);
+}
 
 export interface EncodeJob {
   id: number;

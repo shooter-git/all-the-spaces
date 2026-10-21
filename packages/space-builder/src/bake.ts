@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 import type { Doorway, MaterialName } from '@ats/space-format';
 import sharp from 'sharp';
 import { MeshBuilder, type SurfaceKey, type V3 } from './geometry.ts';
+import { encodeKtx2, isKtx2 } from './ktx2.ts';
 import { hexToLinear, MATERIALS } from './materials.ts';
 
 const run = promisify(execFile);
@@ -237,8 +238,9 @@ export type BakeResult =
   | { ok: false; error: string; timedOut: boolean };
 
 /**
- * Changes whenever the same inputs could bake differently: the script, and how the result is
- * encoded (see encodeLightmap).
+ * Changes whenever the same inputs could bake differently: the script, and how the light is
+ * scaled and smoothed (see encodeLightmap). Not the file format: lightmaps kept as WebP before
+ * they became KTX2 are converted when reused (see `asKtx2`), not baked again.
  */
 let recipe: string | undefined;
 const bakeRecipe = async () => {
@@ -328,10 +330,16 @@ export async function bakeRoom(
     const entry = kept ? readCacheEntry(kept) : null;
     if (entry) {
       putUv2(entry.uv2);
+      const image = await asKtx2(entry.image);
+      // Converted once: kept as KTX2 from now on.
+      if (image !== entry.image)
+        await cache
+          .put(key, writeCacheEntry({ ...entry, image, size: entry.size ?? resolution }))
+          .catch(() => {});
       return {
         ok: true,
         lightmap: {
-          image: entry.image,
+          image,
           intensity: entry.intensity,
           // Kept before sizes were recorded: every room was baked at the size asked for.
           size: entry.size ?? resolution,
@@ -467,7 +475,8 @@ function readCacheEntry(bytes: Uint8Array) {
 }
 
 /**
- * Float irradiance → 8-bit sRGB WebP. Scaled so the brightest 1% just fits, keeping detail in
+ * Float irradiance → 8-bit sRGB KTX2 (UASTC), which the graphics card keeps compressed: a quarter
+ * of the memory of RGBA, gradients intact. Scaled so the brightest 1% just fits, keeping detail in
  * the shadows; `intensity` undoes the scaling in the viewer. A light blur smooths bake noise
  * (islands have padding, so it doesn't bleed across edges).
  */
@@ -488,11 +497,23 @@ async function encodeLightmap(rgba: Float32Array, width: number, height: number)
       rgb[q + c] = Math.round(s * 255);
     }
   }
-  const image = await sharp(rgb, { raw: { width, height, channels: 3 } })
+  const blurred = await sharp(rgb, { raw: { width, height, channels: 3 } })
     .blur(1.2)
-    .webp({ quality: 88, effort: 4 })
+    .ensureAlpha()
+    .raw()
     .toBuffer();
-  return { image: new Uint8Array(image), intensity: 1 / k };
+  const image = await encodeKtx2(new Uint8Array(blurred), width, height, 'lightmap');
+  return { image, intensity: 1 / k };
+}
+
+/** A kept lightmap as KTX2: those baked before lightmaps were KTX2 are WebP. */
+async function asKtx2(image: Uint8Array): Promise<Uint8Array> {
+  if (isKtx2(image)) return image;
+  const { data, info } = await sharp(image)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return encodeKtx2(new Uint8Array(data), info.width, info.height, 'lightmap');
 }
 
 /** Soft ceiling lights on a ~3 m grid, like a well-lit home or office. */

@@ -152,6 +152,12 @@ describe('lightmap memory', () => {
     expect(lightmapBytes({ ...lit(512), lightmap: undefined })).toBe(0);
   });
 
+  it('counts a KTX2 lightmap at a byte a pixel: it stays compressed on the graphics card', () => {
+    const room = lit(2048);
+    if (room.lightmap) room.lightmap.path = 'chunks/lightmap.ktx2';
+    expect(lightmapBytes(room)).toBe(Math.round(2048 * 2048 * (4 / 3)));
+  });
+
   it('reads places built before lightmaps said their size, which are all 1024 px', () => {
     const old = structuredClone(building);
     old.rooms = [lit()];

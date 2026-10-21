@@ -113,12 +113,13 @@ too steep), lifts (stops in a room on each floor) and **outdoor** rooms (no ceil
 Each floor has its own drawing: `trace.json` holds a calibration per floor, and `ats space overlay`
 draws `preview/overlay-<floor>.png` for each.
 
-A built place's surface and model textures are **KTX2** (Basis Universal: ETC1S for colour and
-roughness, UASTC for normal maps), which the viewer transcodes to whatever compressed format the
-graphics card reads (ASTC, ETC2, BC7…), so they stay 4–8× smaller in its memory than a JPEG or
-WebP unpacked to RGBA. The encoder is WebAssembly from npm (`ktx2-encoder`), run in worker threads,
-so the app image and the workbench need nothing installed. Places built before KTX2 keep their
-WebP textures, which the viewer still reads.
+A built place's textures and baked lightmaps are **KTX2** (Basis Universal: ETC1S for colour and
+roughness, UASTC for normal maps and lightmaps), which the viewer transcodes to whatever compressed
+format the graphics card reads (ASTC, ETC2, BC7…), so they stay 4–8× smaller in its memory than a
+JPEG or WebP unpacked to RGBA. The encoder is WebAssembly from npm (`ktx2-encoder`), run in worker
+threads, so the app image and the workbench need nothing installed. Places built before KTX2 keep
+their WebP textures, which the viewer still reads; lightmaps kept from earlier bakes as WebP are
+converted when a place is built again, not baked again.
 
 **Lighting is baked as part of every build**, with nobody asked or waiting. Each indoor room is
 baked on its own with its doors closed (daylight from the sky through the windows, soft ceiling
