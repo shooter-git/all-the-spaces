@@ -19,6 +19,8 @@ vi.mock('../src/lib/sound.ts', () => {
   const quiet = new Proxy({}, { get: (_t, key) => (key === 'out' ? () => null : () => {}) });
   return { sound: quiet, useSoundPrefs: () => ({ on: false, volume: 0 }) };
 });
+// What runs inside a creation has tests of its own; here only the app around it.
+vi.mock('../src/components/CreationHost.tsx', () => ({ CreationHost: () => null }));
 
 const manifest = {
   name: 'The Workshop',
@@ -314,6 +316,60 @@ describe('the menu in a space', () => {
     act(() => FakeViewer.last?.onRoomChange?.({ key: 'porch', name: 'Porch', floorKey: 'ground' }));
     expect(title()?.textContent).toBe('PorchThe Workshop');
     expect(title()?.getAttribute('data-shown')).toBe('true');
+  });
+});
+
+describe('the menu in a creation', () => {
+  const boats = {
+    id: 'c1',
+    title: 'Paper Boats',
+    description: '',
+    objectKey: null,
+    roomKey: 'hall',
+    defaultMode: 'solo',
+    version: 1,
+    playing: 0,
+  };
+
+  it('ends with the way out, as in a space', async () => {
+    const base = fetch;
+    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      if (path === '/api/spaces/s1/creations') return json({ creations: [boats] });
+      if (path === '/api/creations/c1/open')
+        return json({
+          creation: {
+            ...boats,
+            versionId: 'v1',
+            protocolVersion: 1,
+            saveVersion: null,
+          },
+          trial: false,
+          url: 'https://play.example.test/c1',
+          playOrigin: 'https://play.example.test',
+          ticket: 't',
+        });
+      return base(input, init);
+    });
+    await open();
+    await until(() => FakeViewer.all.length === 1);
+    const viewer = FakeViewer.last as FakeViewer;
+    act(() => viewer.onReady?.());
+    // The view pauses as the creation comes up.
+    const paused = vi.spyOn(viewer, 'pause');
+    const go = () =>
+      (window as unknown as { __atsOpenCreation?: (id: string) => boolean }).__atsOpenCreation?.(
+        'c1',
+      ) ?? false;
+    await until(go);
+    await until(() => paused.mock.calls.length > 0);
+    act(() => container.querySelector<HTMLButtonElement>('.creation-menu-button')?.click());
+    const panel = container.querySelector('.creation-menu-panel');
+    expect(
+      [...(panel?.querySelectorAll('.creation-menu-item') ?? [])].map((b) => b.textContent?.trim()),
+    ).toEqual(['Chat', 'Leave Paper Boats']);
+    expect(panel?.lastElementChild?.textContent).toBe('Leave Paper Boats');
+    expect(panel?.lastElementChild?.previousElementSibling?.className).toBe('creation-menu-rule');
   });
 });
 
