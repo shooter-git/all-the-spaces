@@ -609,8 +609,17 @@ wait_healthy() { # wait_healthy SECONDS
   done
 }
 
+# The asset cache's volume, made before the app image had its folder, belongs to root, where the
+# server (user node) can't download anything: places were built with flat colours and simple
+# shapes. Given to node on every start; quick, and harmless when it already is.
+own_asset_cache() {
+  dc run --rm --no-deps -T --user 0 server chown -R node:node /var/cache/ats-assets \
+    >/dev/null 2>&1 || true
+}
+
 # Starts everything and waits for it all to be healthy (see wait_healthy).
 start_all() { # start_all SECONDS
+  own_asset_cache
   if dc up -d --remove-orphans; then
     wait_healthy "$1"
   else

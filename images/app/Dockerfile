@@ -53,6 +53,10 @@ COPY apps/realtime/src apps/realtime/src
 COPY apps/worker/src apps/worker/src
 COPY apps/supervisor/src apps/supervisor/src
 RUN rm -rf starters/creation/node_modules starters/creation/dist
+# The asset cache's volume (compose.yml) starts as this folder: the server, running as node,
+# downloads CC0 textures and models into it. Without it the volume is root's, every download fails,
+# and places are built with flat colours and simple shapes.
+RUN mkdir -p /var/cache/ats-assets && chown node:node /var/cache/ats-assets
 USER node
 EXPOSE 3000 2567 3140
 CMD ["node", "apps/server/src/main.ts"]
