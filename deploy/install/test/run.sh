@@ -151,6 +151,8 @@ for id in $(dc ps -q); do
   [[ $(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$id") == healthy ]] ||
     fail "$name has no health check, or isn't healthy"
 done
+dc exec -T server touch /var/cache/ats-assets/first ||
+  fail "the server can't write its asset cache (textures and models would be missing)"
 pass "installed; app, API, realtime, PWA files, CSP, play origin, supervisor and egress all respond; all healthy"
 
 # Not behind a proxy: Caddy has the web ports on every address, with HTTPS, as always.
@@ -194,6 +196,10 @@ chmod 644 "$WORK/connectors.env"
 echo 'Repository hosts go here.' >"$WORK/sources/README"
 printf 'ATS_SOURCE_TEST_TOKEN=only-for-the-server-too\n' >"$WORK/sources.env"
 chmod 644 "$WORK/sources.env"
+# An asset cache as servers installed before v0.2.18 have it: root's, with a file in it.
+dc run --rm --no-deps -T --user 0 --cap-add CHOWN server sh -c \
+  'chown -R root:root /var/cache/ats-assets && touch /var/cache/ats-assets/old' >/dev/null 2>&1 ||
+  fail "couldn't make the asset cache root's"
 # Without the port options (as 'ats-admin update' runs it): the saved ports are kept.
 installer v0.0.2-test ats-app:installtest-v2 --update >"$WORK/update.log" 2>&1 || { cat "$WORK/update.log"; fail "update failed"; }
 grep -q '^ATS_RELEASE=v0.0.2-test' "$WORK/.env" || fail "release not recorded"
@@ -217,6 +223,8 @@ for svc in caddy realtime worker supervisor; do
   docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(dc ps -q "$svc")" | grep -qE '^ATS_(TEST_CONNECTOR_SECRET|SOURCE_TEST_TOKEN)=' &&
     fail "$svc can see connectors.env or sources.env"
 done
+dc exec -T server sh -c 'touch /var/cache/ats-assets/new && [ -O /var/cache/ats-assets/old ]' ||
+  fail "the server can't write its asset cache after the update (textures and models would be missing)"
 [[ $(psql_q "select name from groups") == "Installer Test House" ]] || fail "data lost during update"
 [[ $(object test/a.txt) == "original A" ]] || fail "stored file lost during update"
 grep -q '"test/b.bin"' "$WORK"/backups/*-before-v0.0.2-test/storage.json || fail "stored files not in the update's backup"
@@ -224,6 +232,7 @@ docker image inspect ats-app:installtest-v1 >/dev/null 2>&1 && fail "the previou
 docker image inspect ats-app:installtest-v2 "$WEB_IMAGE" "$EGRESS_IMAGE" >/dev/null || fail "an image still in use was removed"
 pass "updated to v0.0.2-test with data and stored files intact, both backed up first; old images removed"
 pass "the update kept the saved ports; connectors backed up, readable by the server alone"
+pass "the update gave a root-owned asset cache to the server"
 
 echo "5. An update that can't download its images changes nothing"
 if installer v0.0.3-missing ats-app:installtest-does-not-exist --update >"$WORK/missing.log" 2>&1; then
