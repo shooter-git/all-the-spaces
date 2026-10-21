@@ -6,9 +6,9 @@ const AWAKE_MS = 4000;
 
 /**
  * The app's controls over a creation, and over a space as you walk around it: one small glass
- * button in the top-left corner, which opens a menu (Back, Chat, voice…). It fades to a faint mark
- * while nothing happens, so the view has the whole screen, and wakes when something needs the
- * person (a message, someone talking).
+ * button in the top-left corner, which opens a menu (Chat, voice…, and last the way out). It
+ * fades to a faint mark while nothing happens, so the view has the whole screen, and wakes when
+ * something needs the person (a message, someone talking).
  *
  * Items are plain buttons with the class `creation-menu-item`; tapping one closes the menu,
  * unless it's inside an element marked `data-keep-open` (the microphone, say).

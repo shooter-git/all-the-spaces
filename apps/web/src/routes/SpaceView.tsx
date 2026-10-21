@@ -823,18 +823,6 @@ export function SpaceView({ me }: { me: Me }) {
             <button
               type="button"
               className="creation-menu-item"
-              onClick={() => {
-                beginLeaving();
-                setJourney((j) => (j ? { ...j, leaving: true } : j));
-              }}
-              disabled={journey.leaving}
-            >
-              <Icon name="back" />
-              Back to {room?.name ?? 'the space'}
-            </button>
-            <button
-              type="button"
-              className="creation-menu-item"
               onClick={() => (chatOpen ? closeChat() : openChat())}
               aria-label={`${chatOpen ? 'Close chat' : 'Chat'}${chat.totalUnread ? `: ${chat.totalUnread} unread` : ''}`}
               aria-expanded={chatOpen}
@@ -852,6 +840,20 @@ export function SpaceView({ me }: { me: Me }) {
                 <VoiceButton voice={voice} />
               </div>
             )}
+            <div className="creation-menu-rule" />
+            <button
+              type="button"
+              className="creation-menu-item"
+              data-wrap
+              onClick={() => {
+                beginLeaving();
+                setJourney((j) => (j ? { ...j, leaving: true } : j));
+              }}
+              disabled={journey.leaving}
+            >
+              <Icon name="back" />
+              Leave {journey.creation.title}
+            </button>
           </CreationMenu>
         </>
       )}
