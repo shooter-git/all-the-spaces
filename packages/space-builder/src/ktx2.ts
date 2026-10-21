@@ -75,6 +75,14 @@ function spawn(): Slot {
     slot.job = null;
     pump();
   });
+  // A worker can also end without an error: WebAssembly that aborts (out of memory, say) exits
+  // its thread. Its texture fails instead of leaving the build waiting for it forever.
+  worker.on('exit', (code) => {
+    remove(slot);
+    slot.job?.reject(new Error(`KTX2 encoding failed: the encoder stopped (exit code ${code})`));
+    slot.job = null;
+    pump();
+  });
   slots.push(slot);
   return slot;
 }
