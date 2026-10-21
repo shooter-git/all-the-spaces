@@ -15,8 +15,10 @@ import {
   Texture,
 } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { describe, expect, it } from 'vitest';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MaterialLibrary, workspaceModel, writeChunk } from '../../space-builder/src/gltf.ts';
+import { DECODE_TIMEOUT_MS, GuardedKTX2Loader } from '../src/ktx2.ts';
 import { SharedTextures } from '../src/textures.ts';
 
 /** A tiny PNG (RGBA, 8 bits a channel), so the test needs no image library. */
@@ -218,6 +220,41 @@ describe('the texture transcoder', () => {
       createRequire(import.meta.url).resolve('three/examples/jsm/libs/basis/basis_transcoder.js'),
     );
     await expect(transcoder(three)).rejects.toThrow(/Code generation from strings disallowed/);
+  });
+});
+
+describe('decoding KTX2 textures', () => {
+  /** What the loader gives back for one downloaded file. */
+  const parse = (loader: GuardedKTX2Loader) =>
+    new Promise((resolve, reject) => loader.parse(new ArrayBuffer(8), resolve, reject));
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('passes decoded textures through as KTX2Loader makes them', async () => {
+    const texture = new CompressedTexture([], 4, 4, RGBA_ASTC_4x4_Format);
+    vi.spyOn(KTX2Loader.prototype, 'parse').mockImplementation((_, onLoad) => onLoad?.(texture));
+    await expect(parse(new GuardedKTX2Loader())).resolves.toBe(texture);
+  });
+
+  it('fails, saying why, when the transcoder never answers, and then fails at once', async () => {
+    vi.useFakeTimers();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // As when the transcoder's workers can't run: KTX2Loader never calls back.
+    const never = vi.spyOn(KTX2Loader.prototype, 'parse').mockImplementation(() => {});
+    const loader = new GuardedKTX2Loader();
+    const both = Promise.all([
+      expect(parse(loader)).rejects.toThrow(/didn't answer within 30 s/),
+      expect(parse(loader)).rejects.toThrow(/didn't answer/),
+    ]);
+    await vi.advanceTimersByTimeAsync(DECODE_TIMEOUT_MS);
+    await both;
+    expect(error).toHaveBeenCalledOnce();
+    // Every texture after it fails straight away, without waiting again.
+    await expect(parse(loader)).rejects.toThrow(/didn't answer/);
+    expect(never).toHaveBeenCalledTimes(2);
   });
 });
 
