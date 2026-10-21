@@ -198,7 +198,7 @@ printf 'ATS_SOURCE_TEST_TOKEN=only-for-the-server-too\n' >"$WORK/sources.env"
 chmod 644 "$WORK/sources.env"
 # An asset cache as servers installed before v0.2.18 have it: root's, with a file in it.
 dc run --rm --no-deps -T --user 0 --cap-add CHOWN server sh -c \
-  'touch /var/cache/ats-assets/old && chown -R root:root /var/cache/ats-assets' >/dev/null 2>&1 ||
+  'chown -R root:root /var/cache/ats-assets && touch /var/cache/ats-assets/old' >/dev/null 2>&1 ||
   fail "couldn't make the asset cache root's"
 # Without the port options (as 'ats-admin update' runs it): the saved ports are kept.
 installer v0.0.2-test ats-app:installtest-v2 --update >"$WORK/update.log" 2>&1 || { cat "$WORK/update.log"; fail "update failed"; }
