@@ -10,7 +10,7 @@ import { checkProject } from '../src/pipeline.ts';
 const run = process.env.QA_BROWSER ? describe : describe.skip;
 const here = fileURLToPath(new URL('.', import.meta.url));
 
-async function check(project: string) {
+async function check(project: string, viewports = ['phone-portrait', 'desktop']) {
   const work = await mkdtemp(join(tmpdir(), 'ats-qa-browser-'));
   try {
     await cp(project, join(work, 'project'), {
@@ -23,7 +23,7 @@ async function check(project: string) {
       outDir: join(work, 'out'),
       storeDir: join(tmpdir(), 'ats-pnpm-store'),
       playSeconds: 2,
-      viewports: ['phone-portrait', 'desktop'],
+      viewports,
     });
   } finally {
     await rm(work, { recursive: true, force: true });
@@ -56,6 +56,14 @@ run('in a real browser', () => {
     } finally {
       await rm(out, { recursive: true, force: true });
     }
+  });
+
+  // Chromium won't start a module worker from a blob: URL in the sealed frame, so creations are
+  // built with classic workers; this one is ready only once its worker has answered.
+  it('starts an inline worker inside the sealed frame', { timeout: 240_000 }, async () => {
+    const result = await check(join(here, 'fixtures/inline-worker'), ['desktop']);
+    expect(result.report.checks.filter((c) => c.status === 'fail')).toEqual([]);
+    expect(result.ok).toBe(true);
   });
 
   it('answers connector calls from the project’s fixtures, and lists them in the report', {

@@ -8,6 +8,14 @@ describe('a build that failed', () => {
     expect(check.fix).toMatch(/^Fix the error above/);
   });
 
+  it('says how to fix a worker that waits at the top, since workers are built as classic', () => {
+    const check = buildFailure({
+      error:
+        "[plugin vite:worker] Error: Build failed with 1 error:\n[UNSUPPORTED_FEATURE] Top-level await is currently not supported with the 'iife' output format",
+    });
+    expect(check.fix).toMatch(/^A worker can't use `await` outside a function/);
+  });
+
   it('says to try again when it ran out of time, not to fix an error', () => {
     const check = buildFailure({ error: 'It took longer than 5 minutes.', timedOut: true });
     expect(check.detail).toBe('It took longer than 5 minutes.');

@@ -16,8 +16,12 @@ The app plays each creation in a **sealed frame** on its own origin. That shapes
 - **No cookies, `localStorage`, `sessionStorage` or IndexedDB.** Use `portal.save` and
   `portal.storage` instead.
 - **No pop-ups, forms that submit, or navigating away.** Leave with `portal.exit()`.
-- **Workers and WebAssembly** work (`blob:` workers, `wasm-unsafe-eval`). `SharedArrayBuffer` and
-  threads don't.
+- **Workers and WebAssembly** work (`wasm-unsafe-eval`). Import a worker inline,
+  `import Sim from './sim.ts?worker&inline'`, then `new Sim()`: it's built as a classic worker
+  started from a `blob:` URL, the only kind the frame starts. So it can't use `await` outside a
+  function, and can't load files by relative path: send it what it needs from the page. Workers
+  from a file (`new Worker(new URL(…))`, `?worker` without `&inline`) are blocked.
+  `SharedArrayBuffer` and threads don't work.
 - **The app draws one small menu button** (Back, Chat, voice…) in the top-left corner, as a
   faint pane of glass that fades while nothing happens. Keep the top-left 56 × 56 px clear
   (inside `portal.viewport.safeArea`); the rest of the screen is yours.
