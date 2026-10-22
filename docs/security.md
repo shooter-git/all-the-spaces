@@ -100,9 +100,10 @@ ever run in people's browsers, never on the server, and each one is sealed off:
   policy, so the page is sealed even if opened directly. Its origin is `null`: it has no cookies
   or storage, and can't reach the app's pages or API.
 - **No network except operator-installed connectors, via the host.** The security policy lets it
-  load only its own files (not even another creation's), plus `blob:` workers and WebAssembly. No
-  other address, no form submissions, no navigating the top page, no pop-ups. `frame-ancestors`
-  lets only the app embed it. The one way out is a **connector**
+  load only its own files (not even another creation's), plus classic workers from `blob:` URLs
+  (built from `?worker&inline` imports) and WebAssembly. No other address, no form submissions, no
+  navigating the top page, no pop-ups. `frame-ancestors` lets only the app embed it. The one way
+  out is a **connector**
   ([connectors.md](connectors.md), [0010](decisions/0010-operator-installed-connectors.md)). The
   server's owner installs one, the creation declares the operations it uses, and an Architect
   approves them for each version. The app then calls the service for the creation, as the

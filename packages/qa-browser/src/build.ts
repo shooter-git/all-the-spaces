@@ -144,7 +144,9 @@ export async function cleanBuild(dir: string, outDir: string) {
     resolve: {
       dedupe: ['three', '@allthespaces/portal', '@allthespaces/bridge-protocol'],
     },
-    worker: { format: 'es' },
+    // Classic workers: the sealed frame allows only workers from blob: URLs (`?worker&inline`),
+    // and Chromium won't start a module worker from one there (spike S4 in docs/spikes/phase-0.md).
+    worker: { format: 'iife' },
     build: {
       outDir,
       emptyOutDir: true,

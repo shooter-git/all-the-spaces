@@ -41,7 +41,8 @@ These come from how creations run. Breaking them means the creation won't publis
 5. **Stay within the budgets** for `budgetTier` in `ats.json` (usually `low`: a modest phone):
    around 150 draw calls and 300,000 triangles per frame, 128 MB of textures, 16 sounds at once,
    10 MB downloaded before `portal.ready()`. `ats qa` measures all of this. Never let the page
-   stop answering for 5 seconds (the app offers to leave): split long work. The checks' browser
+   stop answering for 5 seconds (the app offers to leave): split long work, or move it into a
+   worker imported with `?worker&inline` (the SDK README says how). The checks' browser
    has no graphics card, so 3D is drawn on the CPU there and making shaders can pause it for
    seconds; that's only a warning, but make shaders a few at a time behind a loading screen.
 6. **Dependencies:** published npm packages only (`pnpm add three`). Install scripts are switched

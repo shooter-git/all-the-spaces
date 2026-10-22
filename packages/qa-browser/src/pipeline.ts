@@ -405,13 +405,19 @@ interface ChildFailure {
 
 /** The failed check for a build that failed or ran out of time. */
 export function buildFailure(built: { error?: string; timedOut?: boolean }): Omit<Check, 'status'> {
+  // Workers are built as classic scripts (see cleanBuild), and those can't wait at the top.
+  const workerAwaits = /Top-level await is (currently )?not supported with the 'iife'/.test(
+    built.error ?? '',
+  );
   return {
     id: 'build',
     title: "It didn't build",
     detail: built.error?.slice(0, 800),
     fix: built.timedOut
       ? 'Building took too long, usually because the server was busy: try again. If it keeps happening, the creation has files that take long to check (many large sounds or models): fewer or smaller ones help.'
-      : 'Fix the error above. The platform builds with its own settings (vite.config is ignored): import files by relative path and keep assets in public/ or import them.',
+      : workerAwaits
+        ? "A worker can't use `await` outside a function: workers are built as classic scripts, the only kind the creation's frame can start. Move the `await` into a function, such as the worker's onmessage."
+        : 'Fix the error above. The platform builds with its own settings (vite.config is ignored): import files by relative path and keep assets in public/ or import them.',
   };
 }
 
