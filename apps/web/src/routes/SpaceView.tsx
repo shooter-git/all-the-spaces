@@ -262,7 +262,7 @@ export function SpaceView({ me }: { me: Me }) {
   const creationLeft = useCallback(async () => {
     // The creation may have asked to go itself, or stopped responding.
     beginLeaving();
-    // Let the veil cover the frame before it goes.
+    // Let the veil cover the frame before it goes (it fades in over the same 550 ms: passage.css).
     await wait(Math.max(0, 550 - (performance.now() - leavingSince.current)));
     leavingSince.current = 0;
     setJourney(null);

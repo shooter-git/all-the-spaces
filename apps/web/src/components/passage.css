@@ -29,6 +29,10 @@
     opacity: 0;
   }
 }
+/* Fully in by the time a creation's frame goes on the way out (SpaceView waits 550 ms). */
+.passage[data-phase="in"] {
+  transition-duration: 550ms;
+}
 .passage[data-phase="out"] {
   opacity: 0;
   transition-duration: 800ms;
@@ -134,6 +138,7 @@
   .passage {
     transition-duration: 300ms;
   }
+  .passage[data-phase="in"],
   .passage[data-phase="out"] {
     transition-duration: 300ms;
   }
