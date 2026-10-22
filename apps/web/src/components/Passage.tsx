@@ -5,7 +5,7 @@ export type PassagePhase = 'off' | 'in' | 'held' | 'out';
 
 /**
  * The soft veil between the space and a creation (and back): warm paper, the mark
- * breathing gently, a few sheets of washi drifting, the creation's name and how far it has loaded. The
+ * breathing gently, a few sheets of washi floating, the creation's name and how far it has loaded. The
  * app draws it — never the creation — so every way in and out feels the same.
  */
 export function Passage({
@@ -23,27 +23,34 @@ export function Passage({
   if (phase === 'off') return null;
   return (
     <div className="passage" data-phase={phase} role="status" aria-live="polite">
-      <svg
-        className="passage-sheets"
-        viewBox="0 0 400 300"
-        preserveAspectRatio="xMidYMid slice"
-        aria-hidden="true"
-      >
+      <div className="passage-sheets">
         {SHEETS.map((p) => (
-          <g
+          <svg
             key={p.id}
             className="passage-sheet"
-            style={{ animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s` }}
+            viewBox="-50 -50 100 100"
+            aria-hidden="true"
+            style={{
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: `${p.size}vmin`,
+              height: `${p.size}vmin`,
+              margin: `${-p.size / 2}vmin`,
+              // Side to side, up and down, and turning, each at its own pace, so the sheet never
+              // quite stops. Negative delays: already on their way when the veil comes in.
+              animationDuration: seconds([p.dur, p.dur * 0.71, p.dur * 1.37]),
+              animationDelay: seconds([1, 1.9, 2.7].map((k) => -p.dur * p.at * k)),
+            }}
           >
             <path
               d={LOOSE_SHEETS[p.shape]}
-              transform={`translate(${p.x} ${p.y}) rotate(${p.r}) scale(${p.s})`}
+              transform={`rotate(${p.r})`}
               fill={p.fill}
               fillOpacity={p.o}
             />
-          </g>
+          </svg>
         ))}
-      </svg>
+      </div>
       <div className="passage-center">
         <div className="passage-mark">
           <BrandMark size={56} />
@@ -60,22 +67,18 @@ export function Passage({
   );
 }
 
-/** A few sheets of washi about the veil (fixed, so it looks the same each time). */
+/**
+ * A few sheets of washi about the veil (fixed, so it looks the same each time). Each is placed by
+ * its centre as a share of the screen (`x`, `y` in %) and sized by its shorter side (`size` in
+ * vmin), so they stay about the edges of a phone held upright as well as a wide screen. `at` is
+ * how far into its float a sheet already is when the veil comes in.
+ */
 const SHEETS = [
-  { id: 1, shape: 0, x: 62, y: 58, r: -8, s: 0.62, fill: '#DDB08F', o: 0.32, delay: 0, dur: 14 },
-  { id: 2, shape: 1, x: 338, y: 64, r: 10, s: 0.48, fill: '#94BBA0', o: 0.26, delay: 1.5, dur: 17 },
-  {
-    id: 3,
-    shape: 2,
-    x: 318,
-    y: 232,
-    r: -14,
-    s: 0.7,
-    fill: '#DDB08F',
-    o: 0.28,
-    delay: 0.8,
-    dur: 16,
-  },
-  { id: 4, shape: 3, x: 84, y: 236, r: 6, s: 0.42, fill: '#4A5FA6', o: 0.16, delay: 2.4, dur: 19 },
-  { id: 5, shape: 1, x: 214, y: 22, r: 18, s: 0.3, fill: '#94BBA0', o: 0.22, delay: 3.2, dur: 21 },
+  { id: 1, shape: 0, x: 15, y: 19, r: -8, size: 25, fill: '#DDB08F', o: 0.32, dur: 6.5, at: 0.1 },
+  { id: 2, shape: 1, x: 85, y: 21, r: 10, size: 19, fill: '#94BBA0', o: 0.26, dur: 7.5, at: 0.55 },
+  { id: 3, shape: 2, x: 80, y: 77, r: -14, size: 28, fill: '#DDB08F', o: 0.28, dur: 7, at: 0.3 },
+  { id: 4, shape: 3, x: 21, y: 79, r: 6, size: 17, fill: '#4A5FA6', o: 0.16, dur: 8, at: 0.8 },
+  { id: 5, shape: 1, x: 54, y: 7, r: 18, size: 12, fill: '#94BBA0', o: 0.22, dur: 6, at: 0.45 },
 ];
+
+const seconds = (values: number[]) => values.map((s) => `${s.toFixed(2)}s`).join(', ');
