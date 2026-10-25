@@ -9,6 +9,8 @@ import type { CreationSource } from '../src/lib/sources.ts';
 const BUILT = 'a'.repeat(40);
 const NEWER = 'b'.repeat(40);
 const updates: unknown[][] = [];
+// Settles the look at the repository the test started.
+let looked: () => void = () => {};
 
 vi.mock('../src/lib/sources.ts', async (actual) => ({
   ...(await actual<typeof import('../src/lib/sources.ts')>()),
@@ -16,6 +18,10 @@ vi.mock('../src/lib/sources.ts', async (actual) => ({
     updates.push(args);
     return { buildId: 'build-1', commit: BUILT, label: 'v1.2' };
   },
+  checkSource: () =>
+    new Promise<void>((done) => {
+      looked = done;
+    }),
 }));
 
 const { RepositoryPanel } = await import('../src/components/Repository.tsx');
@@ -53,7 +59,12 @@ describe('a creation that follows a repository, on its card', () => {
     host.remove();
   });
 
-  const show = async (s: CreationSource) => {
+  const show = async (
+    s: CreationSource,
+    onChanged = async () => {
+      changed++;
+    },
+  ) => {
     await act(async () =>
       root.render(
         <RepositoryPanel
@@ -61,7 +72,7 @@ describe('a creation that follows a repository, on its card', () => {
           title="Hallowed Lanterns"
           source={s}
           hosts={[]}
-          onChanged={() => changed++}
+          onChanged={onChanged}
         />,
       ),
     );
@@ -92,5 +103,28 @@ describe('a creation that follows a repository, on its card', () => {
     await show(source({ builtCommit: null }));
     expect(button('Build again')).toBeUndefined();
     expect(button('Update to v1.2')).toBeDefined();
+  });
+
+  it('turns its refresh button while it looks, until the card shows what it found', async () => {
+    let shown: () => void = () => {};
+    await show(
+      source(),
+      () =>
+        new Promise<void>((done) => {
+          shown = done;
+        }),
+    );
+    const refresh = () =>
+      host.querySelector<HTMLButtonElement>('button[aria-label^="Look at lanternfield-club"]');
+    expect(refresh()?.getAttribute('aria-busy')).toBeNull();
+    await act(async () => refresh()?.click());
+    expect(refresh()?.getAttribute('aria-busy')).toBe('true');
+    expect(refresh()?.querySelector('.ats-spinner')).not.toBeNull();
+    // It has looked, but the card doesn't show it yet.
+    await act(async () => looked());
+    expect(refresh()?.getAttribute('aria-busy')).toBe('true');
+    await act(async () => shown());
+    expect(refresh()?.getAttribute('aria-busy')).toBeNull();
+    expect(refresh()?.querySelector('.ats-spinner')).toBeNull();
   });
 });
