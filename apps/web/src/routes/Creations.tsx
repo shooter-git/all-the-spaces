@@ -85,15 +85,18 @@ export function Creations() {
     setImporting(false);
   };
 
-  const refresh = useCallback(() => {
+  /** Settles once the shelf shows the studio as it is now. */
+  const refresh = useCallback(async () => {
     if (!spaceId) return;
-    loadStudio(spaceId).then(setStudio, (e: Error) => setError(e.message));
     loadFieldPerf(spaceId).then(
       (r) => setField(r.creations),
       () => {},
     );
+    await loadStudio(spaceId).then(setStudio, (e: Error) => setError(e.message));
   }, [spaceId]);
-  useEffect(refresh, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
   // Follow builds while any are in progress.
   const building = studio?.builds.some((b) => b.status === 'queued' || b.status === 'running');
   useEffect(() => {
@@ -470,7 +473,7 @@ function CreationCard({
   studio: Studio;
   hosts: SourceHostInfo[];
   spaceId: string;
-  onChanged: () => void;
+  onChanged: () => Promise<unknown>;
 }) {
   const navigate = useNavigate();
   const [moving, setMoving] = useState(false);
@@ -663,7 +666,7 @@ function VersionRow({
   /** Everything about it, or (folded) just how its checks went. */
   details: boolean;
   spaceId: string;
-  onChanged: () => void;
+  onChanged: () => Promise<unknown>;
 }) {
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
@@ -694,6 +697,9 @@ function VersionRow({
   const cantApprove = waiting.some(
     (c) => !c.displayName || c.operations.some((o) => c.missing.includes(o.name) && !o.kind),
   );
+  // Only asked first when there's something to decide; otherwise it's one press, as with a
+  // place's versions (and the version it replaces is one press away).
+  const toDecide = waiting.length > 0 || (dataRisk && older);
   const go = async () => {
     setBusy(true);
     setError(null);
@@ -705,14 +711,16 @@ function VersionRow({
           waiting.map((c) => ({ id: c.id, ops: c.missing })),
         );
       await makeLive(creation.id, v.id);
+      // Busy until the shelf shows it live, so the button doesn't come back first.
+      await onChanged();
       setConfirming(false);
-      onChanged();
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
   };
+  const press = () => (toDecide ? setConfirming(true) : void go());
   return (
     <li className="studio-version" data-live={v.live}>
       <div className="studio-version-main">
@@ -760,24 +768,27 @@ function VersionRow({
             label={`Try version ${v.number}`}
             onClick={() => navigate(`/space/${spaceId}/creations/${creation.id}/try/${v.id}`)}
           />
-          {!v.live && mayGoLive && older && (
+          {/* While it asks, the question below holds the only way on. */}
+          {!v.live && mayGoLive && older && !confirming && (
             <IconButton
               icon="revert"
-              label={`Go back to version ${v.number}`}
-              disabled={confirming}
-              onClick={() => setConfirming(true)}
+              label={busy ? `Going back to version ${v.number}…` : `Go back to version ${v.number}`}
+              busy={busy}
+              onClick={press}
             />
           )}
-          {!v.live && mayGoLive && !older && (
+          {!v.live && mayGoLive && !older && !confirming && (
             <Button
               variant={v.status === 'candidate' ? 'primary' : 'ghost'}
-              onClick={() => setConfirming(true)}
+              busy={busy}
+              onClick={press}
             >
-              Make live
+              {busy ? 'Making it live…' : 'Make live'}
             </Button>
           )}
         </div>
       </div>
+      {error && !confirming && <Notice tone="error">{error}</Notice>}
       {confirming && (
         <section className="studio-confirm" aria-label={`Make version ${v.number} live`}>
           <p>
@@ -799,7 +810,7 @@ function VersionRow({
             <Button variant="ghost" onClick={() => setConfirming(false)}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={() => void go()} disabled={busy || cantApprove}>
+            <Button variant="primary" onClick={() => void go()} disabled={cantApprove} busy={busy}>
               {busy
                 ? 'Working…'
                 : waiting.length

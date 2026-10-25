@@ -44,7 +44,8 @@ export function RepositoryPanel({
   source: CreationSource;
   hosts: SourceHostInfo[];
   folded?: boolean;
-  onChanged: () => void;
+  /** Settles once the card shows what changed. */
+  onChanged: () => Promise<unknown>;
 }) {
   const [busy, setBusy] = useState<'check' | 'update' | 'unlink' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +62,8 @@ export function RepositoryPanel({
         setStarted(`Building ${r.label || short(r.commit)}: it appears below once it's checked.`);
       }
       if (what === 'unlink') await unlinkSource(creationId);
-      onChanged();
+      // Busy until the card shows what it found, so the spinner doesn't stop on the old state.
+      await onChanged();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -134,6 +136,7 @@ export function RepositoryPanel({
             icon="refresh"
             label={`Look at ${source.repository} for something newer`}
             disabled={busy !== null}
+            busy={busy === 'check'}
             onClick={() => void run('check')}
           />
           <IconButton
