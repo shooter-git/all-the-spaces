@@ -7,13 +7,17 @@ const { builds, commissionEvents, commissions, creationVersions, memberships, sp
 type Commission = typeof commissions.$inferSelect;
 type CommissionStatus = schema.CommissionStatus;
 
-/** Still being looked after (not yet finished, declined or withdrawn). */
+/**
+ * Still being looked after (not yet ready to try, declined or withdrawn). Ready to try is closed
+ * for the Architects; the person who asked says whether it's done or not quite.
+ */
 export const OPEN: CommissionStatus[] = [
   'submitted',
   'accepted',
   'in_progress',
   'qa_failed',
   'ready',
+  'not_quite',
 ];
 
 /** In plain words, for members and Architects alike. */
@@ -23,7 +27,9 @@ export const STATUS_WORDS: Record<CommissionStatus, string> = {
   in_progress: 'Being built',
   qa_failed: 'Being built',
   ready: 'Nearly ready',
+  not_quite: 'Not quite',
   published: 'Ready to try',
+  done: 'Done',
   declined: 'Declined',
   withdrawn: 'Withdrawn',
 };
@@ -93,6 +99,16 @@ export async function moveCommission(
       kind: 'request.withdrawn',
       title: `Withdrawn: ${next.title}`,
       body: 'The person who asked for it no longer needs it.',
+      url: requestUrl(next, true),
+      groupId: next.groupId,
+    });
+  }
+  if (status === 'not_quite') {
+    const architects = (await architectsOf(db, next.groupId)).filter((id) => id !== opts.actorId);
+    await notifier.send(architects, {
+      kind: 'request.not_quite',
+      title: `Not quite: ${next.title}`,
+      body: opts.note?.slice(0, 200) ?? 'The person who asked tried it: it isn’t right yet.',
       url: requestUrl(next, true),
       groupId: next.groupId,
     });

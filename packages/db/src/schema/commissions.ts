@@ -10,7 +10,10 @@ export const COMMISSION_STATUSES = [
   'in_progress',
   'qa_failed',
   'ready',
+  // The person who asked tried it: not quite (back to the Architects), or that's it (done).
+  'not_quite',
   'published',
+  'done',
   'declined',
   'withdrawn',
 ] as const;

@@ -8,9 +8,11 @@ import {
   addNote,
   declineRequest,
   documentUrl,
+  finishRequest,
   KIND_WORDS,
   loadRequest,
   myRequests,
+  notQuite,
   pictureUrl,
   type RequestDetail,
   type RequestEvent,
@@ -110,8 +112,9 @@ export function MyRequests() {
   useEffect(() => {
     myRequests().then(setList, (e: Error) => setError(e.message));
   }, []);
+  const toTry = list?.filter((r) => r.status === 'published') ?? [];
   const open = list?.filter((r) => r.open) ?? [];
-  const closed = list?.filter((r) => !r.open) ?? [];
+  const closed = list?.filter((r) => !r.open && r.status !== 'published') ?? [];
   return (
     <Page back={<BackLink to="/" label="Your spaces" />} title="My requests">
       <p className="ats-muted">
@@ -120,6 +123,16 @@ export function MyRequests() {
       </p>
       {error && <Notice tone="error">{error}</Notice>}
       {list && list.length === 0 && <p className="ats-muted">Nothing yet.</p>}
+      {toTry.length > 0 && (
+        <Section title="Ready to try">
+          <p className="ats-muted">Try each one, then say whether it's what you asked for.</p>
+          <ul className="req-list">
+            {toTry.map((r) => (
+              <RequestRow key={r.id} r={r} to={`/requests/${r.id}`} />
+            ))}
+          </ul>
+        </Section>
+      )}
       {open.length > 0 && (
         <Section title="Waiting">
           <ul className="req-list">
@@ -192,7 +205,15 @@ function Timeline({ events }: { events: RequestEvent[] }) {
   );
 }
 
-function NoteForm({ label, onSend }: { label: string; onSend: (note: string) => Promise<void> }) {
+function NoteForm({
+  label,
+  onSend,
+  onCancel,
+}: {
+  label: string;
+  onSend: (note: string) => Promise<void>;
+  onCancel?: () => void;
+}) {
   const id = useId();
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -227,10 +248,15 @@ function NoteForm({ label, onSend }: { label: string; onSend: (note: string) => 
         />
       </div>
       {error && <Notice tone="error">{error}</Notice>}
-      <div>
+      <div className="studio-actions-row">
         <Button type="submit" disabled={busy || !note.trim()}>
           {busy ? 'Sending…' : 'Send'}
         </Button>
+        {onCancel && (
+          <Button variant="ghost" disabled={busy} onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
       </div>
     </form>
   );
@@ -272,20 +298,21 @@ export function RequestPage() {
         {isArchitect && r.requesterName ? ` · from ${r.requesterName}` : ''}
       </p>
       <Steps r={r} />
-      {r.status === 'published' && (
+      {(r.status === 'published' || r.status === 'done') && (
         <div>
           <Button
-            variant="primary"
+            variant={r.status === 'published' ? 'primary' : 'secondary'}
             onClick={() =>
               navigate(
                 `/space/${r.spaceId}${r.objectKey ? `?object=${encodeURIComponent(r.objectKey)}` : ''}`,
               )
             }
           >
-            Go and try it
+            {r.status === 'published' ? 'Go and try it' : 'Go to it'}
           </Button>
         </div>
       )}
+      {r.canFinish && <TriedIt r={r} onChanged={load} />}
 
       <Section title={r.mine ? 'What you asked' : 'In their words'}>
         <blockquote className="req-words">{r.prompt}</blockquote>
@@ -327,6 +354,50 @@ export function RequestPage() {
   );
 }
 
+/** Ready to try, for the person who asked: that's it (done), or not quite (back, saying why). */
+function TriedIt({ r, onChanged }: { r: RequestDetail; onChanged: () => Promise<unknown> }) {
+  const [saying, setSaying] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Section title="Is it what you asked for?">
+      <p className="ats-muted">
+        Once you've tried it, tell the Architects. If it isn't right yet, say what's missing and it
+        goes back to them.
+      </p>
+      {saying ? (
+        <NoteForm
+          label="What isn't right yet? (the Architects will see this)"
+          onSend={async (note) => {
+            await notQuite(r.id, note);
+            await onChanged();
+          }}
+          onCancel={() => setSaying(false)}
+        />
+      ) : (
+        <div className="studio-actions-row">
+          <Button
+            busy={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              await finishRequest(r.id).then(onChanged, (e: Error) => setError(e.message));
+              setBusy(false);
+            }}
+          >
+            <Icon name="check" size={16} />
+            {busy ? 'Marking it done…' : "That's it"}
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={() => setSaying(true)}>
+            Not quite…
+          </Button>
+        </div>
+      )}
+      {error && <Notice tone="error">{error}</Notice>}
+    </Section>
+  );
+}
+
 // ---- Architects ---------------------------------------------------------------------------------
 
 /** Every request in your groups: open ones first, most important first. */
@@ -342,8 +413,14 @@ export function RequestQueue() {
   const open = shown.filter((r) => r.open);
   const closed = shown.filter((r) => !r.open);
   const spaceName = only ? shown[0]?.spaceName : null;
+  // Back to where this list is reached from: a place's Studio (one space's), or home.
+  const back = only ? (
+    <BackLink to={`/space/${only}/studio`} label="Studio" />
+  ) : (
+    <BackLink to="/" label="Your spaces" />
+  );
   return (
-    <Page back={<BackLink />} title={`Requests${spaceName ? ` · ${spaceName}` : ''}`}>
+    <Page back={back} title={`Requests${spaceName ? ` · ${spaceName}` : ''}`}>
       <p className="ats-muted">
         What members have asked for. Nothing is built until you start it: accept a request (or
         decline it with a word of why), then start building it with your assistant.
@@ -505,6 +582,7 @@ function ArchitectPanel({ r, onChanged }: { r: RequestDetail; onChanged: () => P
             setDeclining(false);
             await onChanged();
           }}
+          onCancel={() => setDeclining(false)}
         />
       )}
 
@@ -513,8 +591,8 @@ function ArchitectPanel({ r, onChanged }: { r: RequestDetail; onChanged: () => P
           <h3>Build it</h3>
           <p className="ats-muted studio-small">
             Makes a workspace with the brief, their words and pictures
-            {r.kind === 'new' ? '' : ', and the creation as it is now'}. Nothing runs until you
-            start your assistant there.
+            {r.kind === 'new' && r.status !== 'not_quite' ? '' : ', and the creation as it is now'}.
+            Nothing runs until you start your assistant there.
           </p>
           <AssistantPicker
             assistants={assistants}

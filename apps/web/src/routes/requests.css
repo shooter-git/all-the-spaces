@@ -37,11 +37,13 @@
 .req-pill[data-status="accepted"],
 .req-pill[data-status="in_progress"],
 .req-pill[data-status="qa_failed"],
-.req-pill[data-status="ready"] {
+.req-pill[data-status="ready"],
+.req-pill[data-status="not_quite"] {
   background: color-mix(in srgb, var(--ats-sora) 22%, transparent);
   color: var(--ats-text);
 }
-.req-pill[data-status="published"] {
+.req-pill[data-status="published"],
+.req-pill[data-status="done"] {
   background: color-mix(in srgb, var(--ats-success) 20%, transparent);
   color: var(--ats-text);
 }
@@ -55,13 +57,13 @@
   font-weight: 600;
 }
 
-/* Sent → Accepted → Being built → Ready to try */
+/* Sent → Accepted → Being built → Ready to try → Done */
 .req-steps {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   counter-reset: step;
 }

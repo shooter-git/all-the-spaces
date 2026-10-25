@@ -5,7 +5,9 @@ export type RequestStatus =
   | 'in_progress'
   | 'qa_failed'
   | 'ready'
+  | 'not_quite'
   | 'published'
+  | 'done'
   | 'declined'
   | 'withdrawn';
 
@@ -40,6 +42,8 @@ export interface RequestDetail extends RequestSummary {
   brief?: string | null | undefined;
   mine: boolean;
   canWithdraw: boolean;
+  /** Ready to try, and theirs: they can say it's done, or not quite. */
+  canFinish: boolean;
   workspace: { id: string; mine: boolean } | null;
 }
 

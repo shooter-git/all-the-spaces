@@ -9,7 +9,7 @@ import type {
 import { schema } from '@ats/db';
 import { type Check, scanForSecrets, snapshotOf } from '@ats/qa';
 import { isEffort, MODEL_NAME, type Provider, unpackTar, VENDOR_CLIS } from '@ats/shared';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { isArchitect, notFound, requireUser } from '../../access.ts';
@@ -199,7 +199,17 @@ export async function lifecycleRoutes(
             .code(409)
             .send({ error: 'It already has a workspace.', workspaceId: existing.id });
         request = r;
-        if (r.kind === 'new') objectKey = objectLabel(manifest, r.objectKey) ? r.objectKey : null;
+        // Something new that's live already (sent back as not quite): it carries on from that.
+        const [live] =
+          r.kind === 'new' && r.creationId
+            ? await db
+                .select({ id: creations.id })
+                .from(creations)
+                .where(and(eq(creations.id, r.creationId), isNotNull(creations.currentVersionId)))
+            : [];
+        if (live) creationId = live.id;
+        else if (r.kind === 'new')
+          objectKey = objectLabel(manifest, r.objectKey) ? r.objectKey : null;
         else if (r.creationId) creationId = r.creationId;
         else return sendError(reply, 409, 'The creation it was about is gone.');
       }
