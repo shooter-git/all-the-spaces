@@ -59,7 +59,7 @@ export async function mayAskIn(
   return policy.requests === 'owner' && policy.ownerId === userId;
 }
 
-/** A member's side: asking, pictures, their own requests, notes and withdrawing. */
+/** A member's side: asking, pictures, their own requests, notes, withdrawing and trying it. */
 export async function memberRequestRoutes(
   app: FastifyInstance,
   ctx: AppContext,
@@ -368,6 +368,7 @@ export async function memberRequestRoutes(
         brief: isArchitect ? c.brief : undefined,
         mine,
         canWithdraw: mine && ['submitted', 'accepted'].includes(c.status),
+        canFinish: mine && c.status === 'published',
         workspace:
           isArchitect && ws && ws.status !== 'archived'
             ? { id: ws.id, mine: ws.architectId === me.id }
@@ -399,6 +400,33 @@ export async function memberRequestRoutes(
     await moveCommission(db, ctx.notifier, found.c, 'withdrawn', { actorId: me.id });
     return { ok: true };
   });
+
+  /** The person who asked has tried it: that's it. */
+  app.post<{ Params: { id: string } }>('/api/requests/:id/done', async (req, reply) => {
+    const me = await requireUser(ctx, req, reply);
+    if (!me) return;
+    const found = await requestFor(me.id, req.params.id);
+    if (!found?.mine) return notFound(reply, NO_SUCH_REQUEST);
+    if (found.c.status !== 'published') return sendError(reply, 409, 'It isn’t ready to try.');
+    await moveCommission(db, ctx.notifier, found.c, 'done', { actorId: me.id });
+    return { ok: true };
+  });
+
+  /** The person who asked has tried it, and it isn't right yet: back to the Architects, saying why. */
+  app.post<{ Params: { id: string } }>(
+    '/api/requests/:id/not-quite',
+    limited,
+    async (req, reply) => {
+      const me = await requireUser(ctx, req, reply);
+      if (!me) return;
+      const found = await requestFor(me.id, req.params.id);
+      if (!found?.mine) return notFound(reply, NO_SUCH_REQUEST);
+      const { note } = z.object({ note: z.string().trim().min(1).max(2000) }).parse(req.body);
+      if (found.c.status !== 'published') return sendError(reply, 409, 'It isn’t ready to try.');
+      await moveCommission(db, ctx.notifier, found.c, 'not_quite', { actorId: me.id, note });
+      return { ok: true };
+    },
+  );
 
   /** A note on a request: more detail from the member, or a word from an Architect. */
   app.post<{ Params: { id: string } }>('/api/requests/:id/notes', limited, async (req, reply) => {

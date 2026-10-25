@@ -33,7 +33,8 @@ function RequestsCard({ isArchitect }: { isArchitect: boolean }) {
   useEffect(() => {
     if (!isArchitect) return;
     requestQueue().then(
-      (list) => setWaiting(list.filter((r) => r.status === 'submitted').length),
+      (list) =>
+        setWaiting(list.filter((r) => ['submitted', 'not_quite'].includes(r.status)).length),
       () => {},
     );
   }, [isArchitect]);

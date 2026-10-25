@@ -89,6 +89,13 @@ export const loadRequest = (id: string) =>
 
 export const withdrawRequest = (id: string) => api(`/api/requests/${id}/withdraw`, { json: {} });
 
+/** Tried it: that's it. */
+export const finishRequest = (id: string) => api(`/api/requests/${id}/done`, { json: {} });
+
+/** Tried it, and it isn't right yet: back to the Architects, saying why. */
+export const notQuite = (id: string, note: string) =>
+  api(`/api/requests/${id}/not-quite`, { json: { note } });
+
 export const addNote = (id: string, note: string) =>
   api(`/api/requests/${id}/notes`, { json: { note } });
 
@@ -145,7 +152,7 @@ export const KIND_WORDS: Record<RequestKind, string> = {
 };
 
 /** The steps a request goes through, for showing where it's up to. */
-export const STEPS = ['Sent', 'Accepted', 'Being built', 'Ready to try'] as const;
+export const STEPS = ['Sent', 'Accepted', 'Being built', 'Ready to try', 'Done'] as const;
 export function stepOf(status: RequestStatus): number {
   switch (status) {
     case 'submitted':
@@ -155,9 +162,12 @@ export function stepOf(status: RequestStatus): number {
     case 'in_progress':
     case 'qa_failed':
     case 'ready':
+    case 'not_quite':
       return 2;
     case 'published':
       return 3;
+    case 'done':
+      return 4;
     default:
       return -1;
   }

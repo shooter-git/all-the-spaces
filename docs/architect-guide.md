@@ -270,6 +270,9 @@ important at the top, then the longest-waiting.
 - It follows along by itself: "Being built" while you work on it, "Nearly ready" when a candidate
   passes its checks, and **Ready to try** when it goes live, when they're told and can go straight
   to it.
+- Once they've tried it, they say **That's it** (it's **Done**) or **Not quite…** with what's
+  missing. Not quite brings it back to your queue, and you're told. Its workspace carries on where
+  it was; if you deleted it, **Start building** begins from the creation that's live.
 
 In **Privacy**, you can choose who may ask for things in each room: anyone who can see it, only its
 owner (a bedroom, an office), or only Architects. Anyone who can see a creation can report a

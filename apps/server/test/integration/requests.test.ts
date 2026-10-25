@@ -1,11 +1,13 @@
 // Members' requests, from asking to trying it out.
 // Runs against a real Postgres (see ../harness.ts); skipped without TEST_DATABASE_URL.
 import { type Db, schema } from '@ats/db';
+import { snapshotOf } from '@ats/qa';
 import type { SpaceManifest } from '@ats/space-format';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { afterBuild, OPEN } from '../../src/commissions.ts';
+import { uploadSource } from '../../src/creations/sources.ts';
 import { publishCreation } from '../../src/creations/store.ts';
 import { orphanRequests } from '../../src/space-updates.ts';
 import {
@@ -372,6 +374,115 @@ describe.skipIf(!adminUrl)('server flows', () => {
       expect(
         (await req('GET', `/api/spaces/${spaceId}/requests/objects`, memberCookie)).json().objects,
       ).toEqual({});
+    });
+
+    it('lets the person who asked say it’s done, or send it back as not quite', async () => {
+      const to = (what: string) => `/api/requests/${requestId}/${what}`;
+      const detail = async () =>
+        (await req('GET', `/api/requests/${requestId}`, memberCookie)).json();
+      expect((await detail()).request).toMatchObject({ status: 'published', canFinish: true });
+      // Only theirs to say, and not quite says why.
+      expect((await req('POST', to('done'), architectCookie, {})).statusCode).toBe(404);
+      expect((await req('POST', to('not-quite'), memberCookie, {})).statusCode).toBe(400);
+
+      const back = await req('POST', to('not-quite'), memberCookie, { note: 'It reads too fast.' });
+      expect(back.statusCode).toBe(200);
+      let d = await detail();
+      expect(d.request).toMatchObject({
+        status: 'not_quite',
+        statusWords: 'Not quite',
+        open: true,
+        canFinish: false,
+      });
+      expect(d.events.at(-1)).toMatchObject({
+        status: 'not_quite',
+        statusWords: 'Not quite',
+        note: 'It reads too fast.',
+        by: 'You',
+        byArchitect: false,
+      });
+      expect((await notificationsOf(architectCookie)).notifications[0]).toMatchObject({
+        title: 'Not quite: A book that reads itself',
+        body: 'It reads too fast.',
+        url: `/space/${spaceId}/requests/${requestId}`,
+      });
+      // Waiting in the Architects' queue again.
+      const queue = (await req('GET', '/api/studio/requests', architectCookie)).json();
+      expect(queue.requests.find((r: { id: string }) => r.id === requestId)).toMatchObject({
+        status: 'not_quite',
+        open: true,
+      });
+      expect((await req('POST', to('done'), memberCookie, {})).statusCode).toBe(409);
+
+      // Its workspace was put away: a new one carries on from the creation that's live.
+      const [c] = await db
+        .select()
+        .from(schema.commissions)
+        .where(eq(schema.commissions.id, requestId));
+      await db
+        .update(schema.workspaces)
+        .set({ status: 'archived' })
+        .where(eq(schema.workspaces.id, c?.workspaceId as string));
+      const { snapshot, contents } = snapshotOf(
+        new Map([
+          ['src/main.ts', new TextEncoder().encode('console.log("once upon a time")')],
+          ['ats.json', new TextEncoder().encode('{"title":"The storybook"}')],
+        ]),
+      );
+      await uploadSource(storage, groupId, snapshot, contents);
+      const [creation] = await db
+        .select()
+        .from(schema.creations)
+        .where(eq(schema.creations.id, c?.creationId as string));
+      await db
+        .update(schema.creationVersions)
+        .set({ sourceHash: snapshot.hash })
+        .where(eq(schema.creationVersions.id, creation?.currentVersionId as string));
+      const ws = await req('POST', `/api/spaces/${spaceId}/workspaces`, architectCookie, {
+        title: 'The storybook, slower',
+        brief: 'Read it more slowly.',
+        provider: 'claude',
+        requestId,
+      });
+      expect(ws.statusCode).toBe(200);
+      const [row] = await db
+        .select()
+        .from(schema.workspaces)
+        .where(eq(schema.workspaces.id, ws.json().id));
+      expect(row).toMatchObject({
+        creationId: c?.creationId,
+        basedOnVersionId: creation?.currentVersionId,
+      });
+      expect((await detail()).request.statusWords).toBe('Being built');
+
+      // Its next version goes live: ready to try again, and this time that's it.
+      const [b] = await db
+        .insert(schema.builds)
+        .values({
+          groupId,
+          spaceId,
+          objectKey: 'bookshelf',
+          workspaceId: row?.id,
+          sourceHash: snapshot.hash,
+          status: 'published',
+          creationId: c?.creationId,
+        })
+        .returning();
+      await afterBuild(db, undefined, b?.id as string);
+      expect((await detail()).request.status).toBe('published');
+      expect((await req('POST', to('done'), memberCookie, {})).statusCode).toBe(200);
+      d = await detail();
+      expect(d.request).toMatchObject({
+        status: 'done',
+        statusWords: 'Done',
+        open: false,
+        canFinish: false,
+      });
+      expect(d.events.at(-1)).toMatchObject({ status: 'done', by: 'You' });
+      expect((await req('POST', to('done'), memberCookie, {})).statusCode).toBe(409);
+      expect((await req('POST', to('not-quite'), memberCookie, { note: 'x' })).statusCode).toBe(
+        409,
+      );
     });
 
     it('keeps a new object "nearly ready" until it has a place in the space', async () => {
