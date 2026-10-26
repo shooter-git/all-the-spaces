@@ -618,6 +618,20 @@ function CreationCard({
             }}
           />
         )}
+        {/* Above the versions, so it stays put when the list opens and closes. */}
+        <button
+          type="button"
+          className="studio-unfold studio-unfold--above"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <Icon name={open ? 'chevronUp' : 'chevronDown'} size={16} />
+          {open
+            ? 'Fewer details'
+            : earlier > 0
+              ? `Details and ${earlier} earlier version${earlier === 1 ? '' : 's'}`
+              : 'Details'}
+        </button>
         <ol className="studio-versions">
           {shown.map((v) => (
             <VersionRow
@@ -632,19 +646,6 @@ function CreationCard({
             />
           ))}
         </ol>
-        <button
-          type="button"
-          className="studio-unfold"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-        >
-          <Icon name={open ? 'chevronUp' : 'chevronDown'} size={16} />
-          {open
-            ? 'Fewer details'
-            : earlier > 0
-              ? `Details and ${earlier} earlier version${earlier === 1 ? '' : 's'}`
-              : 'Details'}
-        </button>
       </div>
     </li>
   );

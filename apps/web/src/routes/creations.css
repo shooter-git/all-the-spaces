@@ -107,6 +107,9 @@
   background: var(--ats-subtle);
   border: 1px solid var(--ats-line);
 }
+.studio-unfold.studio-unfold--above {
+  margin: calc(-1 * var(--ats-space-2)) 0;
+}
 .studio-versions {
   list-style: none;
   margin: 0;
