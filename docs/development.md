@@ -279,7 +279,7 @@ redraws the plans from `building/truth.json`.
 
 ### Changing a live place
 
-Publish the building, add a creation on the studio desk, then **Studio → Change this place…** and
+Publish the building, add a creation on the studio desk, then **Studio → The place → Change this place…** and
 ask for the desk to go. The review should list only the studio as changed, and Publish waits until
 the desk's creation has a new object or goes on the shelf. **Versions → Go back to this** puts it
 back on the desk.

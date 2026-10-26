@@ -1036,3 +1036,11 @@ dialog.pictures-large::backdrop {
 .studio-unfold:hover {
   background: var(--ats-subtle);
 }
+
+/* A part of a place's Studio (Build, The place, Time spent): kept while another is shown. */
+.studio-panel[hidden] {
+  display: none;
+}
+.studio-panel > .ats-section:first-child {
+  padding-top: 0;
+}

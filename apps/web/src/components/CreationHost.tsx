@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import { type ApiError, api } from '../lib/api.ts';
 import { type ConnectorInfo, callFailure, loadConnectors } from '../lib/connectors.ts';
 import type { OpenedCreation, SessionMode } from '../lib/creations.ts';
+import { deviceKind } from '../lib/device.ts';
 import { ConnectorLinkCard } from './ConnectorLinkCard.tsx';
 import './creation-host.css';
 
@@ -153,7 +154,12 @@ export function CreationHost({
     let players: Person[] = [meRef.current];
     let hostId: string | null = myId;
     const pendingShared = new Map<number, number>();
-    const opts = { creationId: opened.creation.id, versionId: opened.creation.versionId, mode };
+    const opts = {
+      creationId: opened.creation.id,
+      versionId: opened.creation.versionId,
+      mode,
+      device: deviceKind(),
+    };
     const client = offline ? null : new Client(`${window.location.origin}/rt`);
     if (client) client.auth.token = opened.ticket;
     const joining = !client

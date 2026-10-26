@@ -4,6 +4,7 @@ import {
   REMOVED_FROM_GROUP,
   type RealtimeTicket,
   type SpaceAccess,
+  type VisitDevice,
   verifyTicket,
 } from '@ats/shared';
 import { type Client, Protocol, Room } from '@colyseus/core';
@@ -11,7 +12,7 @@ import { StateView, schema, t } from '@colyseus/schema';
 import { z } from 'zod';
 import { log } from './log.ts';
 import { cpuMeter, Timings } from './stats.ts';
-import { RoomVisits, type VisitLog } from './visits.ts';
+import { deviceOf, RoomVisits, type VisitLog } from './visits.ts';
 import { spaceVoiceRoom, type Voice } from './voice.ts';
 
 /** A person walking around the space. Only sent to people nearby (see `updateViews`). */
@@ -161,6 +162,8 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
   private readonly viewTimings = new Timings();
   /** Time each of this shard's people spends in each room. */
   private roomVisits: RoomVisits | null = null;
+  /** The kind of device each person here is on, as their app said when it joined. */
+  private readonly devices = new Map<string, VisitDevice>();
 
   async onCreate(options: { spaceId: string; shard?: number }) {
     this.setPatchRate(50); // 20 updates a second
@@ -369,7 +372,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     this.voiceAllowed = graph.voice !== false;
   }
 
-  onJoin(client: Client) {
+  onJoin(client: Client, options?: { device?: unknown }) {
     const auth = client.auth as Auth;
     // `onAuth` only saw the client's own options: joining by room id could name another space.
     if (auth.spaceId !== this.spaceId || (auth.shard ?? 0) !== this.shard)
@@ -384,6 +387,8 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     };
     this.visible.set(client.sessionId, new Set());
     this.joinedAt.set(client.sessionId, Date.now());
+    const device = deviceOf(options);
+    if (device) this.devices.set(client.sessionId, device);
     // One live avatar per person: joining from a second tab replaces the first.
     for (const other of this.clients) {
       if (other !== client && (other.auth as Auth)?.sub === auth.sub) other.leave(4000);
@@ -421,6 +426,7 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     this.lastPose.delete(client.sessionId);
     this.teleports.delete(client.sessionId);
     this.joinedAt.delete(client.sessionId);
+    this.devices.delete(client.sessionId);
   }
 
   private handlePose(client: Client, message: unknown) {
@@ -462,7 +468,13 @@ export class SpaceRoom extends Room<{ state: SpaceState }> {
     if (player.moving !== pose.moving) player.moving = pose.moving;
     if (pose.at !== undefined) player.at = pose.at;
     if (player.room !== pose.room) {
-      this.roomVisits?.moved(client.sessionId, player.id, pose.room, now);
+      this.roomVisits?.moved(
+        client.sessionId,
+        player.id,
+        pose.room,
+        now,
+        this.devices.get(client.sessionId),
+      );
       // Voice follows you: out of the old room's (ask again for the new one).
       this.leaveVoice(client);
       this.place(client.sessionId, player.room, pose.room);

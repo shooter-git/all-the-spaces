@@ -1,7 +1,16 @@
+/** What someone was on, as their app says: never more precise than this. */
+export const VISIT_DEVICES = ['phone', 'tablet', 'computer', 'headset'] as const;
+export type VisitDevice = (typeof VISIT_DEVICES)[number];
+
 /** Where a visit is: a room of a place, or a creation (a session of its version). */
-export type VisitPlace = { userId: string } & (
+export type VisitPlace = { userId: string; device?: VisitDevice | undefined } & (
   | { spaceId: string; roomKey: string }
-  | { creationId: string; versionId: string }
+  | {
+      creationId: string;
+      versionId: string;
+      /** The live session: people in the same one were playing together. */
+      session?: string | undefined;
+    }
 );
 
 /** A visit that began (and, if it was short, perhaps ended) since the last batch. */

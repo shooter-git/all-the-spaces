@@ -36,6 +36,13 @@
       "when": 1792520906593,
       "tag": "0004_group_visits_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793045105089,
+      "tag": "0005_visit_device",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { REMOVED_FROM_GROUP } from '@ats/shared/topics';
 import type { SpaceViewer } from '@ats/viewer-core';
 import { Client, CloseCode, getStateCallbacks, type Room } from '@colyseus/sdk';
 import { api } from './api.ts';
+import { deviceKind } from './device.ts';
 
 export interface OnlinePerson {
   sessionId: string;
@@ -92,7 +93,11 @@ export async function joinPresence(
     }>(`/api/spaces/${spaceId}/realtime-ticket`, { method: 'POST', json: {} });
     const client = new Client(`${window.location.origin}/rt`);
     client.auth.token = ticket;
-    const joined: Room = await client.joinOrCreate('space', { spaceId, shard: shard ?? 0 });
+    const joined: Room = await client.joinOrCreate('space', {
+      spaceId,
+      shard: shard ?? 0,
+      device: deviceKind(),
+    });
     if (left) {
       joined.leave().catch(() => {});
       return voice === true;

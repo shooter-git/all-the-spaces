@@ -1,0 +1,64 @@
+/* Tabs: a hairline row with a line under the chosen one; segmented for a choice inside a tab. */
+.ats-tabs {
+  display: flex;
+  gap: var(--ats-space-1);
+  border-bottom: 1px solid var(--ats-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ats-tab {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: var(--ats-touch);
+  padding: 0 var(--ats-space-3);
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ats-text-muted);
+  font: 500 0.95rem var(--ats-font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ats-tab:hover {
+  color: var(--ats-text);
+}
+.ats-tab[aria-selected="true"],
+.ats-tab[aria-pressed="true"] {
+  color: var(--ats-text);
+  border-bottom-color: var(--ats-accent);
+}
+.ats-tab:focus-visible {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: -2px;
+  border-radius: var(--ats-radius-sm);
+}
+
+.ats-tabs--segmented {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ats-line);
+  border-radius: var(--ats-radius);
+  background: var(--ats-subtle);
+}
+.ats-tabs--segmented .ats-tab {
+  min-height: 36px;
+  margin: 0;
+  padding: 0 var(--ats-space-3);
+  border: 0;
+  border-radius: var(--ats-radius-sm);
+  font-size: 0.88rem;
+}
+.ats-tabs--segmented .ats-tab[aria-selected="true"],
+.ats-tabs--segmented .ats-tab[aria-pressed="true"] {
+  background: var(--ats-surface);
+  box-shadow: 0 0 0 1px var(--ats-line);
+}
+@media (pointer: coarse) {
+  .ats-tabs--segmented .ats-tab {
+    min-height: var(--ats-touch);
+  }
+}

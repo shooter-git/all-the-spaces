@@ -86,8 +86,17 @@ export function describeDevice(): string {
 export const loadFieldPerf = (spaceId: string) =>
   api<{ space: FieldPerf[]; creations: FieldPerf[] }>(`/api/spaces/${spaceId}/perf`);
 
-/** Time people spent in each room and creation of a place, and each person's (Architects). */
-export const loadVisits = (spaceId: string) => api<PlaceVisits>(`/api/spaces/${spaceId}/visits`);
+/**
+ * Where people spent time in a place over the last `days` days (Architects), by day and hour in
+ * this browser's time zone.
+ */
+export const loadVisits = (spaceId: string, days: number) =>
+  api<PlaceVisits>(
+    `/api/spaces/${spaceId}/visits?${new URLSearchParams({
+      days: String(days),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    })}`,
+  );
 
 /** Rows summed up per kind of device (phones, tablets, laptops), weighted by samples. */
 export function byForm(rows: FieldPerf[]) {

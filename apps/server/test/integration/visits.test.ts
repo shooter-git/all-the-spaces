@@ -119,7 +119,14 @@ describe.skipIf(!adminUrl)('visits', () => {
     // Every room is there, even those nobody has spent time in yet.
     expect(room('balcony')).toMatchObject({ people: 0, seconds: 0, floor: null });
     expect(body.creations).toEqual([
-      { id: creationId, title: 'Sofa stories', people: 1, seconds: 600 },
+      {
+        id: creationId,
+        title: 'Sofa stories',
+        people: 1,
+        seconds: 600,
+        visits: 1,
+        togetherSeconds: 0,
+      },
     ]);
     // Sam's ten minutes in the creation were also time in the living room: counted once.
     const person = (id: string) => body.people.find((p) => p.userId === id);

@@ -8,7 +8,7 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { CreationRoom } from '../src/creation-room.ts';
 import { SpaceRoom } from '../src/space-room.ts';
-import { RoomVisits, SETTLE_MS, VisitLog } from '../src/visits.ts';
+import { deviceOf, RoomVisits, SETTLE_MS, VisitLog } from '../src/visits.ts';
 import { listenOnFreePort } from './helpers.ts';
 
 /** A visit log on a clock the test moves, and what it sent. */
@@ -165,6 +165,20 @@ describe('visits to rooms', () => {
     expect(await visitsOf(r)).toEqual([['living', null]]);
   });
 
+  it('says what kind of device each visit was on, and only the kinds there are', async () => {
+    const r = recorder();
+    const rooms = new RoomVisits(r.visits, 'space-1');
+    rooms.moved('s1', 'pat', 'living', r.at(), deviceOf({ device: 'phone' }));
+    r.pass(20_000);
+    rooms.moved('s1', 'pat', 'kitchen', r.at());
+    r.pass(SETTLE_MS);
+    rooms.tick(r.at());
+    await r.visits.flush();
+    expect(r.started().map((v) => v.device)).toEqual(['phone', 'phone']);
+    expect(deviceOf({ device: 'toaster' })).toBeUndefined();
+    expect(deviceOf(undefined)).toBeUndefined();
+  });
+
   it("doesn't count time with the app out of sight", async () => {
     const r = recorder();
     const rooms = new RoomVisits(r.visits, 'space-1');
@@ -239,7 +253,7 @@ describe('the rooms record visits', () => {
   it('records time in a room of the place, never where in it', async () => {
     const client = new Client(`http://127.0.0.1:${port}`);
     client.auth.token = signTicket({ sub: 'pat', name: 'Pat', color: '#888', spaceId }, secret);
-    const room = await client.joinOrCreate('space', { spaceId });
+    const room = await client.joinOrCreate('space', { spaceId, device: 'tablet' });
     room.send('pose', { x: 1, y: 0, z: 2, yaw: 0, room: 'lobby', moving: false, teleport: true });
     await handled(room);
     await room.leave();
@@ -248,7 +262,7 @@ describe('the rooms record visits', () => {
       expect(r.ended().length + r.started().filter((v) => v.endedAt).length).toBe(1);
     });
     const [visit] = r.started();
-    expect(visit).toMatchObject({ userId: 'pat', spaceId, roomKey: 'lobby' });
+    expect(visit).toMatchObject({ userId: 'pat', spaceId, roomKey: 'lobby', device: 'tablet' });
     for (const where of ['x', 'y', 'z', 'yaw']) expect(visit).not.toHaveProperty(where);
   });
 
@@ -261,7 +275,12 @@ describe('the rooms record visits', () => {
       secret,
       120,
     );
-    const room = await client.create('creation', { creationId, versionId, mode: 'solo' });
+    const room = await client.create('creation', {
+      creationId,
+      versionId,
+      mode: 'solo',
+      device: 'headset',
+    });
     room.send('away', true);
     room.send('away', false);
     await handled(room);
@@ -276,6 +295,13 @@ describe('the rooms record visits', () => {
       ]);
       expect(mine.every((v) => ends.has(v.id))).toBe(true);
     });
-    expect(r.started().slice(before)[0]).toMatchObject({ userId: 'sam', creationId, versionId });
+    // Which session it was (people in the same one play together), and on what.
+    expect(r.started().slice(before)[0]).toMatchObject({
+      userId: 'sam',
+      creationId,
+      versionId,
+      session: room.roomId,
+      device: 'headset',
+    });
   });
 });

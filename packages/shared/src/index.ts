@@ -78,8 +78,10 @@ export {
 } from './topics.ts';
 export { PROVIDERS, type Provider, VENDOR_CLIS, type VendorCli } from './vendor-clis.ts';
 export {
+  VISIT_DEVICES,
   VISIT_HEARTBEAT_MS,
   type VisitBatch,
+  type VisitDevice,
   type VisitPlace,
   type VisitStart,
 } from './visits.ts';
