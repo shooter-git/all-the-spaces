@@ -1,0 +1,349 @@
+/* Where people spend time: figures, a column chart, a weekday × hour grid, and ranked rows.
+   One hue (the accent) carries every amount; text stays in ink. Phone first. */
+.ts-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ats-space-2) var(--ats-space-4);
+}
+.ts-body {
+  transition: opacity 0.2s;
+}
+/* Another period on its way: the last one stays, faded, so nothing jumps. */
+.ts-body[data-busy] {
+  opacity: 0.55;
+}
+/* On a phone, the parts share the width. */
+@media (max-width: 559px) {
+  .ts-body > .ats-tabs--segmented {
+    display: flex;
+  }
+  .ts-body > .ats-tabs--segmented .ats-tab {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 0 var(--ats-space-2);
+  }
+}
+@media (max-width: 379px) {
+  .ts-body > .ats-tabs--segmented .ats-tab {
+    padding: 0 var(--ats-space-1);
+    font-size: 0.82rem;
+  }
+}
+.ts-panel {
+  gap: var(--ats-space-5);
+}
+.ts-section,
+.ts-ranked {
+  gap: var(--ats-space-2);
+}
+.ts-lede {
+  margin: calc(-1 * var(--ats-space-2)) 0 0;
+}
+
+/* The figures: two by two on a phone, a row of four when there's room. */
+.ts-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--ats-line);
+}
+.ts-tile {
+  padding: var(--ats-space-3) var(--ats-space-3) var(--ats-space-3) 0;
+}
+.ts-tile:nth-child(even) {
+  padding-left: var(--ats-space-3);
+  border-left: 1px solid var(--ats-line);
+}
+.ts-tile:nth-child(n + 3) {
+  border-top: 1px solid var(--ats-line);
+}
+.ts-tile dt {
+  color: var(--ats-text-muted);
+  font-size: 0.82rem;
+}
+.ts-tile dd {
+  margin: 0;
+  font: 600 1.35rem / 1.3 var(--ats-font);
+}
+@media (min-width: 560px) {
+  .ts-tiles:not(.ts-tiles--small) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .ts-tiles:not(.ts-tiles--small) .ts-tile:nth-child(n) {
+    border-top: 0;
+  }
+  .ts-tiles:not(.ts-tiles--small) .ts-tile:not(:first-child) {
+    padding-left: var(--ats-space-3);
+    border-left: 1px solid var(--ats-line);
+  }
+}
+.ts-tiles--small {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ts-tiles--small .ts-tile:nth-child(n) {
+  padding: var(--ats-space-2) var(--ats-space-2) var(--ats-space-2) 0;
+  border: 0;
+}
+.ts-tiles--small .ts-tile:not(:first-child) {
+  padding-left: var(--ats-space-2);
+  border-left: 1px solid var(--ats-line);
+}
+.ts-tiles--small dd {
+  font-size: 1.05rem;
+}
+
+/* A chart and what it's showing. */
+.ts-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-2);
+  margin: 0;
+}
+.ts-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px var(--ats-space-3);
+  min-height: 2.6em;
+}
+.ts-caption .studio-subhead {
+  margin: 0;
+}
+
+/* Columns over time: the top line is the busiest, labelled; tap or hover one to read it. */
+.ts-plot {
+  position: relative;
+  padding-top: 1.2rem;
+}
+.ts-tick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--ats-text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.ts-columns {
+  display: flex;
+  height: 120px;
+  touch-action: pan-y;
+  cursor: crosshair;
+  border-top: 1px solid var(--ats-line);
+  border-bottom: 1px solid var(--ats-field-line);
+}
+.ts-column {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 1px;
+}
+.ts-column-bar {
+  display: block;
+  width: 100%;
+  max-width: 24px;
+  border-radius: 4px 4px 0 0;
+  background: var(--ats-accent);
+  opacity: 0.8;
+}
+.ts-column[data-on] {
+  background: var(--ats-subtle);
+}
+.ts-column[data-on] .ts-column-bar {
+  opacity: 1;
+}
+.ts-columns:focus-visible {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 2px;
+  border-radius: var(--ats-radius-sm);
+}
+.ts-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+/* Weekdays down, hours across: darker is more time. */
+.ts-heat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  touch-action: manipulation;
+}
+.ts-heat-row {
+  display: grid;
+  grid-template-columns: 2.6rem repeat(24, minmax(0, 1fr));
+  gap: 2px;
+  align-items: center;
+}
+.ts-heat-day {
+  color: var(--ats-text-muted);
+  font-size: 0.75rem;
+}
+.ts-cell {
+  display: block;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--ats-subtle);
+}
+.ts-cell[data-level="1"] {
+  background: color-mix(in oklab, var(--ats-accent) 25%, var(--ats-bg));
+}
+.ts-cell[data-level="2"] {
+  background: color-mix(in oklab, var(--ats-accent) 48%, var(--ats-bg));
+}
+.ts-cell[data-level="3"] {
+  background: color-mix(in oklab, var(--ats-accent) 72%, var(--ats-bg));
+}
+.ts-cell[data-level="4"] {
+  background: var(--ats-accent);
+}
+.ts-cell[data-on] {
+  outline: 2px solid var(--ats-text);
+  outline-offset: 1px;
+}
+.ts-hour-axis span {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.ts-heat--strip .ts-heat-row {
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+}
+.ts-heat--strip .ts-cell {
+  height: 20px;
+}
+.ts-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.ts-legend .ts-cell {
+  width: 14px;
+  height: 14px;
+}
+@media (min-width: 640px) {
+  .ts-cell {
+    height: 20px;
+  }
+}
+
+/* Ranked rows: name and time, a bar for its share of the most, and a line about it. */
+.ts-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ats-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ts-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ts-row-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ats-space-3);
+}
+.ts-name {
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.ts-value {
+  flex: none;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+.ts-bar {
+  display: block;
+  height: 6px;
+}
+.ts-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--ats-accent);
+}
+.ts-meta {
+  font-size: 0.82rem;
+}
+.ts-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: var(--ats-space-2);
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+/* A person: the row opens onto their own picture. */
+.ts-person-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px var(--ats-space-2);
+  width: calc(100% + 2 * var(--ats-space-2));
+  margin: calc(-1 * var(--ats-space-2));
+  padding: var(--ats-space-2);
+  border: 0;
+  border-radius: var(--ats-radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ts-person-toggle > :not(svg) {
+  grid-column: 1;
+}
+.ts-person-toggle > svg {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: center;
+  color: var(--ats-text-muted);
+}
+@media (hover: hover) {
+  .ts-person-toggle:hover {
+    background: var(--ats-subtle);
+  }
+}
+.ts-person-toggle:focus-visible {
+  outline: 2px solid var(--ats-accent);
+  outline-offset: 0;
+}
+.ts-person {
+  margin-top: var(--ats-space-3);
+  padding: 0 0 var(--ats-space-2) var(--ats-space-3);
+  border-left: 2px solid var(--ats-line);
+  gap: var(--ats-space-4);
+}
+.ts-subhead {
+  margin: 0;
+  font: 600 0.92rem var(--ats-font-display);
+}
+
+.ts-moves {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+}
+.ts-moves li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+.ts-moves svg {
+  color: var(--ats-text-muted);
+}

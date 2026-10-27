@@ -54,8 +54,9 @@ export function VisitSettings({ groupId }: { groupId: string }) {
             </span>
           )}
           <span className="ats-muted studio-small studio-check-hint">
-            How long each person spends in each room and creation, which only Architects see (on a
-            place’s Studio page and on People); turning it off deletes everything recorded so far.
+            When and how long each person spends in each room and creation, and on what kind of
+            device, which only Architects see (a place’s Studio → Time spent, and People); turning
+            it off deletes everything recorded so far.
           </span>
         </span>
       </label>

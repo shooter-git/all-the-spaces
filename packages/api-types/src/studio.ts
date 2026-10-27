@@ -162,15 +162,52 @@ export interface FieldPerf {
   scale: number;
 }
 
+/** What someone was on (not known for time before this was recorded). */
+export type VisitDevice = 'phone' | 'tablet' | 'computer' | 'headset';
+
+/** Time per kind of device. */
+export interface DeviceTime {
+  device: VisitDevice | null;
+  seconds: number;
+}
+
 /**
- * For Architects: time people spent in a place (GET /api/spaces/:spaceId/visits), over the last
- * `days` days. Time in a room counts once someone has stayed a few seconds, while the app is in
- * sight; time in a creation, while it's open.
+ * For Architects: time people spent in a place (GET /api/spaces/:spaceId/visits?days=&tz=), over
+ * the last `days` days. Time in a room counts once someone has stayed a few seconds, while the app
+ * is in sight; time in a creation, while it's open. Time in a creation is also time in its room,
+ * so a person's time is never the sum of their rooms and creations.
  */
 export interface PlaceVisits {
+  /** The days shown, today included: 7, 30 or 90. */
   days: number;
+  /** How many days visits are kept (the longest period there is). */
+  kept: number;
   /** False when the group's Architects turned visit records off (Group settings): nothing then. */
   recording: boolean;
+  /** The time zone days and hours are in (`?tz=`, else UTC). */
+  timeZone: string;
+  summary: {
+    /** Everyone's time here, each person's counted once where their visits overlap. */
+    seconds: number;
+    people: number;
+    /** Separate times people came: back within a few minutes is the same visit. */
+    visits: number;
+    /** How long the middle visit lasted. */
+    typicalSeconds: number;
+    /** People here on two days or more. */
+    cameBack: number;
+    /** Time in rooms with someone else there too, and all time in rooms. */
+    togetherSeconds: number;
+    roomSeconds: number;
+  };
+  /**
+   * Time and people over the period, oldest first: a day each for 7 or 30 days, a week each
+   * (from Monday) for 90. `from` is the first day (YYYY-MM-DD).
+   */
+  trend: { from: string; days: number; seconds: number; people: number }[];
+  /** Time by weekday (0 is Monday) and hour of the day: 7 rows of 24. */
+  week: number[][];
+  devices: DeviceTime[];
   /** Every room of the live version, and any since removed that people spent time in. */
   rooms: {
     key: string;
@@ -181,8 +218,23 @@ export interface PlaceVisits {
     /** How many different people. */
     people: number;
     seconds: number;
+    /** How many times people came in (stepping out of sight and back isn't another). */
+    visits: number;
+    /** Time with someone else in the room too. */
+    togetherSeconds: number;
   }[];
-  creations: { id: string; title: string; people: number; seconds: number }[];
+  creations: {
+    id: string;
+    title: string;
+    people: number;
+    seconds: number;
+    /** How many times it was opened. */
+    visits: number;
+    /** Time in a session with someone else playing too. */
+    togetherSeconds: number;
+  }[];
+  /** The most common moves from one room straight into another, most first. */
+  moves: { from: string; to: string; times: number }[];
   people: {
     userId: string;
     name: string;
@@ -191,5 +243,17 @@ export interface PlaceVisits {
     seconds: number;
     inCreations: number;
     lastAt: string;
+    /** How many different days they were here, and how many times they came. */
+    days: number;
+    visits: number;
+    typicalSeconds: number;
+    /** Time in rooms and creations with someone else there too. */
+    togetherSeconds: number;
+    /** Their time in each room and creation, most first. */
+    rooms: { key: string; seconds: number }[];
+    creations: { id: string; seconds: number }[];
+    devices: DeviceTime[];
+    /** Their time by hour of the day: 24. */
+    hours: number[];
   }[];
 }

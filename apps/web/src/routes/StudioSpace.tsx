@@ -11,14 +11,15 @@ import { BackLink } from '../components/BackLink.tsx';
 import { EarlierToggle } from '../components/EarlierToggle.tsx';
 import { LightingLine } from '../components/LightingLine.tsx';
 import { ago } from '../components/NotificationBell.tsx';
+import { type Tab, Tabs, tabPanel } from '../components/Tabs.tsx';
+import { TimeSpent } from '../components/TimeSpent.tsx';
 import {
   makePlaceVersionLive,
   type PlaceVersion,
   placeVersions,
   startPlaceWorkspace,
 } from '../lib/places.ts';
-import { byForm, loadFieldPerf, loadVisits, type PlaceVisits } from '../lib/studio.ts';
-import { timeSpent } from '../lib/time-spent.ts';
+import { byForm, loadFieldPerf } from '../lib/studio.ts';
 import { placeExportUrl } from '../lib/transfer.ts';
 import {
   type Assistant,
@@ -51,14 +52,37 @@ function Labelled({
   );
 }
 
-/** The Studio for one space: workspaces, a new creation, and how the Studio behaves. */
+type Part = 'build' | 'place' | 'time';
+const PARTS: Tab<Part>[] = [
+  { id: 'build', label: 'Build' },
+  { id: 'place', label: 'The place' },
+  { id: 'time', label: 'Time spent' },
+];
+
+/**
+ * The Studio for one space, in three parts: building creations (workspaces, a new creation), the
+ * place itself (changing it, its versions, how smoothly it runs), and where people spend time.
+ * The part shown is in the address (`?tab=`); a part, once opened, keeps what was typed in it.
+ */
 export function StudioSpace() {
   const { spaceId } = useParams();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [data, setData] = useState<Loaded | null>(null);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const part = PARTS.find((p) => p.id === params.get('tab'))?.id ?? 'build';
+  const [opened, setOpened] = useState<Set<Part>>(() => new Set([part]));
+  const show = (next: Part) => {
+    setOpened((o) => new Set(o).add(next));
+    setParams(
+      (p) => {
+        p.set('tab', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
 
   useEffect(() => {
     if (!spaceId) return;
@@ -70,6 +94,13 @@ export function StudioSpace() {
   }, [spaceId]);
   const ready = assistants.filter((a) => a.installed && a.signedIn);
   const defaults = useAssistantDefaults(data?.space.groupId);
+  /** The part's content: made when first opened, then kept (hidden) while another is shown. */
+  const panel = (id: Part, children: ReactNode) =>
+    (opened.has(id) || id === part) && (
+      <div {...tabPanel('studio', id)} className="ats-stack studio-panel" hidden={id !== part}>
+        {children}
+      </div>
+    );
 
   return (
     <main className="ats-screen">
@@ -92,35 +123,58 @@ export function StudioSpace() {
             </div>
           </div>
           <h1>Studio{data ? ` · ${data.space.name}` : ''}</h1>
-          <p className="ats-muted">
-            Build creations with your AI assistant. Each one gets its own workspace: a terminal
-            where you talk to your assistant, and a live preview that updates as it works.
-          </p>
         </header>
         {error && <Notice tone="error">{error}</Notice>}
         {data && !data.available && <Notice>The Studio isn’t set up on this server yet.</Notice>}
+        <Tabs label="Studio" idPrefix="studio" tabs={PARTS} value={part} onChange={show} />
 
-        <p className="studio-status" data-state={ready.length ? 'connected' : 'new'}>
-          <span className="studio-dot" aria-hidden="true" />
-          {ready.length
-            ? `Your assistant: ${ready.map((a) => a.name).join(' and ')}`
-            : 'Connect your AI assistant to start building.'}{' '}
-          <Link to="/studio/assistants">{ready.length ? 'AI assistants' : 'Connect one'}</Link>
-        </p>
-
-        {data && (
+        {panel(
+          'build',
           <>
-            <Section title="Workspaces">
-              {data.workspaces.length === 0 ? (
-                <p className="ats-muted">None yet: start one below.</p>
-              ) : (
-                <ul className="studio-list">
-                  {data.workspaces.map((w) => (
-                    <WorkspaceRow key={w.id} w={w} spaceId={spaceId ?? ''} />
-                  ))}
-                </ul>
-              )}
-            </Section>
+            <p className="ats-muted">
+              Build creations with your AI assistant. Each one gets its own workspace: a terminal
+              where you talk to your assistant, and a live preview that updates as it works.
+            </p>
+            <p className="studio-status" data-state={ready.length ? 'connected' : 'new'}>
+              <span className="studio-dot" aria-hidden="true" />
+              {ready.length
+                ? `Your assistant: ${ready.map((a) => a.name).join(' and ')}`
+                : 'Connect your AI assistant to start building.'}{' '}
+              <Link to="/studio/assistants">{ready.length ? 'AI assistants' : 'Connect one'}</Link>
+            </p>
+            {data && (
+              <>
+                <Section title="Workspaces">
+                  {data.workspaces.length === 0 ? (
+                    <p className="ats-muted">None yet: start one below.</p>
+                  ) : (
+                    <ul className="studio-list">
+                      {data.workspaces.map((w) => (
+                        <WorkspaceRow key={w.id} w={w} spaceId={spaceId ?? ''} />
+                      ))}
+                    </ul>
+                  )}
+                </Section>
+                <NewCreation
+                  spaceId={spaceId ?? ''}
+                  objects={data.objects}
+                  assistants={ready}
+                  defaults={defaults}
+                  improve={params.get('improve')}
+                  improveTitle={params.get('title')}
+                  onCreated={(id) => navigate(`/space/${spaceId}/studio/${id}`)}
+                />
+                <p className="ats-muted studio-small">
+                  When workspaces sleep, the model and effort they start with, and what a creation
+                  needs before it goes live: <Link to="/group/settings">Group settings</Link>.
+                </p>
+              </>
+            )}
+          </>,
+        )}
+        {panel(
+          'place',
+          data && (
             <ChangePlace
               spaceId={spaceId ?? ''}
               assistants={ready}
@@ -128,22 +182,9 @@ export function StudioSpace() {
               workspaces={data.workspaces.filter((w) => w.kind === 'space' && w.mine)}
               onStarted={(id) => navigate(`/space/${spaceId}/studio/${id}`)}
             />
-            <NewCreation
-              spaceId={spaceId ?? ''}
-              objects={data.objects}
-              assistants={ready}
-              defaults={defaults}
-              improve={params.get('improve')}
-              improveTitle={params.get('title')}
-              onCreated={(id) => navigate(`/space/${spaceId}/studio/${id}`)}
-            />
-            <Visits spaceId={spaceId ?? ''} />
-            <p className="ats-muted studio-small">
-              When workspaces sleep, the model and effort they start with, and what a creation needs
-              before it goes live: <Link to="/group/settings">Group settings</Link>.
-            </p>
-          </>
+          ),
         )}
+        {panel('time', <TimeSpent spaceId={spaceId ?? ''} />)}
       </div>
     </main>
   );
@@ -516,114 +557,5 @@ function ChangePlace({
       {note && <Notice>{note}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
     </Section>
-  );
-}
-
-/** Rows shown before "more". */
-const FOLDED = 5;
-
-/** Where people spend their time here: rooms, creations, and each person (Architects only). */
-function Visits({ spaceId }: { spaceId: string }) {
-  const [visits, setVisits] = useState<PlaceVisits | null>(null);
-  useEffect(() => {
-    loadVisits(spaceId).then(setVisits, () => setVisits(null));
-  }, [spaceId]);
-  if (!visits) return null;
-  const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
-  if (!visits.recording) {
-    return (
-      <Section title="Where people spend time">
-        <p className="ats-muted">
-          Your group doesn’t record where people spend time: it’s turned off in{' '}
-          <Link to="/group/settings">Group settings</Link>.
-        </p>
-      </Section>
-    );
-  }
-  return (
-    <Section title="Where people spend time">
-      <p className="ats-muted">
-        The last {visits.days} days, while the app is open and in sight. A room counts once someone
-        has stayed a few seconds, and time in a creation is also time in its room. Only Architects
-        see this, and <Link to="/group/settings">Group settings</Link> can turn it off.
-      </p>
-      {visits.people.length === 0 ? (
-        <p className="ats-muted">Nobody has spent time here yet.</p>
-      ) : (
-        <>
-          <VisitList
-            title="Rooms"
-            rows={visits.rooms.map((r) => ({
-              key: r.key,
-              name: r.name ? (r.floor ? `${r.name}, ${r.floor}` : r.name) : 'A room since removed',
-              seconds: r.seconds,
-              detail: people(r.people),
-            }))}
-          />
-          {visits.creations.length > 0 && (
-            <VisitList
-              title="Creations"
-              rows={visits.creations.map((c) => ({
-                key: c.id,
-                name: c.title,
-                seconds: c.seconds,
-                detail: people(c.people),
-              }))}
-            />
-          )}
-          <VisitList
-            title="People"
-            rows={visits.people.map((p) => ({
-              key: p.userId,
-              name: p.name,
-              seconds: p.seconds,
-              detail: `${p.inCreations ? `${timeSpent(p.inCreations)} in creations · ` : ''}last here ${ago(p.lastAt)}`,
-            }))}
-          />
-        </>
-      )}
-    </Section>
-  );
-}
-
-function VisitList({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: { key: string; name: string; seconds: number; detail: string }[];
-}) {
-  const [open, setOpen] = useState(false);
-  const shown = open ? rows : rows.slice(0, FOLDED);
-  return (
-    <div className="ats-stack" style={{ gap: 4 }}>
-      <h3 className="studio-subhead">{title}</h3>
-      <ol className="studio-list studio-visits">
-        {shown.map((r) => (
-          <li key={r.key} className="studio-small">
-            <strong>{r.name}</strong> ·{' '}
-            {r.seconds > 0 ? (
-              <>
-                {timeSpent(r.seconds)}
-                <span className="ats-muted"> · {r.detail}</span>
-              </>
-            ) : (
-              <span className="ats-muted">nobody yet</span>
-            )}
-          </li>
-        ))}
-      </ol>
-      {rows.length > FOLDED && (
-        <button
-          type="button"
-          className="studio-unfold"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-        >
-          <Icon name={open ? 'chevronUp' : 'chevronDown'} size={16} />
-          {open ? 'Fewer' : `${rows.length - FOLDED} more`}
-        </button>
-      )}
-    </div>
   );
 }

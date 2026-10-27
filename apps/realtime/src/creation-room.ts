@@ -3,13 +3,14 @@ import {
   creationPlayersKey,
   memberRemovedTopic,
   REMOVED_FROM_GROUP,
+  type VisitDevice,
   verifyToken,
 } from '@ats/shared';
 import { type Client, Room } from '@colyseus/core';
 import { schema, t } from '@colyseus/schema';
 import { z } from 'zod';
 import { log } from './log.ts';
-import type { VisitLog } from './visits.ts';
+import { deviceOf, type VisitLog } from './visits.ts';
 import { sessionVoiceRoom, type Voice } from './voice.ts';
 
 /**
@@ -93,6 +94,8 @@ export class CreationRoom extends Room<{ state: SessionState }> {
   private totalBytes = 0;
   /** Each player's visit under way (null while their app is out of sight). */
   private readonly visitOf = new Map<string, string | null>();
+  /** The kind of device each player is on, as their app said when it joined. */
+  private readonly devices = new Map<string, VisitDevice>();
 
   /** Checks the ticket against the client's options, before a room is picked (see `onJoin`). */
   static async onAuth(token: string, options: JoinOptions): Promise<CreationTicket> {
@@ -150,7 +153,7 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     });
   }
 
-  onJoin(client: Client) {
+  onJoin(client: Client, options?: { device?: unknown }) {
     const me = client.auth as CreationTicket;
     // The options checked in `onAuth` are the client's own: joining by room id could name any
     // room, so the ticket must also match the session actually being joined.
@@ -188,6 +191,8 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     );
     if (!this.state.hostId) this.state.hostId = me.sub;
     this.publishCount();
+    const device = deviceOf(options);
+    if (device) this.devices.set(client.sessionId, device);
     if (CreationRoom.visits) this.visitOf.set(client.sessionId, this.startVisit(client));
   }
 
@@ -196,8 +201,10 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     return (
       CreationRoom.visits?.start({
         userId: me.sub,
+        device: this.devices.get(client.sessionId),
         creationId: this.creationId,
         versionId: this.versionId,
+        session: this.roomId,
       }) ?? null
     );
   }
@@ -210,6 +217,7 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     const visit = this.visitOf.get(client.sessionId);
     if (visit) CreationRoom.visits?.end(visit);
     this.visitOf.delete(client.sessionId);
+    this.devices.delete(client.sessionId);
     if (
       me &&
       this.state.hostId === me.sub &&

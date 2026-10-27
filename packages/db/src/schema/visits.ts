@@ -6,9 +6,10 @@ import { spaces } from './spaces.ts';
 
 /**
  * Time people spend here: one row per stay in a room of a place, or per time in a creation.
- * Coarse spans only, never positions: which room or creation, from when to when. Written by the
- * real-time service (through the server), kept 90 days (worker), and shown only to the group's
- * Architects: which rooms and creations get used, and how long each person spends here.
+ * Coarse spans only, never positions: which room or creation, from when to when, and on what kind
+ * of device. Written by the real-time service (through the server), kept 90 days (worker), and
+ * shown only to the group's Architects: which rooms and creations get used, when, and how long
+ * each person spends here.
  */
 export const visits = pgTable(
   'visits',
@@ -33,6 +34,10 @@ export const visits = pgTable(
     seenAt: timestamp('seen_at', { withTimezone: true }).notNull(),
     /** Null while they're still there. */
     endedAt: timestamp('ended_at', { withTimezone: true }),
+    /** Phone, tablet, computer or headset (null: not known, as before this was recorded). */
+    device: text('device'),
+    /** For time in a creation, its live session: people in the same one played together. */
+    session: text('session'),
   },
   (t) => [
     index('visits_space_started').on(t.spaceId, t.startedAt),

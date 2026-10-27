@@ -91,7 +91,7 @@ run between floors inside a stairwell, and a lift stops at a room on each floor 
 
 ### Changing your place later
 
-Rooms, floors and furniture can change at any time: **Studio → The place itself → Change this
+Rooms, floors and furniture can change at any time: **Studio → The place → Change this
 place…**, and say what should change ("add the attic as a new floor", "the sofa is by the window
 now"). Your assistant starts from the plan of the live version and changes only what you asked.
 **Build the changes** shows you what's different (rooms added, changed or removed; furniture added,
@@ -163,7 +163,7 @@ never use the internet either way.
 
 ## 2. Start a creation
 
-**Home → Studio → A new creation.** Give it a name, say in your own words what it should be (as
+**Home → Studio → Build → A new creation.** Give it a name, say in your own words what it should be (as
 much or as little as you like), and choose the object in your space it lives on. This makes a
 **workspace**: its files, a terminal and a live preview.
 
@@ -292,14 +292,21 @@ Do Not Disturb (in chat) holds back everything but the list.
   in it. Other sound dips while someone speaks. Nothing is recorded. Turn it off for your group
   under **Home → Chat**.
 - **How smoothly things run**: people can choose to share how smoothly their device runs things
-  (Menu → Smoothness, anonymous). Your place's Studio page and each creation's versions then show
-  how it runs on people's phones, tablets and computers, and each kind of device starts at a
-  quality that has run smoothly on it.
-- **Where people spend time**: your place's Studio page shows, for the last 90 days, how long
-  people have spent in each room and each creation (and how many different people), and each
-  person's time there; **People** shows each person's time in the group's places. Time counts while
-  the app is open and in sight, a room once someone has stayed a few seconds. Only Architects see
-  it; [privacy.md](privacy.md) says what's kept. To stop it, untick **Record where people spend
+  (Menu → Smoothness, anonymous). Your place's Studio page (**The place**) and each creation's
+  versions then show how it runs on people's phones, tablets and computers, and each kind of
+  device starts at a quality that has run smoothly on it.
+- **Where people spend time**: the **Time spent** tab of your place's Studio page, for the last 7,
+  30 or 90 days. The figures at the top say how much time, how many people, how many visits and
+  how long a typical one lasts (back within a few minutes is the same visit), how many came back
+  on another day, and how much of the time in rooms was with someone else. Below them:
+  **Overview** (time day by day, or week by week for 90 days; when in the week people come, in
+  your browser's time zone; phones, tablets, computers and headsets), **Rooms** (each room's
+  time, people, visits, typical stay and time with others, and the most common moves between
+  rooms), **Creations** (time, people, times opened, time played together) and **People** (open
+  someone to see their own rooms, creations, hours of the day and devices). **People** in the
+  group's menu shows each person's time in the group's places. Time counts while the app is open
+  and in sight, a room once someone has stayed a few seconds. Only Architects see it;
+  [privacy.md](privacy.md) says what's kept. To stop it, untick **Record where people spend
   time** in **Group settings**: nothing more is recorded, and what was recorded is deleted at once
   (turning it back on starts from nothing).
 
@@ -332,7 +339,7 @@ devices out), and notifications.
 
 ### Moving a place or a creation to another server
 
-- **A place:** in its Studio, **Download this place** gives you one `.atspace` file (usually
+- **A place:** in its Studio, **The place → Download this place** gives you one `.atspace` file (usually
   5–30 MB, more with many models made for it): the building with its rooms, furniture, textures
   and lighting, the plan it was built from and the models your assistant made for it, with their
   Blender scripts (so it can be changed later). Not its people, chat, requests, creations, or the floor

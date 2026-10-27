@@ -118,6 +118,77 @@ const studio = {
   builds: [],
 };
 
+/** A month of time in the place: two rooms, a creation, two people, one opened up. */
+const HOUR = 3600;
+const visits = {
+  days: 30,
+  kept: 90,
+  recording: true,
+  timeZone: 'UTC',
+  summary: {
+    seconds: 5 * HOUR,
+    people: 2,
+    visits: 9,
+    typicalSeconds: 1500,
+    cameBack: 1,
+    togetherSeconds: HOUR,
+    roomSeconds: 4 * HOUR,
+  },
+  trend: Array.from({ length: 30 }, (_, i) => ({
+    from: `2026-09-${String(i + 1).padStart(2, '0')}`,
+    days: 1,
+    seconds: (i % 4) * 1200,
+    people: i % 4 ? 1 : 0,
+  })),
+  week: Array.from({ length: 7 }, (_, d) =>
+    Array.from({ length: 24 }, (_, h) => (h >= 18 && h <= 21 ? (d + 1) * 600 : 0)),
+  ),
+  devices: [
+    { device: 'phone', seconds: 3 * HOUR },
+    { device: 'computer', seconds: 2 * HOUR },
+  ],
+  rooms: [
+    {
+      key: 'r1',
+      name: 'Workshop',
+      floor: null,
+      people: 2,
+      seconds: 3 * HOUR,
+      visits: 6,
+      togetherSeconds: HOUR,
+    },
+    {
+      key: 'r2',
+      name: 'Porch',
+      floor: null,
+      people: 1,
+      seconds: HOUR,
+      visits: 3,
+      togetherSeconds: 0,
+    },
+  ],
+  creations: [
+    { id: 'c1', title: 'Marble run', people: 2, seconds: HOUR, visits: 4, togetherSeconds: 1800 },
+  ],
+  moves: [{ from: 'r2', to: 'r1', times: 3 }],
+  people: ['u1', 'u2'].map((userId, i) => ({
+    userId,
+    name: i ? 'Grace Hopper' : 'Ada Lovelace',
+    color: i ? '#94BBA0' : '#DDB08F',
+    seconds: (3 - i) * HOUR,
+    inCreations: HOUR,
+    lastAt: '2026-10-03T09:00:00Z',
+    days: 2,
+    visits: 5 - i,
+    typicalSeconds: 1800,
+    togetherSeconds: 1800,
+    rooms: [{ key: 'r1', seconds: 2 * HOUR }],
+    creations: [{ id: 'c1', seconds: HOUR }],
+    devices: [{ device: 'phone', seconds: 3 * HOUR }],
+    hours: Array.from({ length: 24 }, (_, h) => (h === 19 ? HOUR : 0)),
+  })),
+};
+
 /** What the server would say, by path. Anything else: 404. */
 function answers(signedIn: boolean): Record<string, unknown> {
   return {
@@ -140,6 +211,14 @@ function answers(signedIn: boolean): Record<string, unknown> {
     '/api/notifications': { notifications: [], unread: 0, more: false },
     '/api/spaces/s1/studio': studio,
     '/api/spaces/s1/perf': { space: [], creations: [] },
+    '/api/spaces/s1/workspaces': {
+      available: true,
+      space: { id: 's1', name: 'The Workshop', groupId: 'g1' },
+      workspaces: [],
+      objects: [],
+    },
+    '/api/spaces/s1/versions': { liveSince: null, versions: [] },
+    '/api/spaces/s1/visits': visits,
     '/api/sources': [
       { id: 'github', displayName: 'GitHub', repositories: ['lanternfield-club/*'] },
     ],
@@ -210,6 +289,18 @@ const PAGES = [
     ready: 'lanternfield-club/marble-run',
   },
   { name: 'Server', path: '/group/server', signedIn: true, ready: 'Our GitHub Enterprise' },
+  {
+    name: 'Time spent',
+    path: '/space/s1/studio?tab=time',
+    signedIn: true,
+    ready: 'When people come',
+  },
+  {
+    name: 'Time spent: rooms',
+    path: '/space/s1/studio?tab=time&see=rooms',
+    signedIn: true,
+    ready: 'Moves between rooms',
+  },
 ];
 const SCREENS = [
   { name: 'portrait', viewport: { width: 390, height: 844 } },

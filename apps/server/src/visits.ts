@@ -72,15 +72,22 @@ export async function recordVisits(db: Db, batch: VisitBatch): Promise<number> {
       spaceId: string;
       roomKey: string | null;
       creationId: string | null;
+      session: string | null;
     };
     if ('roomKey' in v) {
       const place = places.get(v.spaceId);
       if (!place?.recording) return [];
-      where = { groupId: place.groupId, spaceId: place.id, roomKey: v.roomKey, creationId: null };
+      where = {
+        groupId: place.groupId,
+        spaceId: place.id,
+        roomKey: v.roomKey,
+        creationId: null,
+        session: null,
+      };
     } else {
       const creation = made.get(v.creationId);
       if (!creation?.recording || creation.live !== v.versionId) return [];
-      where = { ...creation, roomKey: null, creationId: creation.id };
+      where = { ...creation, roomKey: null, creationId: creation.id, session: v.session ?? null };
     }
     if (!members.has(`${where.groupId}:${v.userId}`)) return [];
     const startedAt = at(v.startedAt);
@@ -93,6 +100,8 @@ export async function recordVisits(db: Db, batch: VisitBatch): Promise<number> {
         spaceId: where.spaceId,
         roomKey: where.roomKey,
         creationId: where.creationId,
+        device: v.device ?? null,
+        session: where.session,
         startedAt,
         seenAt: endedAt ?? startedAt,
         endedAt,

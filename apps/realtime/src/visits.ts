@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { VISIT_HEARTBEAT_MS, type VisitBatch, type VisitPlace, type VisitStart } from '@ats/shared';
+import {
+  VISIT_DEVICES,
+  VISIT_HEARTBEAT_MS,
+  type VisitBatch,
+  type VisitDevice,
+  type VisitPlace,
+  type VisitStart,
+} from '@ats/shared';
 import { log } from './log.ts';
 
 /** How often waiting visits are sent. */
@@ -127,11 +134,18 @@ export const postVisits =
     if (!res.ok) log.warn({ status: res.status }, 'the server refused some visits');
   };
 
+/** The kind of device a client says it is (in its join options), if it's one we know. */
+export function deviceOf(options: unknown): VisitDevice | undefined {
+  const device = (options as { device?: unknown } | null)?.device;
+  return VISIT_DEVICES.find((d) => d === device);
+}
+
 /** How long someone stays in a room before it counts as a visit there. */
 export const SETTLE_MS = 10_000;
 
 interface Stay {
   userId: string;
+  device: VisitDevice | undefined;
   room: string;
   /** The visit under way (none while the app is out of sight). */
   visit: string | null;
@@ -155,11 +169,12 @@ export class RoomVisits {
     this.spaceId = spaceId;
   }
 
-  /** Someone (`key`: their session) is in `room` now. */
-  moved(key: string, userId: string, room: string, at: number) {
+  /** Someone (`key`: their session, on `device`) is in `room` now. */
+  moved(key: string, userId: string, room: string, at: number, device?: VisitDevice) {
     const stay = this.stays.get(key);
     if (!stay) {
-      this.stays.set(key, { userId, room, visit: this.begin(userId, room, at), next: null });
+      const visit = this.visits.start({ userId, device, spaceId: this.spaceId, roomKey: room }, at);
+      this.stays.set(key, { userId, device, room, visit, next: null });
     } else if (!stay.visit) {
       stay.room = room;
     } else if (room === stay.room) {
@@ -175,7 +190,7 @@ export class RoomVisits {
       if (!stay.visit || !stay.next || now - stay.next.at < SETTLE_MS) continue;
       this.visits.end(stay.visit, stay.next.at);
       stay.room = stay.next.room;
-      stay.visit = this.begin(stay.userId, stay.room, stay.next.at);
+      stay.visit = this.begin(stay, stay.next.at);
       stay.next = null;
     }
   }
@@ -191,7 +206,7 @@ export class RoomVisits {
       if (stay.next) stay.room = stay.next.room;
       stay.next = null;
     } else {
-      stay.visit = this.begin(stay.userId, stay.room, at);
+      stay.visit = this.begin(stay, at);
     }
   }
 
@@ -201,7 +216,7 @@ export class RoomVisits {
     this.stays.delete(key);
   }
 
-  private begin(userId: string, roomKey: string, at: number) {
-    return this.visits.start({ userId, spaceId: this.spaceId, roomKey }, at);
+  private begin({ userId, device, room }: Stay, at: number) {
+    return this.visits.start({ userId, device, spaceId: this.spaceId, roomKey: room }, at);
   }
 }
