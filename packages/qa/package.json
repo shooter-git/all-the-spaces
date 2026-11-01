@@ -15,9 +15,9 @@
   "dependencies": {
     "@allthespaces/bridge-protocol": "workspace:*",
     "@allthespaces/portal": "workspace:*",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   }
 }
