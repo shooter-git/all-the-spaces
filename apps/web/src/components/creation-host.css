@@ -5,6 +5,22 @@
   z-index: 20;
   background: var(--ats-bg);
 }
+/*
+ * While a creation shows on the whole screen (CreationHost's darkBehind), everything behind its
+ * frame is dark, in either theme. The frame covers all of it, so none of it is seen. But iOS
+ * colours the status bar from the page under a creation (theme-color is ignored since iOS 26),
+ * never from the creation's own frame. So this is the band above a creation: dark, like most
+ * creations' top edges, instead of the app's paper. The paper grain steps aside too: it would lie
+ * over the creation's pixels, and iOS would stop at it when looking for the colour.
+ */
+:root[data-creation="showing"],
+:root[data-creation="showing"] body,
+:root[data-creation="showing"] .creation-host:not(.creation-host--embedded) {
+  background: #1c1b21;
+}
+:root[data-creation="showing"] body::before {
+  display: none;
+}
 /* Inside a box (the Studio's live preview). */
 .creation-host--embedded {
   position: absolute;

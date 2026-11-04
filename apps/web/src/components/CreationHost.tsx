@@ -86,6 +86,8 @@ export function CreationHost({
   const frame = useRef<HTMLIFrameElement>(null);
   const wrapper = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
+  // Which creation has said it's ready (so a new one in this host starts out not ready).
+  const [readyFor, setReadyFor] = useState<OpenedCreation | null>(null);
   // A creation asked to link the person's account at a connector's service: the app's own card.
   const [linkCard, setLinkCard] = useState<ConnectorInfo | null>(null);
   // The creation can leave in several ways (it asks, the person insists, it stops responding):
@@ -276,6 +278,7 @@ export function CreationHost({
         case 'ready':
           state.ready = true;
           state.lastPong = Date.now();
+          setReadyFor(opened);
           callbacks.current.onReady();
           break;
         case 'request-exit':
@@ -541,6 +544,11 @@ export function CreationHost({
     if (bridge.current?.ready) bridge.current.send({ type: 'duck', level: duck });
   }, [duck]);
 
+  // Showing on the whole screen: what's behind it goes dark, so the phone's status bar above it
+  // does too. From when it's ready (until then the app's passage covers it) until leaving.
+  const showing = readyFor === opened && !leaving && !embedded;
+  useEffect(() => (showing ? darkBehind() : undefined), [showing]);
+
   // Leaving: let the creation save, then take it away (after 2 s at most).
   useEffect(() => {
     if (!leaving) return;
@@ -596,6 +604,32 @@ export function CreationHost({
       )}
     </div>
   );
+}
+
+/** Behind a creation on the whole screen, in either theme: the app's night colour. */
+const BEHIND = '#1C1B21';
+let darkened = 0;
+let themeColors: [HTMLMetaElement, string][] = [];
+
+/**
+ * Makes everything behind a creation dark (creation-host.css) and gives browsers the same colour
+ * for their own bars (theme-color: Chrome on Android uses it; iOS ignores it and looks at the page
+ * instead). Returns how to put both back.
+ */
+function darkBehind() {
+  if (darkened++ === 0) {
+    document.documentElement.dataset.creation = 'showing';
+    themeColors = [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')].map(
+      (meta) => [meta, meta.content],
+    );
+    for (const [meta] of themeColors) meta.content = BEHIND;
+  }
+  return () => {
+    if (--darkened > 0) return;
+    delete document.documentElement.dataset.creation;
+    for (const [meta, content] of themeColors) meta.content = content;
+    themeColors = [];
+  };
 }
 
 function viewport(): Viewport {
