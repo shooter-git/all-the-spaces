@@ -9,7 +9,7 @@ import { findSignInLink, signInLinkOn, stillShown, waitingForSignIn } from '../l
 import './terminal.css';
 
 const KEYS: { label: string | IconName; icon?: true; seq: string; aria: string }[] = [
-  { label: 'Esc', seq: '\x1b', aria: 'Escape' },
+  { label: 'Esc', seq: '\x1b', aria: 'Esc (Escape)' },
   { label: 'Tab', seq: '\t', aria: 'Tab' },
   { label: '^C', seq: '\x03', aria: 'Control C (stop)' },
   { label: 'back', icon: true, seq: '\x1b[D', aria: 'Left' },
