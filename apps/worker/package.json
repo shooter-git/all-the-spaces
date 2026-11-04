@@ -13,7 +13,7 @@
   "dependencies": {
     "@ats/db": "workspace:*",
     "@ats/shared": "workspace:*",
-    "bullmq": "6.5.1",
+    "bullmq": "6.5.3",
     "pino": "10.4.0"
   },
   "devDependencies": {
