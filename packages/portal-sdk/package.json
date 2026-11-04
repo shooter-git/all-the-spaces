@@ -32,9 +32,9 @@
     }
   },
   "devDependencies": {
-    "@types/three": "0.186.0",
+    "@types/three": "0.187.0",
     "happy-dom": "21.0.4",
-    "three": "0.186.1",
+    "three": "0.187.0",
     "vitest": "5.0.5"
   }
 }

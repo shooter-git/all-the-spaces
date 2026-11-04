@@ -14,7 +14,7 @@
   "dependencies": {
     "@ats/shared": "workspace:*",
     "pino": "10.4.0",
-    "ws": "8.22.0"
+    "ws": "8.22.1"
   },
   "devDependencies": {
     "@types/ws": "8.18.2",
