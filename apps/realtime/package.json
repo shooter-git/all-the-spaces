@@ -14,18 +14,18 @@
   },
   "dependencies": {
     "@ats/shared": "workspace:*",
-    "@colyseus/core": "0.18.18",
-    "@colyseus/redis-driver": "0.18.4",
-    "@colyseus/redis-presence": "0.18.5",
-    "@colyseus/schema": "5.0.36",
+    "@colyseus/core": "0.18.23",
+    "@colyseus/redis-driver": "0.18.7",
+    "@colyseus/redis-presence": "0.18.6",
+    "@colyseus/schema": "5.0.43",
     "@colyseus/ws-transport": "0.18.4",
-    "livekit-server-sdk": "2.19.1",
+    "livekit-server-sdk": "2.19.2",
     "pino": "10.4.0",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@ats/space-builder": "workspace:*",
-    "@colyseus/sdk": "0.18.5",
-    "vitest": "5.0.3"
+    "@colyseus/sdk": "0.18.8",
+    "vitest": "5.0.5"
   }
 }

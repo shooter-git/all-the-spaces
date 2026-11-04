@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+// The creation runs in an iframe, which happy-dom 21 no longer loads unless asked.
+// @vitest-environment-options {"settings":{"enableIframePageLoading":true}}
 import { type HostMessage, readHostMessage, wrap } from '@allthespaces/bridge-protocol';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';

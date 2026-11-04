@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+// The creation runs in an iframe, which happy-dom 21 no longer loads unless asked.
+// @vitest-environment-options {"settings":{"enableIframePageLoading":true}}
 import {
   type HostMessage,
   type Person,

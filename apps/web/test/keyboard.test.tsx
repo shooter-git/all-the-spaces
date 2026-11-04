@@ -10,6 +10,11 @@ import { useVisibleArea, visibleArea } from '../src/lib/keyboard.ts';
 
 afterEach(() => vi.unstubAllGlobals());
 
+function Probe({ seen }: { seen: (number | undefined)[] }) {
+  seen.push(useVisibleArea()?.inset);
+  return null;
+}
+
 describe('the on-screen keyboard', () => {
   it('on Android, shrinks the page itself, so fixed panels sit above it', () => {
     // Tests run from apps/web.
@@ -42,12 +47,8 @@ describe('the on-screen keyboard', () => {
     vi.stubGlobal('visualViewport', vv);
     Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true });
     const seen: (number | undefined)[] = [];
-    function Probe() {
-      seen.push(useVisibleArea()?.inset);
-      return null;
-    }
     const root = createRoot(document.createElement('div'));
-    act(() => root.render(<Probe />));
+    act(() => root.render(<Probe seen={seen} />));
     expect(seen.at(-1)).toBe(0);
     act(() => {
       vv.height = 508;

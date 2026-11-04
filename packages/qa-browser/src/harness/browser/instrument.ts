@@ -462,6 +462,7 @@ const scrolledInto = (el: Element) => {
 };
 
 const labelOf = (el: Element) =>
+  // biome-ignore lint/performance/useDomNodeTextContent: the label as shown, without hidden text
   (el.getAttribute('aria-label') || (el as HTMLElement).innerText || el.tagName.toLowerCase())
     .trim()
     .slice(0, 40);
