@@ -9,13 +9,14 @@
  *   ats-qa prepare <project> <out>      source checks and dependencies (needs the npm registry)
  *   ats-qa finish <project> <dist> <out>  build, play and report (after prepare; no network)
  *
- * With --json, the last line printed is a JSON result (used by the pipeline).
+ * With --json, the last line printed is a JSON result (used by the pipeline), and the lines before
+ * it say what it's doing as it goes (see @ats/qa's progress).
  */
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { QaScript, type Tier } from '@ats/qa';
+import { logLine, QaScript, stepLine, type Tier } from '@ats/qa';
 import { cleanBuild, listFiles } from './build.ts';
 import { convertAssets } from './convert.ts';
 import { type ConnectorSetup, runInBrowser } from './harness/run.ts';
@@ -38,11 +39,18 @@ const { positionals, values } = parseArgs({
 const [command, a, b] = positionals;
 const tier = values.tier as Tier;
 const out = (result: unknown) => console.log(JSON.stringify(result));
+const say = values.json ? (line: string) => console.log(logLine(line)) : undefined;
 
 try {
   if (command === 'build' && a && b) {
-    await cleanBuild(resolve(a), resolve(b));
-    const convert = await convertAssets(resolve(b), await listFiles(resolve(b)), tier);
+    await cleanBuild(resolve(a), resolve(b), say);
+    const convert = await convertAssets(
+      resolve(b),
+      await listFiles(resolve(b)),
+      tier,
+      undefined,
+      say,
+    );
     out({ ok: true, convert });
   } else if (command === 'play' && a && b) {
     const script = values.script
@@ -60,6 +68,7 @@ try {
       ...(connectors ? { connectors } : {}),
       ...(values.seconds ? { playSeconds: Number(values.seconds) } : {}),
       ...(values.viewports ? { viewports: values.viewports.split(',') } : {}),
+      ...(say ? { say } : {}),
     });
     out({ ok: true, result });
   } else if (
@@ -73,6 +82,7 @@ try {
       storeDir: values.store ?? join(tmpdir(), 'ats-pnpm-store'),
       phase: command,
       ...(values.seconds ? { playSeconds: Number(values.seconds) } : {}),
+      ...(say ? { onLine: say, onStep: (s) => console.log(stepLine(s)) } : {}),
     });
     out({ ok: result.ok, prepared: result.prepared ?? false, files: result.files });
   } else if (command === 'watch' && a && b) {

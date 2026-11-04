@@ -358,3 +358,66 @@
 .studio-uses[open] {
   overflow-wrap: anywhere;
 }
+
+/*
+ * What a build's checks say as they go, as in a terminal: sumi ink with light text in either
+ * theme (a shade deeper than the page at night), about eight lines tall. Long lines wrap rather
+ * than scroll sideways on a phone. A check's mark is coloured: passed, a note, something to fix.
+ */
+.creations-with-log {
+  align-items: flex-start;
+}
+/* Level with the creation's name. */
+.creations-with-log .studio-pulse {
+  margin-top: 6px;
+}
+.creations-with-log .studio-dot {
+  margin-top: 8px;
+}
+.creations-log {
+  --creations-log-bg: #1c1b21;
+  margin: var(--ats-space-2) 0 0;
+  max-height: calc(8 * 1.5em + 2 * var(--ats-space-2));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ats-space-2) var(--ats-space-3);
+  border-radius: var(--ats-radius-sm);
+  background: var(--creations-log-bg);
+  color: #eeebf0;
+  font:
+    12px / 1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .creations-log {
+    --creations-log-bg: #121116;
+  }
+}
+:root[data-theme="dark"] .creations-log {
+  --creations-log-bg: #121116;
+}
+.creations-log:focus-visible {
+  outline-offset: 2px;
+}
+.creations-log-line {
+  display: block;
+  min-height: 1.5em;
+}
+.creations-log-line--pass {
+  color: #a7c9a9;
+}
+.creations-log-line--note {
+  color: #e3c98f;
+}
+.creations-log-line--fail {
+  color: #f0a0aa;
+}
+/* A build that didn't pass: what it said, folded away until asked for. */
+.creations-said summary {
+  cursor: pointer;
+  margin-top: var(--ats-space-1);
+}

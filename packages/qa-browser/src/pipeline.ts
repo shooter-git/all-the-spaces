@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,7 @@ import {
   installedDependencies,
   QaScript,
   type Report,
+  readProgress,
   readSource,
   reportHtml,
   SnapshotError,
@@ -24,6 +25,7 @@ import {
   checkBundle,
   cleanEnv,
   installDependencies,
+  lines,
   listFiles,
   prepareDependencies,
 } from './build.ts';
@@ -61,6 +63,8 @@ export interface CheckOptions {
   /** pnpm's package cache. */
   storeDir: string;
   onStep?: (step: Step) => void;
+  /** Each line about what it's doing, as it goes: pnpm's and Vite's own, and every check. */
+  onLine?: (line: string) => void;
   /** Seconds of random play per screen when there's no qa/script.json. */
   playSeconds?: number;
   viewports?: string[];
@@ -109,6 +113,16 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
   let files: BundleFile[] | null = null;
   const fail = (c: Omit<Check, 'status'>) => checks.push({ ...c, status: 'fail' });
   const failed = () => checks.some((c) => c.status === 'fail');
+  const say = (line: string) => opts.onLine?.(line);
+  // Says each check once it's decided (those from `prepare` were said there).
+  let told = 0;
+  const tell = () => {
+    for (const c of checks.slice(told))
+      say(
+        `${c.status === 'pass' ? '✓' : c.status === 'warn' ? '!' : '✗'} ${c.title}${c.where ? ` (${c.where})` : ''}`,
+      );
+    told = checks.length;
+  };
 
   await mkdir(opts.outDir, { recursive: true });
   const statePath = join(opts.outDir, '.state.json');
@@ -123,6 +137,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
       project = state.project;
       script = state.script;
       connectors = state.connectors ?? null;
+      told = checks.length;
     } else {
       // ---- The source -------------------------------------------------------------------------
       opts.onStep?.('source');
@@ -135,6 +150,9 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
           files: read.snapshot.files.length,
           bytes: read.snapshot.bytes,
         };
+        say(
+          `${read.snapshot.files.length} files, ${(read.snapshot.bytes / 1024 / 1024).toFixed(1)} MB`,
+        );
       } catch (err) {
         if (!(err instanceof SnapshotError)) throw err;
         fail({ id: 'source', title: err.message });
@@ -241,6 +259,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
           title: 'index.html is missing',
           fix: 'A creation starts from index.html at the top of the project.',
         });
+      tell();
       if (failed()) return await finish();
 
       // ---- Dependencies -----------------------------------------------------------------------
@@ -248,7 +267,10 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
       for (const p of await prepareDependencies(opts.projectDir))
         fail({ id: 'dependencies', ...p });
       if (failed()) return await finish();
-      const install = await installDependencies(opts.projectDir, { storeDir: opts.storeDir });
+      const install = await installDependencies(opts.projectDir, {
+        storeDir: opts.storeDir,
+        ...(opts.onLine ? { onLine: opts.onLine } : {}),
+      });
       if (!install.ok) {
         fail({
           id: 'install',
@@ -264,6 +286,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
         return await finish();
       }
       if (opts.phase === 'prepare') {
+        tell();
         await writeFile(statePath, JSON.stringify({ checks, report, project, script, connectors }));
         return { ok: true, prepared: true, report, project, files: null };
       }
@@ -287,18 +310,17 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
         status: 'pass',
         title: `Dependencies have compatible licences (${deps.length})`,
       });
+    tell();
     if (failed()) return await finish();
 
     // ---- Build ------------------------------------------------------------------------------
     opts.onStep?.('build');
     await rm(opts.distDir, { recursive: true, force: true });
-    const built = await child<{ ok: boolean; error?: string; convert?: ConvertResult }>([
-      'build',
-      opts.projectDir,
-      opts.distDir,
-      '--tier',
-      report.creation.tier,
-    ]);
+    const built = await child<{ ok: boolean; error?: string; convert?: ConvertResult }>(
+      ['build', opts.projectDir, opts.distDir, '--tier', report.creation.tier],
+      undefined,
+      opts.onLine,
+    );
     if (!built.ok) {
       fail(buildFailure(built));
       return await finish();
@@ -314,6 +336,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
     };
     if (!bundleProblems.length)
       checks.push({ id: 'build', status: 'pass', title: 'Built cleanly' });
+    tell();
     if (failed()) return await finish();
 
     // ---- Play it ----------------------------------------------------------------------------
@@ -337,6 +360,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
         ...(opts.viewports ? ['--viewports', opts.viewports.join(',')] : []),
       ],
       PLAY_MINUTES * 60_000,
+      opts.onLine,
     );
     await rm(scriptFile, { force: true });
     await rm(connectorsFile, { force: true });
@@ -378,6 +402,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
   }
 
   async function finish(): Promise<CheckResult> {
+    tell();
     opts.onStep?.('report');
     await rm(statePath, { force: true });
     report.checks = sortChecks(checks);
@@ -423,27 +448,53 @@ export function buildFailure(built: { error?: string; timedOut?: boolean }): Omi
 
 /**
  * Runs a step in its own process with nothing secret in its environment: it handles code and
- * files from the creation, so it never shares a process with the platform's credentials.
+ * files from the creation, so it never shares a process with the platform's credentials. The
+ * lines it says as it goes are passed on (`onLine`); its last line is its result.
  */
-function child<T>(args: string[], timeout = 5 * 60_000): Promise<T | ChildFailure> {
+function child<T>(
+  args: string[],
+  timeout = 5 * 60_000,
+  onLine?: (line: string) => void,
+): Promise<T | ChildFailure> {
   return new Promise((resolve) => {
-    execFile(
-      process.execPath,
-      [CLI, ...args, '--json'],
-      { timeout, maxBuffer: 64 * 1024 * 1024, env: cleanEnv() },
-      (err, stdout, stderr) => {
-        const last = stdout.trim().split('\n').pop() ?? '';
-        try {
-          resolve(JSON.parse(last) as T);
-        } catch {
-          const timedOut = !!err?.killed;
-          const error = timedOut
-            ? `It took longer than ${Math.round(timeout / 60_000)} minutes.`
-            : (stderr || err?.message || 'failed').slice(-2000);
-          resolve({ ok: false, error, ...(timedOut && { timedOut }) });
-        }
-      },
+    const proc = spawn(process.execPath, [CLI, ...args, '--json'], {
+      env: cleanEnv(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let result = '';
+    let stderr = '';
+    proc.stdout.on(
+      'data',
+      lines((line) => {
+        const said = readProgress(line);
+        if (said && 'log' in said) onLine?.(said.log);
+        else result = line;
+      }),
     );
+    proc.stderr.on('data', (chunk: Buffer) => {
+      stderr = (stderr + chunk.toString()).slice(-8000);
+    });
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      proc.kill('SIGTERM');
+    }, timeout);
+    let ended = false;
+    const end = (problem?: string) => {
+      if (ended) return;
+      ended = true;
+      clearTimeout(timer);
+      try {
+        resolve(JSON.parse(result) as T);
+      } catch {
+        const error = timedOut
+          ? `It took longer than ${Math.round(timeout / 60_000)} minutes.`
+          : (stderr || problem || 'failed').slice(-2000);
+        resolve({ ok: false, error, ...(timedOut && { timedOut }) });
+      }
+    };
+    proc.on('error', (err) => end(err.message));
+    proc.on('close', (code, signal) => end(`It stopped (${signal ?? `exit code ${code}`}).`));
   });
 }
 

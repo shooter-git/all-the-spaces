@@ -1,5 +1,5 @@
 import { Button, Icon, IconButton, Notice, Section } from '@ats/ui';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { BackLink } from '../components/BackLink.tsx';
 import { RepositoryForm, RepositoryPanel } from '../components/Repository.tsx';
@@ -182,11 +182,16 @@ export function Creations() {
           <Section title="Being built">
             <ul className="studio-list">
               {inProgress.map((b) => (
-                <li key={b.id} className="studio-build" aria-live="polite">
+                <li key={b.id} className="studio-build creations-with-log">
                   <span className="studio-pulse" aria-hidden="true" />
-                  <div>
+                  <div className="studio-grow">
                     <strong>{b.title ?? 'A creation'}</strong>
-                    <div className="ats-muted">{b.step ?? 'Waiting its turn'}…</div>
+                    <div className="ats-muted" aria-live="polite">
+                      {b.step ?? 'Waiting its turn'}…
+                    </div>
+                    {b.log && b.log.length > 0 && (
+                      <BuildLog lines={b.log} label={`What building ${b.title ?? 'it'} says`} />
+                    )}
                   </div>
                 </li>
               ))}
@@ -249,7 +254,7 @@ export function Creations() {
 function FailedBuild({ build, spaceId }: { build: StudioBuild; spaceId: string }) {
   const navigate = useNavigate();
   return (
-    <li className="studio-build">
+    <li className={`studio-build${build.log?.length ? ' creations-with-log' : ''}`}>
       <span className="studio-dot studio-dot--bad" aria-hidden="true" />
       <div className="studio-grow">
         <strong>{build.title ?? 'A creation'}</strong>
@@ -258,6 +263,12 @@ function FailedBuild({ build, spaceId }: { build: StudioBuild; spaceId: string }
             ? `The build itself went wrong: ${build.error ?? 'unknown error'}`
             : `${build.qa?.failed ?? 'Some'} thing${build.qa?.failed === 1 ? '' : 's'} to fix · ${date(build.createdAt)}`}
         </div>
+        {build.log && build.log.length > 0 && (
+          <details className="creations-said studio-small">
+            <summary>What it said as it went</summary>
+            <BuildLog lines={build.log} label={`What building ${build.title ?? 'it'} said`} />
+          </details>
+        )}
       </div>
       {build.status === 'failed' && (
         <IconButton
@@ -267,6 +278,56 @@ function FailedBuild({ build, spaceId }: { build: StudioBuild; spaceId: string }
         />
       )}
     </li>
+  );
+}
+
+/**
+ * The newest lines of what a build's checks say as they go, as in a terminal: it keeps to the end
+ * as lines arrive, unless you've scrolled back to read. Screen readers hear the step above it,
+ * not every line.
+ */
+function BuildLog({ lines, label }: { lines: string[]; label: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: new lines are why it scrolls
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (el && following.current) el.scrollTop = el.scrollHeight;
+  }, [lines]);
+  return (
+    <div
+      ref={box}
+      className="creations-log"
+      role="log"
+      aria-live="off"
+      aria-label={label}
+      // Scrollable, so it can be reached and scrolled from the keyboard.
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region needs to take focus
+      tabIndex={0}
+      onScroll={(e) => {
+        const el = e.currentTarget;
+        following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+      }}
+    >
+      {lines.map((line, i) => (
+        <span
+          // The same line can come twice; its place in the log is what tells them apart.
+          // biome-ignore lint/suspicious/noArrayIndexKey: lines have no identity of their own
+          key={i}
+          className={`creations-log-line${
+            line.startsWith('✓ ')
+              ? ' creations-log-line--pass'
+              : line.startsWith('! ')
+                ? ' creations-log-line--note'
+                : line.startsWith('✗ ')
+                  ? ' creations-log-line--fail'
+                  : ''
+          }`}
+        >
+          {line}
+        </span>
+      ))}
+    </div>
   );
 }
 

@@ -43,6 +43,13 @@
       "when": 1793045105089,
       "tag": "0005_visit_device",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793754736233,
+      "tag": "0006_build_log",
+      "breakpoints": true
     }
   ]
 }

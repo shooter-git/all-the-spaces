@@ -399,6 +399,23 @@ describe.skipIf(!adminUrl)('server flows', () => {
         .from(schema.builds)
         .where(eq(schema.builds.id, build?.id as string));
       expect(done).toMatchObject({ status: 'failed', versionId: null });
+      // What the checks said as they went stays with it (the Studio shows it), never the secret.
+      expect(done?.log?.split('\n')).toEqual([
+        '3 files, 0.0 MB',
+        '✗ The source contains something that looks like a secret',
+        '✓ No outside assets',
+      ]);
+      const studio = await app.inject({
+        method: 'GET',
+        url: `/api/spaces/${spaceId}/studio`,
+        headers: { cookie: architectCookie },
+      });
+      expect(studio.json().builds.find((b: { id: string }) => b.id === build?.id)?.log).toEqual([
+        '3 files, 0.0 MB',
+        '✗ The source contains something that looks like a secret',
+        '✓ No outside assets',
+      ]);
+      expect(done?.log).not.toContain('sk-ant-');
       const report = await app.inject({
         method: 'GET',
         url: `/api/builds/${build?.id}/report/report.json`,

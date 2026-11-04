@@ -1,5 +1,5 @@
 /** Publish checks: each creation is checked in its own job volume, one step container at a time. */
-import { DockerError } from '../docker.ts';
+import { DockerError, demux } from '../docker.ts';
 import { type Containers, endedWithin, id } from './containers.ts';
 
 export type Step = 'prepare' | 'finish';
@@ -10,6 +10,17 @@ export type Step = 'prepare' | 'finish';
  * PLAY_MINUTES).
  */
 export const STEP_MINUTES: Record<Step, number> = { prepare: 10, finish: 30 };
+
+/** A time a step said something, as Docker writes it in its log (UTC, to the nanosecond). */
+const SAID_AT = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,9})?Z$/;
+/** Docker trims a time's trailing zeros: with all nine digits, times compare as text. */
+const fixed = (at: string) =>
+  at.replace(/(?:\.(\d{1,9}))?Z$/, (_, f = '') => `.${f.padEnd(9, '0')}Z`);
+
+/** The time an earlier call last heard a step say something, if it's one. */
+export function saidAfter(value: unknown) {
+  return typeof value === 'string' && SAID_AT.test(value) ? fixed(value) : undefined;
+}
 
 export function createJobs(ctx: Containers) {
   const {
@@ -92,13 +103,49 @@ export function createJobs(ctx: Containers) {
   }
 
   /**
-   * Waits a while (at most HOLD_MS) for a step: still going, or how it ended (its last line of
-   * output is its result). An ended step's container is removed.
+   * What a step has said about what it's doing since `after` (its marked lines, see @ats/qa's
+   * progress): each line with the time it said it, oldest first.
    */
-  async function waitStep(job: string, step: Step) {
+  async function said(container: string, after?: string): Promise<[string, string][]> {
+    // Docker's `since` counts whole seconds: the rest of that second is left out here.
+    const since = after ? `&since=${Math.floor(Date.parse(after) / 1000)}` : '';
+    let logs: AsyncIterable<unknown>;
+    try {
+      logs = await docker.raw(
+        'GET',
+        `/containers/${container}/logs?stdout=1&timestamps=1&tail=500${since}`,
+      );
+    } catch (err) {
+      if (err instanceof DockerError && err.status === 404) return [];
+      throw err;
+    }
+    const chunks: Buffer[] = [];
+    for await (const c of logs) chunks.push(c as Buffer);
+    const { stdout } = await demux(
+      (async function* () {
+        yield Buffer.concat(chunks);
+      })(),
+    );
+    const lines: [string, string][] = [];
+    for (const line of stdout.toString('utf8').split('\n')) {
+      const space = line.indexOf(' ');
+      const at = saidAfter(line.slice(0, space));
+      const text = line.slice(space + 1);
+      if (at && text.startsWith('::') && (!after || at > after))
+        lines.push([at, text.slice(0, 2000)]);
+    }
+    return lines;
+  }
+
+  /**
+   * Waits a while (at most HOLD_MS) for a step: still going, or how it ended (its last line of
+   * output is its result) with what it said since `after`. An ended step's container is removed.
+   */
+  async function waitStep(job: string, step: Step, after?: string) {
     const container = stepName(job, step);
     const ended = await endedWithin(docker, container, 200);
     if (!ended) return { done: false as const };
+    const lines = await said(container, after);
     await remove(container);
     const last = ended.stdout.toString().trim().split('\n').pop() ?? '';
     let result: Record<string, unknown> = {};
@@ -109,6 +156,7 @@ export function createJobs(ctx: Containers) {
       done: true as const,
       code: ended.code,
       result,
+      said: lines,
       error:
         ended.code === 124
           ? `It took longer than ${STEP_MINUTES[step]} minutes.`
@@ -136,6 +184,10 @@ export function createJobs(ctx: Containers) {
     },
     startStep,
     waitStep,
+    /** What a step that's still going has said since `after` (see `said`). */
+    async stepSaid(job: string, step: Step, after?: string) {
+      return { said: await said(stepName(job, step), after) };
+    },
     /** The report and the built creation, as a tar archive (`out/…` and `dist/…`). */
     async jobFiles(job: string) {
       return withHelper(

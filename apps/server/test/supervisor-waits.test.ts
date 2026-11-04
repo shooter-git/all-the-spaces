@@ -140,6 +140,101 @@ describe('work in the workbench that takes longer than five minutes', () => {
     expect(Math.max(...s.held.map((h) => h.ms))).toBeLessThanOrEqual(MINUTE);
   });
 
+  it("a creation's checks: what they say as they go reaches the build, each line once", async () => {
+    // Each step's container prints marked lines (see @ats/qa's progress) as it goes, and ends.
+    const script: Record<'prepare' | 'finish', [seconds: number, text: string][]> = {
+      prepare: [
+        [0.5, '::step source'],
+        [1, '::step dependencies'],
+        [30, '::log Packages: +3'],
+        [100, '::log Done in 99s'],
+      ],
+      finish: [
+        [5, '::step build'],
+        [10, '::log ✓ built in 3s'],
+        [20, '::step play'],
+        [59.5, '::log Laptop: done'],
+      ],
+    };
+    const startedAt = new Map<string, number>();
+    const ends = new Map<string, number>();
+    // As Docker writes times: nine digits, or fewer with the trailing zeros trimmed.
+    const stamp = (ms: number, i: number) =>
+      new Date(ms).toISOString().replace(/\.(\d{3})Z$/, i % 2 ? '.$1Z' : '.$1000000Z');
+    const ctx = {
+      docker: {
+        async json(_method: string, path: string) {
+          const wait = /^\/containers\/([^/]+)\/wait$/.exec(path);
+          if (wait) {
+            const end = ends.get(wait[1] as string) ?? Date.now();
+            return later(Math.max(0, end - Date.now()), { StatusCode: 0 });
+          }
+          return {};
+        },
+        async raw(_method: string, path: string) {
+          const [, container = '', query = ''] =
+            /^\/containers\/([^/]+)\/logs\?(.*)$/.exec(path) ?? [];
+          const prepare = container.endsWith('prepare');
+          const result = prepare ? '{"prepared":true}' : '{}';
+          const from = startedAt.get(container) ?? 0;
+          const text = query.includes('timestamps=1')
+            ? `${script[prepare ? 'prepare' : 'finish']
+                .filter(([s]) => from + s * 1000 <= Date.now())
+                .map(([s, t], i) => `${stamp(from + s * 1000, i)} ${t}\n`)
+                .join(
+                  '',
+                )}${(ends.get(container) ?? 0) <= Date.now() ? `${stamp(Date.now(), 0)} ${result}\n` : ''}`
+            : `${result}\n`;
+          return (async function* () {
+            yield frame(text);
+          })();
+        },
+      },
+      cfg: { sandboxNetwork: 'sandbox' },
+      name: (...parts: string[]) => ['ats', ...parts].join('-'),
+      ensureVolume: async () => {},
+      hardened: (extra: object) => extra,
+      proxyEnv: [],
+      egressHosts: async () => [],
+      async run(container: string) {
+        startedAt.set(container, Date.now());
+        ends.set(container, Date.now() + (container.endsWith('prepare') ? 2 : 1) * MINUTE);
+        return container;
+      },
+      remove: async () => {},
+      async exec(_container: string, cmd: string[]) {
+        const tar = cmd.includes('-cf')
+          ? packTar(new Map([['out/report.json', Buffer.from('{"ok":false,"checks":[]}')]]))
+          : Buffer.alloc(0);
+        return { code: 0, stdout: tar, stderr: Buffer.alloc(0) };
+      },
+      withHelper: async (_job: string, _writable: boolean, fn: (c: string) => unknown) =>
+        fn('helper'),
+    } as unknown as Containers;
+    const s = await supervisorFor(createJobs(ctx) as unknown as Sandboxes);
+    servers.push(s);
+
+    const steps: string[] = [];
+    const lines: string[] = [];
+    await settle(
+      checkInContainers(
+        s.sup,
+        'build-2',
+        new Map([['ats.json', Buffer.from('{}')]]),
+        async (w) => steps.push(w),
+        (line) => lines.push(line),
+      ),
+      10,
+    );
+    expect(lines).toEqual(['Packages: +3', 'Done in 99s', '✓ built in 3s', 'Laptop: done']);
+    const at = (words: string) => steps.indexOf(words);
+    expect(at('Installing what it needs')).toBeGreaterThan(at('Checking the source'));
+    expect(at('Building it')).toBeGreaterThan(at('Installing what it needs'));
+    expect(at('Trying it on phones, a tablet and a laptop')).toBeGreaterThan(at('Building it'));
+    expect(steps.at(-1)).toBe('Writing the report');
+    expect(Math.max(...s.held.map((h) => h.ms))).toBeLessThanOrEqual(MINUTE);
+  });
+
   it("a workspace's checks and an assistant's installer that take six minutes still answer", async () => {
     const sandboxes = {
       check: () => later(6 * MINUTE, { ok: true, report: { ok: true, checks: [] } }),

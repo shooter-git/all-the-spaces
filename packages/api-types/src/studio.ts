@@ -128,6 +128,11 @@ export interface StudioBuild {
   id: string;
   status: 'queued' | 'running' | 'passed' | 'published' | 'failed' | 'error';
   step: string | null;
+  /**
+   * The newest lines of what its checks said as they went (installing, building, each screen),
+   * while it's built and when it didn't pass; otherwise null.
+   */
+  log: string[] | null;
   title: string | null;
   creationId: string | null;
   objectKey: string | null;
