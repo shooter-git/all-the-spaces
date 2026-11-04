@@ -88,6 +88,14 @@ const LAUNCH_ARGS = [
   '--host-resolver-rules=MAP *.qa.localhost 127.0.0.1',
 ];
 
+/**
+ * The first page a browser opens pays for its cold start, and the screens after it don't: they
+ * find the shaders it made already (the browser keeps them). On the production server Phone,
+ * upright, timed first, was ready 12 s later than the others. So before any screen is timed the
+ * creation is opened once, untimed: until it's ready, or this long for one that never is.
+ */
+export const WARM_UP_MS = 30_000;
+
 /** Plays a built creation on phones, a tablet and a laptop, and reports what happened. */
 export async function runInBrowser(opts: RunOptions): Promise<RunResult> {
   await mkdir(opts.outDir, { recursive: true });
@@ -97,7 +105,9 @@ export async function runInBrowser(opts: RunOptions): Promise<RunResult> {
   const results: ViewportResult[] = [];
   let saveVersion: number | null = null;
   try {
-    for (const vp of VIEWPORTS.filter((v) => !opts.viewports || opts.viewports.includes(v.name))) {
+    const screens = VIEWPORTS.filter((v) => !opts.viewports || opts.viewports.includes(v.name));
+    if (screens[0]) await warmUp(browser, server, screens[0], opts);
+    for (const vp of screens) {
       const r = await playOn(browser, server, vp, opts, checks);
       results.push(r.result);
       saveVersion ??= r.saveVersion;
@@ -114,17 +124,13 @@ export async function runInBrowser(opts: RunOptions): Promise<RunResult> {
   };
 }
 
-async function playOn(
-  browser: Browser,
+/** A context of its own for one screen: a fresh page, as someone opening it on that device. */
+async function openContext(
+  browser: Pick<Browser, 'newContext'>,
   server: QaServer,
   vp: (typeof VIEWPORTS)[number],
-  opts: RunOptions,
-  checks: Check[],
-): Promise<{ result: ViewportResult; saveVersion: number | null }> {
-  const where = vp.label;
-  const say = (line: string) => opts.say?.(`${where}: ${line}`);
-  say(`opening it at ${vp.width}×${vp.height}`);
-  const context: BrowserContext = await browser.newContext({
+): Promise<BrowserContext> {
+  const context = await browser.newContext({
     viewport: { width: vp.width, height: vp.height },
     hasTouch: vp.touch,
     ...(vp.touch && vp.name !== 'tablet' ? { isMobile: true } : {}),
@@ -136,6 +142,79 @@ async function playOn(
     (url) => url.origin !== appOrigin && url.origin !== server.playOrigin,
     (route) => route.abort('blockedbyclient'),
   );
+  return context;
+}
+
+const hostLog = (page: Pick<Page, 'evaluate'>) =>
+  page.evaluate(() => (globalThis as unknown as { __host: { log: HostLog } }).__host.log);
+
+/**
+ * Opens the creation once on the first screen before any is timed (see WARM_UP_MS), in a context
+ * of its own that's closed before the first screen opens: nothing it does is counted or kept, and
+ * whatever goes wrong in it is left for the screens to find. Its time to ready, if it got there.
+ */
+export async function warmUp(
+  browser: Pick<Browser, 'newContext'>,
+  server: QaServer,
+  vp: (typeof VIEWPORTS)[number],
+  opts: Pick<RunOptions, 'title' | 'tier' | 'say'>,
+  cap = WARM_UP_MS,
+): Promise<number | null> {
+  const say = (line: string) => opts.say?.(`Warming the browser up: ${line}`);
+  say(`opening it once at ${vp.width}×${vp.height}, not timed`);
+  let stopped = false;
+  let stop = async () => {};
+  const load = async () => {
+    const context = await openContext(browser, server, vp);
+    stop = () => context.close();
+    try {
+      if (stopped) return null;
+      const page = await context.newPage();
+      await page.goto(server.url({ title: opts.title, tier: opts.tier }), { timeout: cap });
+      let log = await hostLog(page);
+      while (!stopped && log.readyAt === null) {
+        await page.waitForTimeout(100);
+        log = await hostLog(page);
+      }
+      return log.readyAt;
+    } finally {
+      await context.close().catch(() => {});
+    }
+  };
+  const loading = load().catch(() => null);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const readyAt = await Promise.race([
+    loading,
+    new Promise<'late'>((r) => {
+      timer = setTimeout(() => r('late'), cap);
+    }),
+  ]);
+  clearTimeout(timer);
+  // Whatever it was still waiting for, closing its context ends.
+  stopped = true;
+  await stop().catch(() => {});
+  await loading;
+  say(
+    readyAt === 'late'
+      ? `stopped after ${Math.round(cap / 1000)} s, before it was ready`
+      : readyAt === null
+        ? "it didn't get ready"
+        : `ready in ${(readyAt / 1000).toFixed(1)} s`,
+  );
+  return readyAt === 'late' || readyAt === null ? null : Math.round(readyAt);
+}
+
+async function playOn(
+  browser: Browser,
+  server: QaServer,
+  vp: (typeof VIEWPORTS)[number],
+  opts: RunOptions,
+  checks: Check[],
+): Promise<{ result: ViewportResult; saveVersion: number | null }> {
+  const where = vp.label;
+  const say = (line: string) => opts.say?.(`${where}: ${line}`);
+  say(`opening it at ${vp.width}×${vp.height}`);
+  const context = await openContext(browser, server, vp);
   const page = await context.newPage();
   const result: ViewportResult = {
     name: vp.name,
@@ -162,8 +241,7 @@ async function playOn(
   const pageErrors: string[] = [];
   page.on('pageerror', (e) => pageErrors.push(e.message));
 
-  const host = () =>
-    page.evaluate(() => (globalThis as unknown as { __host: { log: HostLog } }).__host.log);
+  const host = () => hostLog(page);
   await page.goto(server.url({ title: opts.title, tier: opts.tier }));
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline && (await host()).readyAt === null) await page.waitForTimeout(100);

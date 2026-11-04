@@ -31,7 +31,7 @@ import {
 } from './build.ts';
 import type { ConvertResult } from './convert.ts';
 import type { ConnectorSetup, RunResult } from './harness/run.ts';
-import { judgeBudgets } from './harness/run.ts';
+import { judgeBudgets, WARM_UP_MS } from './harness/run.ts';
 
 const CLI = fileURLToPath(new URL('./cli.ts', import.meta.url));
 
@@ -359,13 +359,14 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
         ...(opts.playSeconds !== undefined ? ['--seconds', String(opts.playSeconds)] : []),
         ...(opts.viewports ? ['--viewports', opts.viewports.join(',')] : []),
       ],
-      PLAY_MINUTES * 60_000,
+      // Opening it once before the screens (see WARM_UP_MS) doesn't come out of their time.
+      PLAY_MINUTES * 60_000 + WARM_UP_MS,
       opts.onLine,
     );
     await rm(scriptFile, { force: true });
     await rm(connectorsFile, { force: true });
     if (!played.ok || !played.result) {
-      fail({ id: 'play', title: "It couldn't be played", detail: played.error?.slice(0, 800) });
+      fail(playFailure(played));
       return await finish();
     }
     const run = played.result;
@@ -446,18 +447,31 @@ export function buildFailure(built: { error?: string; timedOut?: boolean }): Omi
   };
 }
 
+/** The failed check for a play that failed or ran out of time. */
+export function playFailure(played: { error?: string; timedOut?: boolean }): Omit<Check, 'status'> {
+  return {
+    id: 'play',
+    title: "It couldn't be played",
+    detail: played.error?.slice(0, 800),
+    ...(played.timedOut && {
+      fix: 'Playing took too long, usually because the server was busy: try again. If it keeps happening, shorten qa/script.json, which is played on every screen: fewer screenshots (each waits for a whole frame drawn on the CPU) and shorter waits.',
+    }),
+  };
+}
+
 /**
  * Runs a step in its own process with nothing secret in its environment: it handles code and
  * files from the creation, so it never shares a process with the platform's credentials. The
  * lines it says as it goes are passed on (`onLine`); its last line is its result.
  */
-function child<T>(
+export function child<T>(
   args: string[],
   timeout = 5 * 60_000,
   onLine?: (line: string) => void,
+  cli = CLI,
 ): Promise<T | ChildFailure> {
   return new Promise((resolve) => {
-    const proc = spawn(process.execPath, [CLI, ...args, '--json'], {
+    const proc = spawn(process.execPath, [cli, ...args, '--json'], {
       env: cleanEnv(),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -484,13 +498,18 @@ function child<T>(
       if (ended) return;
       ended = true;
       clearTimeout(timer);
+      // Stopped for taking too long, it may still print a result on its way out, but whatever
+      // that says went wrong (its browser closed, say) was the stopping.
+      if (timedOut)
+        return resolve({
+          ok: false,
+          error: `It took longer than ${Math.floor(timeout / 60_000)} minutes.`,
+          timedOut,
+        });
       try {
         resolve(JSON.parse(result) as T);
       } catch {
-        const error = timedOut
-          ? `It took longer than ${Math.round(timeout / 60_000)} minutes.`
-          : (stderr || problem || 'failed').slice(-2000);
-        resolve({ ok: false, error, ...(timedOut && { timedOut }) });
+        resolve({ ok: false, error: (stderr || problem || 'failed').slice(-2000) });
       }
     };
     proc.on('error', (err) => end(err.message));
