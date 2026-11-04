@@ -141,6 +141,96 @@ describe('a creation going full screen', () => {
   });
 });
 
+describe('behind a creation on the whole screen', () => {
+  const page = document.documentElement;
+  const themeColors = () =>
+    [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')].map(
+      (m) => m.content,
+    );
+  beforeEach(() => {
+    for (const [scheme, colour] of [
+      ['light', '#F5F1EE'],
+      ['dark', '#1C1B21'],
+    ]) {
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.media = `(prefers-color-scheme: ${scheme})`;
+      meta.content = colour as string;
+      document.head.append(meta);
+    }
+  });
+  afterEach(() => {
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.remove();
+  });
+
+  /** Shows a creation; `ready()` is it saying it's ready. */
+  function open(props: { embedded?: boolean } = {}) {
+    const render = (leaving: boolean) =>
+      act(() =>
+        root.render(
+          <CreationHost
+            opened={opened}
+            mode="solo"
+            me={ada}
+            tier="mid"
+            leaving={leaving}
+            onProgress={() => {}}
+            onReady={() => {}}
+            onLeft={() => {}}
+            onToast={() => {}}
+            offline
+            embedded={props.embedded ?? false}
+          />,
+        ),
+      );
+    render(false);
+    const frame = container.querySelector('iframe') as HTMLIFrameElement;
+    const ready = () =>
+      act(() => {
+        window.dispatchEvent(
+          new MessageEvent('message', {
+            data: wrap({ type: 'ready' }),
+            origin: 'null',
+            source: frame.contentWindow,
+          }),
+        );
+      });
+    return { ready, leave: () => render(true) };
+  }
+
+  it('turns dark once the creation is ready (the status bar on a phone follows)', () => {
+    const { ready } = open();
+    expect(page.dataset.creation).toBeUndefined();
+    expect(themeColors()).toEqual(['#F5F1EE', '#1C1B21']);
+    ready();
+    expect(page.dataset.creation).toBe('showing');
+    expect(themeColors()).toEqual(['#1C1B21', '#1C1B21']);
+  });
+
+  it('is the app again as soon as the person leaves', () => {
+    const { ready, leave } = open();
+    ready();
+    leave();
+    expect(page.dataset.creation).toBeUndefined();
+    expect(themeColors()).toEqual(['#F5F1EE', '#1C1B21']);
+  });
+
+  it('is the app again when the creation goes away', () => {
+    const { ready } = open();
+    ready();
+    act(() => root.render(null));
+    expect(page.dataset.creation).toBeUndefined();
+    expect(themeColors()).toEqual(['#F5F1EE', '#1C1B21']);
+  });
+
+  it('stays as it is around the Studio preview', () => {
+    const { ready } = open({ embedded: true });
+    ready();
+    expect(page.dataset.creation).toBeUndefined();
+    expect(themeColors()).toEqual(['#F5F1EE', '#1C1B21']);
+  });
+});
+
 const ada: Person = { id: 'u1', name: 'Ada', color: '#3F5B7C' };
 
 /** Shows a creation, and collects what the app tells it. */
