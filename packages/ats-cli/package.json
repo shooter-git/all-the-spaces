@@ -19,7 +19,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   },
   "dependencies": {
     "@gltf-transform/core": "4.5.1"

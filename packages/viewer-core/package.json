@@ -15,14 +15,14 @@
     "@allthespaces/bridge-protocol": "workspace:*",
     "@allthespaces/portal": "workspace:*",
     "@ats/space-format": "workspace:*",
-    "three": "0.186.1",
-    "three-mesh-bvh": "0.9.15"
+    "three": "0.187.0",
+    "three-mesh-bvh": "0.9.17"
   },
   "devDependencies": {
     "@ats/space-builder": "workspace:*",
     "@gltf-transform/core": "4.5.1",
-    "@types/node": "^24.19.1",
-    "@types/three": "0.186.0",
-    "vitest": "5.0.3"
+    "@types/node": "^24.19.2",
+    "@types/three": "0.187.0",
+    "vitest": "5.0.5"
   }
 }
