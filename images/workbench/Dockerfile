@@ -5,7 +5,7 @@
 # It contains no AI assistant. Architects install Claude Code or Codex themselves, with the
 # vendor's own installer, into their own volumes (see docs/compliance.md).
 # Same Playwright version as @ats/qa-browser's playwright dependency (the browsers must match).
-FROM mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f AS base
+FROM mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f AS base
 # Blender (GPL, Ubuntu's own package, run unmodified as a separate program; its source is
 # Ubuntu's blender source package) lets the assistant model, texture and render on the CPU.
 # NumPy is what Blender's glTF exporter needs.
