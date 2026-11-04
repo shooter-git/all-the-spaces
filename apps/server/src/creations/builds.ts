@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { PROTOCOL_VERSION } from '@allthespaces/bridge-protocol';
 import { type Db, schema } from '@ats/db';
-import { AtsJson, type Report, sdkVersion } from '@ats/qa';
+import { AtsJson, cleanLine, type Report, readProgress, sdkVersion } from '@ats/qa';
 import { packTar, unpackTar } from '@ats/shared';
 import type { Storage } from '@ats/storage';
 import { Queue, Worker } from 'bullmq';
@@ -29,6 +29,40 @@ const STEP_WORDS = {
   play: 'Trying it on phones, a tablet and a laptop',
   report: 'Writing the report',
 } as const;
+
+/** The newest lines of what a build's checks said, kept with it for the Studio. */
+export const LOG_LINES = 120;
+
+/**
+ * What a build's checks say as they go: the newest lines, saved with the build every two seconds
+ * at most (`stop` saves the last of them).
+ */
+function follow(save: (values: { log: string }) => Promise<unknown>) {
+  const lines: string[] = [];
+  let changed = false;
+  let saving: Promise<unknown> = Promise.resolve();
+  const flush = () => {
+    if (!changed) return saving;
+    changed = false;
+    const log = lines.join('\n');
+    saving = saving.then(() => save({ log })).catch(() => {});
+    return saving;
+  };
+  const timer = setInterval(flush, 2000);
+  return {
+    line(text: string) {
+      const clean = cleanLine(text);
+      if (!clean) return;
+      lines.push(clean);
+      if (lines.length > LOG_LINES) lines.splice(0, lines.length - LOG_LINES);
+      changed = true;
+    },
+    stop() {
+      clearInterval(timer);
+      return flush();
+    },
+  };
+}
 
 /** A short summary of a report, kept with the build and the version. */
 export function qaOf(report: Report): schema.VersionQa {
@@ -83,11 +117,13 @@ async function checkAndStore(
       .set({ ...values, updatedAt: new Date() })
       .where(eq(builds.id, buildId));
   await set({ status: 'running', step: 'Getting the source' });
+  const log = follow(set);
   try {
     const source = await downloadSourceFiles(storage, build.groupId, build.sourceHash);
     const checked = opts.supervisor
-      ? await checkInContainers(opts.supervisor, buildId, source, (step) => set({ step }))
-      : await checkHere(source, opts, (step) => set({ step }));
+      ? await checkInContainers(opts.supervisor, buildId, source, (step) => set({ step }), log.line)
+      : await checkHere(source, opts, (step) => set({ step }), log.line);
+    await log.stop();
     for (const [file, data] of checked.reportFiles) {
       const type = file.endsWith('.png')
         ? 'image/png'
@@ -138,6 +174,8 @@ async function checkAndStore(
       // A version using connectors waits as a candidate until an Architect approves them.
       status: published.live ? 'published' : 'passed',
       step: null,
+      // What it said is shown only while it's built, and when it didn't pass.
+      log: null,
       qa,
       title,
       creationId: published.creationId,
@@ -145,6 +183,7 @@ async function checkAndStore(
       finishedAt: new Date(),
     });
   } catch (err) {
+    await log.stop();
     await set({
       status: 'error',
       step: null,
@@ -183,26 +222,44 @@ export async function checkInContainers(
   buildId: string,
   source: Map<string, Uint8Array>,
   step: (words: string) => Promise<unknown>,
+  line: (text: string) => void = () => {},
 ): Promise<Checked> {
+  // What the checks say: lines for the log, and the step they've reached (one update at a time,
+  // so a quick run of steps can't land out of order).
+  let stepping: Promise<unknown> = Promise.resolve();
+  const moveTo = (words: string) => {
+    stepping = stepping.then(() => step(words)).catch(() => {});
+    return stepping;
+  };
+  const hear = (said: string[]) => {
+    let reached: string | undefined;
+    for (const text of said) {
+      const p = readProgress(text);
+      if (p && 'log' in p) line(p.log);
+      else if (p && Object.hasOwn(STEP_WORDS, p.step))
+        reached = STEP_WORDS[p.step as keyof typeof STEP_WORDS];
+    }
+    if (reached) void moveTo(reached);
+  };
   try {
-    await step(STEP_WORDS.source);
+    await moveTo(STEP_WORDS.source);
     const init = await sup.call<{ ok: boolean; error?: string }>(
       'job.init',
       { ws: buildId },
       { tar: packTar(source).toString('base64') },
     );
     if (!init.ok) throw new Error(`The source couldn't be prepared: ${init.error}`);
-    await step(STEP_WORDS.dependencies);
-    const prepared = await runStep(sup, buildId, 'prepare');
+    await moveTo(STEP_WORDS.dependencies);
+    const prepared = await runStep(sup, buildId, 'prepare', hear);
     if (prepared.result.prepared) {
-      await step(`${STEP_WORDS.build}, then ${STEP_WORDS.play.toLowerCase()}`);
-      const finished = await runStep(sup, buildId, 'finish');
+      await moveTo(`${STEP_WORDS.build}, then ${STEP_WORDS.play.toLowerCase()}`);
+      const finished = await runStep(sup, buildId, 'finish', hear);
       if (finished.code !== 0 && finished.code !== 1)
         throw new Error(`The checks stopped: ${finished.error.slice(-500)}`);
     } else if (prepared.code !== 0 && prepared.code !== 1) {
       throw new Error(`The checks stopped: ${prepared.error.slice(-500)}`);
     }
-    await step(STEP_WORDS.report);
+    await moveTo(STEP_WORDS.report);
     const tar = await sup.raw('job.files', { ws: buildId });
     if (!tar) throw new Error('The checks left no report');
     const files = unpackTar(tar);
@@ -222,22 +279,67 @@ export async function checkInContainers(
   }
 }
 
+/** Lines a step said, each with the time it said it (see the supervisor's jobs.ts). */
+type Said = [at: string, text: string][];
+
 interface StepEnded {
   done: boolean;
   code: number;
   result: { prepared?: boolean };
   error: string;
+  /** What it said that hadn't been heard yet. */
+  said?: Said;
 }
 
 /**
  * One step of the checks in its own container: started, then waited on in calls the supervisor
  * holds for under a minute each (a step may take a quarter of an hour; one request can't).
+ * Meanwhile, every two seconds, what it has said about what it's doing goes to `hear`.
  */
-async function runStep(sup: Supervisor, buildId: string, step: 'prepare' | 'finish') {
+async function runStep(
+  sup: Supervisor,
+  buildId: string,
+  step: 'prepare' | 'finish',
+  hear: (said: string[]) => void,
+) {
   await sup.call('job.run', { ws: buildId }, { step });
+  let after: string | undefined;
+  const take = (said: Said = []) => {
+    const fresh = said.filter(([at]) => !after || at > after);
+    if (!fresh.length) return;
+    after = fresh.at(-1)?.[0];
+    hear(fresh.map(([, text]) => text));
+  };
+  let waiting = true;
+  let wake = () => {};
+  const listening = (async () => {
+    while (waiting) {
+      await new Promise<void>((r) => {
+        wake = r;
+        setTimeout(r, 2000);
+      });
+      if (!waiting) break;
+      const heard = await sup
+        .call<{ said?: Said }>('job.said', { ws: buildId }, { step, ...(after ? { after } : {}) })
+        .catch(() => null);
+      take(heard?.said);
+    }
+  })();
   let ended: StepEnded;
-  do ended = await sup.call<StepEnded>('job.wait', { ws: buildId }, { step });
-  while (!ended.done);
+  try {
+    do
+      ended = await sup.call<StepEnded>(
+        'job.wait',
+        { ws: buildId },
+        { step, ...(after ? { after } : {}) },
+      );
+    while (!ended.done);
+  } finally {
+    waiting = false;
+    wake();
+    await listening;
+  }
+  take(ended.said);
   return ended;
 }
 
@@ -250,6 +352,7 @@ async function checkHere(
   source: Map<string, Uint8Array>,
   opts: { workRoot?: string; storeDir?: string; playSeconds?: number },
   step: (words: string) => Promise<unknown>,
+  line: (text: string) => void,
 ): Promise<Checked> {
   const root = opts.workRoot ?? join(tmpdir(), 'ats-builds');
   await mkdir(root, { recursive: true });
@@ -277,6 +380,7 @@ async function checkHere(
           () => {},
         );
       },
+      onLine: line,
       ...(opts.playSeconds !== undefined ? { playSeconds: opts.playSeconds } : {}),
     });
     const reportFiles = new Map<string, Uint8Array>();

@@ -8,6 +8,7 @@ import { verifyToken } from '@ats/shared';
 import { WebSocketServer } from 'ws';
 import { type Log, log } from './log.ts';
 import { HOLD_MS } from './sandboxes/containers.ts';
+import { saidAfter } from './sandboxes/jobs.ts';
 import type { Sandboxes } from './sandboxes.ts';
 
 export interface Ticket {
@@ -242,7 +243,9 @@ export function createSupervisorServer(
       sandboxes.initJob(need(t.ws, 'job'), Buffer.from(String(b.tar ?? ''), 'base64')),
     // A step is started, then waited on in calls of at most HOLD_MS, like a room's bake.
     'job.run': (t, b) => sandboxes.startStep(need(t.ws, 'job'), stepOf(b)),
-    'job.wait': (t, b) => sandboxes.waitStep(need(t.ws, 'job'), stepOf(b)),
+    'job.wait': (t, b) => sandboxes.waitStep(need(t.ws, 'job'), stepOf(b), saidAfter(b.after)),
+    // What a step that's still going has said about what it's doing (asked every few seconds).
+    'job.said': (t, b) => sandboxes.stepSaid(need(t.ws, 'job'), stepOf(b), saidAfter(b.after)),
     'job.files': (t) => sandboxes.jobFiles(need(t.ws, 'job')),
     'job.delete': async (t) => {
       await sandboxes.deleteJob(need(t.ws, 'job'));

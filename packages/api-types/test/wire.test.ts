@@ -24,6 +24,7 @@ describe('Sent', () => {
       id: 'b',
       status: 'passed',
       step: null,
+      log: null,
       title: null,
       creationId: null,
       objectKey: null,

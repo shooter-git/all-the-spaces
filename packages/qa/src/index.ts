@@ -8,6 +8,13 @@ export {
   DEPENDENCY_LICENSES,
   installedDependencies,
 } from './licenses.ts';
+export {
+  cleanLine,
+  logLine,
+  PROGRESS_LINE_MAX,
+  readProgress,
+  stepLine,
+} from './progress.ts';
 export { AssetsLock, AtsJson, QaScript } from './project.ts';
 export {
   type Check,

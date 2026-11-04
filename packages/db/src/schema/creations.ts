@@ -153,6 +153,11 @@ export const builds = pgTable(
       .notNull()
       .default('queued'),
     step: text('step'),
+    /**
+     * The newest lines of what its checks said as they went (installing, building, each screen),
+     * one per line, while it's built and when it didn't pass. Null once it passed.
+     */
+    log: text('log'),
     sourceHash: text('source_hash').notNull(),
     title: text('title'),
     qa: jsonb('qa').$type<VersionQa>(),

@@ -94,13 +94,16 @@ async function buildTsconfig(dir: string) {
   return { compilerOptions };
 }
 
-/** Installs the dependencies: published packages only, with install scripts switched off. */
+/**
+ * Installs the dependencies: published packages only, with install scripts switched off. pnpm's
+ * lines are passed on as it prints them (`onLine`).
+ */
 export function installDependencies(
   dir: string,
-  opts: { storeDir: string; registry?: string },
+  opts: { storeDir: string; registry?: string; onLine?: (line: string) => void },
 ): Promise<{ ok: boolean; log: string }> {
   return new Promise((resolve) => {
-    execFile(
+    const proc = execFile(
       'pnpm',
       [
         'install',
@@ -123,7 +126,22 @@ export function installDependencies(
       },
       (err, stdout, stderr) => resolve({ ok: !err, log: `${stdout}\n${stderr}`.slice(-8000) }),
     );
+    if (opts.onLine) {
+      const each = lines(opts.onLine);
+      proc.stdout?.on('data', each);
+      proc.stderr?.on('data', each);
+    }
   });
+}
+
+/** Calls `onLine` with each whole line written to a stream (in chunks of any size). */
+export function lines(onLine: (line: string) => void) {
+  let rest = '';
+  return (chunk: Buffer | string) => {
+    const parts = (rest + chunk.toString()).split(/\r?\n/);
+    rest = parts.pop() ?? '';
+    for (const line of parts) if (line.trim()) onLine(line);
+  };
 }
 
 /**
@@ -131,13 +149,30 @@ export function installDependencies(
  * config files (vite, PostCSS, .env) are ignored, so no code from the project or its packages
  * runs while building: it is only read and bundled.
  */
-export async function cleanBuild(dir: string, outDir: string) {
-  const { build } = await import('vite');
+export async function cleanBuild(dir: string, outDir: string, say?: (line: string) => void) {
+  const { build, createLogger } = await import('vite');
+  // Warnings as before; with `say`, Vite's own lines too (modules, files, how long it took).
+  const logger = createLogger('warn');
+  if (say) {
+    const warn = logger.warn;
+    // Files are named as they are in the built creation ("assets/index.js"): Vite names them from
+    // the folder it runs in.
+    const built = `${relative(process.cwd(), outDir)}/`;
+    const each = (msg: string) => {
+      for (const line of msg.split('\n'))
+        if (line.trim()) say(line.replaceAll(built, '').replace(/ {3,}/g, '  '));
+    };
+    logger.info = each;
+    logger.warn = (msg, options) => {
+      warn(msg, options);
+      each(msg);
+    };
+  }
   await build({
     root: dir,
     configFile: false,
     envDir: false,
-    logLevel: 'warn',
+    customLogger: logger,
     base: './',
     publicDir: join(dir, 'public'),
     css: { postcss: {} },

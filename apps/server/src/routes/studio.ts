@@ -131,6 +131,7 @@ export async function studioRoutes(app: FastifyInstance, ctx: AppContext) {
         id: b.id,
         status: b.status,
         step: b.step,
+        log: b.status === 'passed' || b.status === 'published' || !b.log ? null : b.log.split('\n'),
         title: b.title,
         creationId: b.creationId,
         objectKey: b.objectKey,

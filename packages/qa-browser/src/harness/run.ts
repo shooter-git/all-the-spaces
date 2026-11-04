@@ -49,6 +49,8 @@ export interface RunOptions {
   playSeconds?: number;
   viewports?: string[];
   connectors?: ConnectorSetup;
+  /** A line about what it's doing, for whoever is watching (see @ats/qa's progress). */
+  say?: (line: string) => void;
 }
 
 export interface RunResult {
@@ -120,6 +122,8 @@ async function playOn(
   checks: Check[],
 ): Promise<{ result: ViewportResult; saveVersion: number | null }> {
   const where = vp.label;
+  const say = (line: string) => opts.say?.(`${where}: ${line}`);
+  say(`opening it at ${vp.width}×${vp.height}`);
   const context: BrowserContext = await browser.newContext({
     viewport: { width: vp.width, height: vp.height },
     hasTouch: vp.touch,
@@ -166,6 +170,13 @@ async function playOn(
   ready = true;
   const first = await host();
   result.readyMs = first.readyAt === null ? null : Math.round(first.readyAt);
+  say(
+    first.readyAt !== null
+      ? `ready in ${(first.readyAt / 1000).toFixed(1)} s`
+      : first.helloAt === null
+        ? "it didn't start"
+        : 'it never said it was ready',
+  );
   result.initialBytes = (await Promise.all(sizes)).reduce((a, b) => a + b, 0);
   const frame = page.frames().find((f) => f.url().startsWith(server.playOrigin)) ?? null;
 
@@ -194,21 +205,27 @@ async function playOn(
   }
 
   await page.waitForTimeout(1500);
-  await shoot(page, opts.outDir, result, 'start', checks);
+  await shoot(page, opts, result, 'start', checks);
   await frame?.evaluate(() => (globalThis as unknown as { __qa: { reset(): void } }).__qa.reset());
   await checkLayout(page, frame, vp.touch, where, checks);
 
   // Play: the creation's own script, or a few seconds of someone trying everything.
-  if (opts.script) await runScript(page, opts, result, vp.touch, checks);
-  else await playAtRandom(page, vp.touch, opts.playSeconds ?? 10);
+  if (opts.script) {
+    say(`following its script (${opts.script.steps.length} steps)`);
+    await runScript(page, opts, result, vp.touch, checks);
+  } else {
+    say(`trying everything for ${opts.playSeconds ?? 10} s`);
+    await playAtRandom(page, vp.touch, opts.playSeconds ?? 10);
+  }
   await page.waitForTimeout(500);
-  await shoot(page, opts.outDir, result, 'after playing', checks);
+  await shoot(page, opts, result, 'after playing', checks);
 
   // Turn the phone mid-session.
   if (vp.name === 'phone-portrait') {
+    say('turning it on its side');
     await page.setViewportSize({ width: vp.height, height: vp.width });
     await page.waitForTimeout(2000);
-    await shoot(page, opts.outDir, result, 'turned on its side', checks);
+    await shoot(page, opts, result, 'turned on its side', checks);
     await checkLayout(page, frame, vp.touch, `${where}, turned`, checks);
     await page.setViewportSize({ width: vp.width, height: vp.height });
     await page.waitForTimeout(1000);
@@ -216,6 +233,7 @@ async function playOn(
 
   // Leaving: it gets a moment to save, then says goodbye.
   if (vp.name === 'desktop') {
+    say('leaving it');
     await page.evaluate(() =>
       (globalThis as unknown as { __host: { requestExit(): void } }).__host.requestExit(),
     );
@@ -301,6 +319,7 @@ async function playOn(
     });
   reportConnectors(checks, where, log);
   await context.close();
+  say('done');
   return { result, saveVersion: log.saveVersion };
 }
 
@@ -405,11 +424,13 @@ export async function screenshot(
 
 async function shoot(
   page: Page,
-  outDir: string,
+  opts: RunOptions,
   result: ViewportResult,
   name: string,
   checks: Check[],
 ) {
+  // On a busy server one can take half a minute (see screenshot()).
+  opts.say?.(`${result.label}: taking a screenshot (${name})`);
   const file = `${result.name}-${result.screenshots.length + 1}.png`;
   // Waiting for a frame here can hold up the creation's page too: not its silence (see quiet()).
   const quiet = (on: boolean) =>
@@ -422,7 +443,7 @@ async function shoot(
   await quiet(true);
   const png = await screenshot(
     page,
-    join(outDir, file),
+    join(opts.outDir, file),
     `${result.label}, ${name}`,
     checks,
   ).finally(() => quiet(false));
@@ -543,7 +564,7 @@ async function runScript(
     } else if ('drag' in step)
       await drag(page, at(step.drag[0]), at(step.drag[1]), step.seconds ?? 0.5);
     else if ('type' in step) await page.keyboard.type(step.type, { delay: 40 });
-    else if ('screenshot' in step) await shoot(page, opts.outDir, result, step.screenshot, checks);
+    else if ('screenshot' in step) await shoot(page, opts, result, step.screenshot, checks);
   }
 }
 

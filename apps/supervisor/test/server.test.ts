@@ -119,8 +119,22 @@ describe("the supervisor's API", () => {
     expect((await call('job.run', 'finish')).status).toBe(200);
     expect(calls).toEqual([
       { method: 'startStep', args: ['job-1', 'prepare'] },
-      { method: 'waitStep', args: ['job-1', 'prepare'] },
+      { method: 'waitStep', args: ['job-1', 'prepare', undefined] },
       { method: 'startStep', args: ['job-1', 'finish'] },
+    ]);
+  });
+
+  it('reads what a step said only after a time Docker could have written, and only for a step', async () => {
+    calls.length = 0;
+    const call = (step: string, after?: unknown) =>
+      post('job.said', { ticket: ticket({ act: 'job.said', ws: 'job-1' }), step, after });
+    expect((await call('rm -rf /')).status).toBe(500);
+    expect((await call('prepare', '2026-11-03T19:00:01.5Z')).status).toBe(200);
+    expect((await call('finish', '1 && rm -rf /')).status).toBe(200);
+    expect(calls).toEqual([
+      // Docker trims a time's trailing zeros; all nine digits compare as text.
+      { method: 'stepSaid', args: ['job-1', 'prepare', '2026-11-03T19:00:01.500000000Z'] },
+      { method: 'stepSaid', args: ['job-1', 'finish', undefined] },
     ]);
   });
 

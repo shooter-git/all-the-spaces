@@ -10,7 +10,11 @@ import { checkProject } from '../src/pipeline.ts';
 const run = process.env.QA_BROWSER ? describe : describe.skip;
 const here = fileURLToPath(new URL('.', import.meta.url));
 
-async function check(project: string, viewports = ['phone-portrait', 'desktop']) {
+async function check(
+  project: string,
+  viewports = ['phone-portrait', 'desktop'],
+  onLine?: (line: string) => void,
+) {
   const work = await mkdtemp(join(tmpdir(), 'ats-qa-browser-'));
   try {
     await cp(project, join(work, 'project'), {
@@ -24,6 +28,7 @@ async function check(project: string, viewports = ['phone-portrait', 'desktop'])
       storeDir: join(tmpdir(), 'ats-pnpm-store'),
       playSeconds: 2,
       viewports,
+      ...(onLine ? { onLine } : {}),
     });
   } finally {
     await rm(work, { recursive: true, force: true });
@@ -31,10 +36,23 @@ async function check(project: string, viewports = ['phone-portrait', 'desktop'])
 }
 
 run('in a real browser', () => {
-  it('passes the starter', { timeout: 240_000 }, async () => {
-    const result = await check(join(here, '../../../starters/creation'));
+  it('passes the starter, saying what it does as it goes', { timeout: 240_000 }, async () => {
+    const said: string[] = [];
+    const result = await check(join(here, '../../../starters/creation'), undefined, (line) =>
+      said.push(line),
+    );
     expect(result.report.checks.filter((c) => c.status === 'fail')).toEqual([]);
     expect(result.ok).toBe(true);
+    // The checks' own lines, pnpm's and Vite's (from the build's own process), and each screen's.
+    const text = said.join('\n');
+    expect(text).toContain('✓ No secrets in the source');
+    expect(text).toMatch(/Done in|Already up to date|Packages:/);
+    expect(text).toMatch(/^index\.html {2}[\d.]+ kB$/m);
+    expect(text).toMatch(/built in/);
+    expect(text).toContain('✓ Built cleanly');
+    expect(text).toMatch(/Phone, upright: ready in [\d.]+ s/);
+    expect(text).toContain('Laptop: taking a screenshot (start)');
+    expect(text).toContain('Laptop: done');
   });
 
   // Creations already published are never rebuilt: the built files of one made with SDK 0.1.0

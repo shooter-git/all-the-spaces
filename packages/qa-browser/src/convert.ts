@@ -35,6 +35,8 @@ export async function convertAssets(
   tier: Tier,
   /** For tests: runs ffmpeg with these arguments (default: the real one). */
   run: FfmpegRunner = ffmpeg,
+  /** A line about each file as it's done, for whoever is watching. */
+  say: (line: string) => void = () => {},
 ): Promise<ConvertResult> {
   const result: ConvertResult = { conversions: [], notes: [] };
   const ext = (p: string) => p.split('.').pop()?.toLowerCase() ?? '';
@@ -45,6 +47,7 @@ export async function convertAssets(
       'Models in .gltf form are left as they are: use .glb to have them compressed.',
     );
   if (models.length) {
+    say(`Making ${models.length} model${models.length === 1 ? '' : 's'} lighter`);
     await MeshoptDecoder.ready;
     await MeshoptEncoder.ready;
     const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
@@ -54,8 +57,11 @@ export async function convertAssets(
     // A few at a time, like sounds: texture work runs off the main thread, so it overlaps.
     const outcomes = await pool(models, MODEL_CONCURRENCY, async (f) => {
       try {
-        return { out: await compressModel(io, join(dir, f.path), f.bytes, tier) };
+        const out = await compressModel(io, join(dir, f.path), f.bytes, tier);
+        say(out ? `${f.path}: ${size(f.bytes)} → ${size(out.bytes)}` : `${f.path}: kept as it is`);
+        return { out };
       } catch (err) {
+        say(`${f.path}: couldn't be compressed`);
         return { error: (err as Error).message };
       }
     });
@@ -80,11 +86,14 @@ export async function convertAssets(
   if (sounds.length && !(await hasFfmpeg(run))) {
     result.notes.push("Sound levels weren't checked (ffmpeg isn't installed).");
   } else {
+    if (sounds.length)
+      say(`Checking how loud ${sounds.length} sound${sounds.length === 1 ? ' is' : 's are'}`);
     // A few at a time: one by one, 158 sounds took most of a build's five minutes on a busy
     // server. Results are reported in file order, whichever finishes first.
     const outcomes = await pool(sounds, SOUND_CONCURRENCY, async (f) => {
       try {
         const change = await tameLoudness(join(dir, f.path), ext(f.path), run);
+        if (change) say(`${f.path}: ${change.action}`);
         return { change };
       } catch (err) {
         return { error: (err as Error).message };
@@ -107,6 +116,11 @@ export async function convertAssets(
   }
   return result;
 }
+
+const size = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 /**
  * Compresses one model in place: geometry and WebP textures no larger than the tier allows.

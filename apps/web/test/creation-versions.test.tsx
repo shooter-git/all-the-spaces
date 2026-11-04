@@ -3,7 +3,12 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Studio, StudioVersion, StudioVersionConnector } from '../src/lib/studio.ts';
+import type {
+  Studio,
+  StudioBuild,
+  StudioVersion,
+  StudioVersionConnector,
+} from '../src/lib/studio.ts';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -194,5 +199,103 @@ describe("a creation's versions, on the Creations page", () => {
     await act(async () => button('Make live')?.click());
     expect(row(28)?.textContent).toContain('The server is restarting.');
     expect(button('Make live')?.getAttribute('aria-busy')).toBeNull();
+  });
+});
+
+describe('builds, on the Creations page', () => {
+  let host: HTMLDivElement;
+  let root: Root;
+  beforeEach(() => {
+    host = document.createElement('div');
+    document.body.append(host);
+    root = createRoot(host);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  const build = (over: Partial<StudioBuild>): StudioBuild => ({
+    id: 'b1',
+    status: 'running',
+    step: 'Trying it on phones, a tablet and a laptop',
+    log: null,
+    title: 'Marble run',
+    creationId: 'c1',
+    objectKey: 'shelf',
+    versionId: null,
+    publish: true,
+    qa: null,
+    error: null,
+    createdAt: '2026-11-03T18:00:00Z',
+    finishedAt: null,
+    source: null,
+    ...over,
+  });
+  const show = async (builds: StudioBuild[]) => {
+    studio = { ...withVersions([version(27, { live: true })]), builds };
+    await act(async () =>
+      root.render(
+        <MemoryRouter initialEntries={['/space/s1/creations']}>
+          <Routes>
+            <Route path="/space/:spaceId/creations" element={<Creations />} />
+          </Routes>
+        </MemoryRouter>,
+      ),
+    );
+  };
+  const lines = () => [...host.querySelectorAll('.creations-log-line')];
+
+  it('shows what the checks are saying under a build that is being built', async () => {
+    await show([
+      build({
+        log: [
+          '✓ Built cleanly',
+          'Phone, upright: ready in 3.2 s',
+          '! Paused for 6.1 seconds while drawing (Phone, upright)',
+          'Phone, upright: taking a screenshot (start)',
+        ],
+      }),
+    ]);
+    const log = host.querySelector('.creations-log');
+    expect(log?.getAttribute('aria-label')).toBe('What building Marble run says');
+    expect(lines().map((l) => l.textContent)).toEqual([
+      '✓ Built cleanly',
+      'Phone, upright: ready in 3.2 s',
+      '! Paused for 6.1 seconds while drawing (Phone, upright)',
+      'Phone, upright: taking a screenshot (start)',
+    ]);
+    expect(lines().map((l) => l.className.replace('creations-log-line', '').trim())).toEqual([
+      'creations-log-line--pass',
+      '',
+      'creations-log-line--note',
+      '',
+    ]);
+    // Screen readers hear the step as it moves on, not every line.
+    expect(log?.getAttribute('aria-live')).toBe('off');
+    expect(host.querySelector('[aria-live="polite"]')?.textContent).toBe(
+      'Trying it on phones, a tablet and a laptop…',
+    );
+  });
+
+  it('shows no log until the checks have said something', async () => {
+    await show([build({ step: null, status: 'queued' })]);
+    expect(host.textContent).toContain('Waiting its turn…');
+    expect(host.querySelector('.creations-log')).toBeNull();
+  });
+
+  it("keeps what a build that didn't pass said, folded away", async () => {
+    await show([
+      build({
+        status: 'failed',
+        step: null,
+        qa: { ok: false, failed: 1, warned: 0, thumbnail: null, summary: null },
+        log: ['vite v8.3.3 building client environment for production...', "✗ It didn't build"],
+      }),
+    ]);
+    const said = host.querySelector('details.creations-said');
+    expect(said?.hasAttribute('open')).toBe(false);
+    expect(said?.querySelector('summary')?.textContent).toBe('What it said as it went');
+    expect(lines().at(-1)?.className).toContain('creations-log-line--fail');
   });
 });
