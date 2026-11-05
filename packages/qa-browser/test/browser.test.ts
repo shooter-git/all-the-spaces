@@ -50,6 +50,11 @@ run('in a real browser', () => {
     expect(text).toMatch(/^index\.html {2}[\d.]+ kB$/m);
     expect(text).toMatch(/built in/);
     expect(text).toContain('✓ Built cleanly');
+    // Opened once before the first screen is timed, and counted nowhere.
+    expect(text).toMatch(/^Warming the browser up: ready in [\d.]+ s$/m);
+    expect(text.indexOf('Warming the browser up: ready')).toBeLessThan(
+      text.indexOf('Phone, upright: opening it'),
+    );
     expect(text).toMatch(/Phone, upright: ready in [\d.]+ s/);
     expect(text).toContain('Laptop: taking a screenshot (start)');
     expect(text).toContain('Laptop: done');
