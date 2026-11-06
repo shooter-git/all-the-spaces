@@ -20,8 +20,8 @@ describe('a build that failed', () => {
   });
 
   it('says to try again when it ran out of time, not to fix an error', () => {
-    const check = buildFailure({ error: 'It took longer than 5 minutes.', timedOut: true });
-    expect(check.detail).toBe('It took longer than 5 minutes.');
+    const check = buildFailure({ error: 'It took longer than 10 minutes.', timedOut: true });
+    expect(check.detail).toBe('It took longer than 10 minutes.');
     expect(check.fix).toMatch(/^Building took too long, usually because the server was busy/);
     expect(check.fix).toMatch(/many large sounds or models/);
     expect(check.fix).not.toMatch(/vite\.config/);

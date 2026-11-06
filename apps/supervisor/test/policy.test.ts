@@ -442,7 +442,7 @@ describe("the supervisor's container policy", async () => {
     expect(created.get('test-preview-w2')?.NetworkDisabled).toBeUndefined();
     // Each with its own time limit, kept from inside (even if the supervisor restarts).
     expect(prepare?.Cmd?.slice(0, 5)).toEqual(['timeout', '-k', '30', '10m', 'node']);
-    expect(finish?.Cmd?.slice(0, 5)).toEqual(['timeout', '-k', '30', '31m', 'node']);
+    expect(finish?.Cmd?.slice(0, 5)).toEqual(['timeout', '-k', '30', '36m', 'node']);
     // Installing gets the Studio's CPUs; building and playing gets the checks' own.
     expect(prepare?.HostConfig.NanoCpus).toBe(2e9);
     expect(finish?.HostConfig.NanoCpus).toBe(4e9);
