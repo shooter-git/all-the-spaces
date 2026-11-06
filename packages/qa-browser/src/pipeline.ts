@@ -318,7 +318,7 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
     await rm(opts.distDir, { recursive: true, force: true });
     const built = await child<{ ok: boolean; error?: string; convert?: ConvertResult }>(
       ['build', opts.projectDir, opts.distDir, '--tier', report.creation.tier],
-      undefined,
+      BUILD_MINUTES * 60_000,
       opts.onLine,
     );
     if (!built.ok) {
@@ -414,6 +414,15 @@ export async function checkProject(opts: CheckOptions): Promise<CheckResult> {
     return { ok: report.ok, report, project, files: report.ok ? files : null };
   }
 }
+
+/**
+ * How long building may take: bundling, then making its models lighter and checking how loud each
+ * sound is, every one of them on every build. On prod's checks (4 CPUs, the server otherwise idle)
+ * a creation with 178 sounds, 43 minutes of audio, and 14 large models ran past 5 minutes three
+ * times in a row, where the same step takes 28 seconds on a desktop's 4 CPUs: most of it the
+ * sounds.
+ */
+const BUILD_MINUTES = 10;
 
 /**
  * How long playing on every screen may take. Every screenshot waits for the browser to draw a

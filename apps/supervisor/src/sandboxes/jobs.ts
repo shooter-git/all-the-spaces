@@ -6,11 +6,11 @@ export type Step = 'prepare' | 'finish';
 
 /**
  * How long each step may run before it's stopped (from inside, so even if this service restarts).
- * Finishing is building (5 minutes at most) plus playing, which may take 25 minutes on a busy
- * server and half a minute more to warm the browser up (see qa-browser's PLAY_MINUTES): longer
- * than those, so it's they that stop and say why.
+ * Finishing is building (10 minutes at most: qa-browser's BUILD_MINUTES) plus playing, which may
+ * take 25 minutes on a busy server and half a minute more to warm the browser up (see qa-browser's
+ * PLAY_MINUTES): longer than those, so it's they that stop and say why.
  */
-export const STEP_MINUTES: Record<Step, number> = { prepare: 10, finish: 31 };
+export const STEP_MINUTES: Record<Step, number> = { prepare: 10, finish: 36 };
 
 /** A time a step said something, as Docker writes it in its log (UTC, to the nanosecond). */
 const SAID_AT = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,9})?Z$/;

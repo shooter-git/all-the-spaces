@@ -88,7 +88,7 @@ export async function convertAssets(
   } else {
     if (sounds.length)
       say(`Checking how loud ${sounds.length} sound${sounds.length === 1 ? ' is' : 's are'}`);
-    // A few at a time: one by one, 158 sounds took most of a build's five minutes on a busy
+    // A few at a time: one by one, 158 sounds took most of a build's five minutes (now ten) on a busy
     // server. Results are reported in file order, whichever finishes first.
     const outcomes = await pool(sounds, SOUND_CONCURRENCY, async (f) => {
       try {
