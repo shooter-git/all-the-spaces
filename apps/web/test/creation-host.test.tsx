@@ -17,7 +17,14 @@ import { json, routes } from './helpers/fakes.ts';
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** The live session service, as the Colyseus SDK hands it over. */
-const live = vi.hoisted(() => ({ joins: 0, leaves: 0 }));
+const live = vi.hoisted(() => ({
+  joins: 0,
+  leaves: 0,
+  /** The ticket each join was made with. */
+  tickets: [] as string[],
+  /** The latest room's onLeave: call it to end the session as the server would. */
+  lost: null as ((code: number) => void) | null,
+}));
 vi.mock('@colyseus/sdk', () => {
   const callbacks = () => ({ onAdd() {}, onRemove() {}, onChange() {} });
   return {
@@ -25,10 +32,13 @@ vi.mock('@colyseus/sdk', () => {
       auth = { token: '' };
       async joinOrCreate() {
         live.joins++;
+        live.tickets.push(this.auth.token);
         return {
           roomId: 'session-1',
           state: { players: new Map(), shared: new Map(), hostId: 'u1' },
-          onLeave() {},
+          onLeave(f: (code: number) => void) {
+            live.lost = f;
+          },
           onMessage() {},
           send() {},
           leave() {
@@ -41,6 +51,7 @@ vi.mock('@colyseus/sdk', () => {
         return this.joinOrCreate(...(args as []));
       }
     },
+    CloseCode: { CONSENTED: 4000, FAILED_TO_RECONNECT: 4003 },
     getStateCallbacks: () => () => ({
       players: callbacks(),
       shared: callbacks(),
@@ -71,6 +82,8 @@ let root: Root;
 beforeEach(() => {
   live.joins = 0;
   live.leaves = 0;
+  live.tickets = [];
+  live.lost = null;
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -303,6 +316,49 @@ describe('who you are, in a creation', () => {
     const update = heard.find((m) => m.type === 'players');
     expect(update).toMatchObject({ data: { players: [{ id: 'u1', color: '#8A6D3B' }] } });
     expect(heard.filter((m) => m.type === 'init')).toHaveLength(1);
+  });
+});
+
+describe('a live session lost', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('tells the creation it is on its own, and joins again with a fresh ticket', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const open = vi.fn(() => ({ ...opened, ticket: 'fresh' }));
+    vi.stubGlobal('fetch', routes({ '/api/creations/c1/open': open }));
+    const { heard, say } = play({ mode: 'shared' });
+    await act(async () => {});
+    say({ type: 'hello', sdkVersion: '1.0.0' });
+    expect(live.joins).toBe(1);
+    // (the server didn't hold a place through the drop, or restarted)
+    act(() => live.lost?.(4003));
+    expect(heard.filter((m) => m.type === 'players').at(-1)).toMatchObject({
+      data: { players: [{ id: 'u1' }], hostId: 'u1' },
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+    await act(async () => {});
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(live.joins).toBe(2);
+    expect(live.tickets).toEqual(['ticket', 'fresh']);
+  });
+
+  it("doesn't join again after leaving on purpose, or from another tab", async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const open = vi.fn(() => ({ ...opened, ticket: 'fresh' }));
+    vi.stubGlobal('fetch', routes({ '/api/creations/c1/open': open }));
+    play({ mode: 'shared' });
+    await act(async () => {});
+    act(() => live.lost?.(4000));
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(open).not.toHaveBeenCalled();
+    expect(live.joins).toBe(1);
   });
 });
 
