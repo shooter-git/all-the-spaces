@@ -158,6 +158,8 @@ export function SpaceView({ me }: { me: Me }) {
     opened: OpenedCreation;
     mode: SessionMode;
     leaving: boolean;
+    /** Picked once as it opens: a change mid-visit (the advised quality arriving) would restart its session. */
+    tier: ReturnType<typeof pickQuality>;
   } | null>(null);
   const [passage, setPassage] = useState<{
     phase: PassagePhase;
@@ -221,7 +223,7 @@ export function SpaceView({ me }: { me: Me }) {
     viewer.pause();
     if (releaseWhileAway(pickQuality())) setReleased(true);
     heldSince.current = performance.now();
-    setJourney({ creation, opened, mode, leaving: false });
+    setJourney({ creation, opened, mode, leaving: false, tier: pickQuality() });
     setPassage((p) => ({ ...p, phase: 'held' }));
   }, []);
 
@@ -790,7 +792,7 @@ export function SpaceView({ me }: { me: Me }) {
                     linkReturnTo: `/space/${spaceId}?${new URLSearchParams({ object: journey.creation.objectKey })}`,
                   }
                 : {})}
-              tier={pickQuality()}
+              tier={journey.tier}
               leaving={journey.leaving}
               onProgress={(value) => setPassage((p) => ({ ...p, progress: value }))}
               onReady={() => void revealCreation()}

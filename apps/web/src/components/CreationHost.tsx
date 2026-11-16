@@ -13,14 +13,17 @@ import {
 } from '@allthespaces/bridge-protocol';
 import { REMOVED_FROM_GROUP } from '@ats/shared/topics';
 import { Icon } from '@ats/ui';
-import { Client, getStateCallbacks, type Room } from '@colyseus/sdk';
+import { Client, CloseCode, getStateCallbacks, type Room } from '@colyseus/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { type ApiError, api } from '../lib/api.ts';
 import { type ConnectorInfo, callFailure, loadConnectors } from '../lib/connectors.ts';
-import type { OpenedCreation, SessionMode } from '../lib/creations.ts';
+import { type OpenedCreation, openCreation, type SessionMode } from '../lib/creations.ts';
 import { deviceKind } from '../lib/device.ts';
 import { ConnectorLinkCard } from './ConnectorLinkCard.tsx';
 import './creation-host.css';
+
+/** The realtime server's close code for "you joined from another tab" (apps/realtime's ANOTHER_TAB). */
+const ANOTHER_TAB = 4000;
 
 interface SessionPlayer {
   id: string;
@@ -163,89 +166,134 @@ export function CreationHost({
       device: deviceKind(),
     };
     const client = offline ? null : new Client(`${window.location.origin}/rt`);
-    if (client) client.auth.token = opened.ticket;
-    const joining = !client
-      ? Promise.reject(new Error('offline'))
-      : mode === 'shared'
+    const join = (ticket: string) => {
+      if (!client) return Promise.reject(new Error('offline'));
+      client.auth.token = ticket;
+      return mode === 'shared'
         ? client.joinOrCreate('creation', opts)
         : client.create('creation', opts);
-    joining
-      .then((r) => {
-        if (closed) {
-          void r.leave();
-          return;
-        }
-        room = r;
-        r.onLeave((code) => {
-          if (code === REMOVED_FROM_GROUP) callbacks.current.onRemoved?.();
-        });
-        let passWaiting: ((a: { token: string } | { error: string }) => void) | null = null;
-        r.onMessage('voice', (answer: { token: string } | { error: string }) => {
-          passWaiting?.(answer);
-          passWaiting = null;
-        });
-        callbacks.current.onSession?.(
-          () =>
-            new Promise((resolve) => {
-              passWaiting = resolve;
-              r.send('voice');
-              window.setTimeout(() => {
-                if (passWaiting === resolve) resolve({ error: 'timeout' });
-              }, 5000);
-            }),
-        );
-        const $ = getStateCallbacks(r);
-        const s = r.state as {
-          players: Map<string, SessionPlayer>;
-          hostId: string;
-          shared: Map<string, string>;
-        };
-        const publishPlayers = () => {
-          players = [...s.players.values()].map((p) => ({
-            id: p.id,
-            name: p.name,
-            color: p.color,
-          }));
-          hostId = s.hostId || null;
-          send({ type: 'players', data: { players, hostId } });
-        };
-        $(s).players.onAdd(publishPlayers);
-        $(s).players.onRemove(publishPlayers);
-        $(s).listen('hostId', publishPlayers);
-        $(s).shared.onAdd((text: string, key: string) => {
-          const value = JSON.parse(text) as Json;
-          shared.set(key, value);
-          send({ type: 'mp:shared', data: { key, value, by: sharedBy.get(key) ?? null } });
-        });
-        $(s).shared.onChange((text: string, key: string) => {
-          const value = JSON.parse(text) as Json;
-          shared.set(key, value);
-          send({ type: 'mp:shared', data: { key, value, by: sharedBy.get(key) ?? null } });
-        });
-        r.onMessage('shared-by', (m: { key: string; by: string }) => sharedBy.set(m.key, m.by));
-        r.onMessage(
-          'shared-result',
-          (m: { id: number; ok: boolean; error?: string; code?: 'too-big' | 'denied' }) => {
-            const re = pendingShared.get(m.id);
-            pendingShared.delete(m.id);
-            if (re === undefined) return;
-            send(
-              m.ok
-                ? { type: 'result', re, ok: true }
-                : {
-                    type: 'result',
-                    re,
-                    ok: false,
-                    error: m.error ?? 'Not shared.',
-                    ...(m.code ? { code: m.code } : {}),
-                  },
-            );
-          },
-        );
-        r.onMessage('message', (m: { from: string; kind: string; body: Json }) =>
-          send({ type: 'mp:message', data: m }),
-        );
-      })
+    };
+    // Lost the session for good (a drop the server didn't hold a place through, or a restart):
+    // the creation's told it's on its own, and a shared session is joined again as soon as it can
+    // be, with a fresh ticket (each is good for a couple of minutes). Before, it stayed alone till
+    // a reload, and the creation was never told.
+    let retry: number | undefined;
+    let attempt = 0;
+    const alone = () => {
+      players = [meRef.current];
+      hostId = myId;
+      for (const [, re] of pendingShared) {
+        send({ type: 'result', re, ok: false, error: 'Not connected.', code: 'denied' });
+      }
+      pendingShared.clear();
+      if (greeted) send({ type: 'players', data: { players, hostId } });
+    };
+    const rejoin = () => {
+      window.clearTimeout(retry);
+      retry = undefined;
+      if (closed || room || mode !== 'shared') return;
+      openCreation(opened.creation.id, mode, { versionId: opened.creation.versionId })
+        .then((again) => join(again.ticket))
+        .then(joined)
+        .catch(() => rejoinLater());
+    };
+    const rejoinLater = () => {
+      if (closed || room || retry !== undefined || mode !== 'shared') return;
+      retry = window.setTimeout(rejoin, Math.min(30_000, 1000 * 2 ** attempt++));
+    };
+    // (back online, or back to this tab after a phone slept: try straight away)
+    const wake = () => {
+      if (document.visibilityState !== 'visible' || room || retry === undefined) return;
+      attempt = 0;
+      rejoin();
+    };
+    window.addEventListener('online', wake);
+    document.addEventListener('visibilitychange', wake);
+    const joined = (r: Room) => {
+      if (closed) {
+        void r.leave();
+        return;
+      }
+      room = r;
+      attempt = 0;
+      r.onLeave((code) => {
+        if (room !== r) return;
+        room = null;
+        if (code === REMOVED_FROM_GROUP) return callbacks.current.onRemoved?.();
+        // Left on purpose, or playing in another tab now: nothing to come back to.
+        if (closed || code === CloseCode.CONSENTED || code === ANOTHER_TAB) return;
+        alone();
+        rejoinLater();
+      });
+      let passWaiting: ((a: { token: string } | { error: string }) => void) | null = null;
+      r.onMessage('voice', (answer: { token: string } | { error: string }) => {
+        passWaiting?.(answer);
+        passWaiting = null;
+      });
+      callbacks.current.onSession?.(
+        () =>
+          new Promise((resolve) => {
+            passWaiting = resolve;
+            r.send('voice');
+            window.setTimeout(() => {
+              if (passWaiting === resolve) resolve({ error: 'timeout' });
+            }, 5000);
+          }),
+      );
+      const $ = getStateCallbacks(r);
+      const s = r.state as {
+        players: Map<string, SessionPlayer>;
+        hostId: string;
+        shared: Map<string, string>;
+      };
+      const publishPlayers = () => {
+        players = [...s.players.values()].map((p) => ({
+          id: p.id,
+          name: p.name,
+          color: p.color,
+        }));
+        hostId = s.hostId || null;
+        send({ type: 'players', data: { players, hostId } });
+      };
+      $(s).players.onAdd(publishPlayers);
+      $(s).players.onRemove(publishPlayers);
+      $(s).listen('hostId', publishPlayers);
+      $(s).shared.onAdd((text: string, key: string) => {
+        const value = JSON.parse(text) as Json;
+        shared.set(key, value);
+        send({ type: 'mp:shared', data: { key, value, by: sharedBy.get(key) ?? null } });
+      });
+      $(s).shared.onChange((text: string, key: string) => {
+        const value = JSON.parse(text) as Json;
+        shared.set(key, value);
+        send({ type: 'mp:shared', data: { key, value, by: sharedBy.get(key) ?? null } });
+      });
+      r.onMessage('shared-by', (m: { key: string; by: string }) => sharedBy.set(m.key, m.by));
+      r.onMessage(
+        'shared-result',
+        (m: { id: number; ok: boolean; error?: string; code?: 'too-big' | 'denied' }) => {
+          const re = pendingShared.get(m.id);
+          pendingShared.delete(m.id);
+          if (re === undefined) return;
+          send(
+            m.ok
+              ? { type: 'result', re, ok: true }
+              : {
+                  type: 'result',
+                  re,
+                  ok: false,
+                  error: m.error ?? 'Not shared.',
+                  ...(m.code ? { code: m.code } : {}),
+                },
+          );
+        },
+      );
+      r.onMessage('message', (m: { from: string; kind: string; body: Json }) =>
+        send({ type: 'mp:message', data: m }),
+      );
+    };
+    join(opened.ticket)
+      .then(joined)
       .catch(() => {
         // Offline: the creation carries on, alone.
       });
@@ -528,6 +576,9 @@ export function CreationHost({
       window.removeEventListener('message', onMessage);
       window.removeEventListener('resize', onResize);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('online', wake);
+      document.removeEventListener('visibilitychange', wake);
+      window.clearTimeout(retry);
       cancelAnimationFrame(raf);
       window.clearInterval(pinger);
       void room?.leave();

@@ -6,7 +6,7 @@ import {
   type VisitDevice,
   verifyToken,
 } from '@ats/shared';
-import { type Client, Room } from '@colyseus/core';
+import { type Client, CloseCode, Room } from '@colyseus/core';
 import { schema, t } from '@colyseus/schema';
 import { z } from 'zod';
 import { log } from './log.ts';
@@ -48,6 +48,25 @@ export const LIMITS = {
   players: 16,
 };
 
+/**
+ * How long a dropped player's place is held (seconds) for their own client to reconnect: a network
+ * blip, a laptop or phone waking, the proxy restarting. Back in time, the session carries on as it
+ * was and the others only saw them pause; not back, they leave as before. Without it, any drop
+ * ended someone's session for good, the client's own retries having nothing to come back to.
+ */
+export const RECONNECT_S = 30;
+
+/** Close code for "the same person joined from another tab": the older one steps out. */
+export const ANOTHER_TAB = 4000;
+
+/** The closes that are a connection lost, not a leaving: the ones the client tries to reconnect on. */
+const DROPS = new Set<number>([
+  CloseCode.GOING_AWAY,
+  CloseCode.NO_STATUS_RECEIVED,
+  CloseCode.ABNORMAL_CLOSURE,
+  CloseCode.MAY_TRY_RECONNECT,
+]);
+
 const KEY = /^[\w.:-]{1,128}$/;
 const SharedMessage = z.object({
   id: z.number().int().min(0),
@@ -80,6 +99,8 @@ export class CreationRoom extends Room<{ state: SessionState }> {
   static voice: Voice | null = null;
   /** Where time in creations is recorded (none: not recorded). */
   static visits: VisitLog | null = null;
+  /** How long a dropped player's place is held (RECONNECT_S; shorter in tests). */
+  static reconnectSeconds = RECONNECT_S;
   state = new SessionState();
   maxClients = LIMITS.players;
 
@@ -177,7 +198,14 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     if ([...this.state.players.values()].some((p) => p.id === me.sub)) {
       // The same person from a second tab: the older one steps out.
       for (const other of this.clients) {
-        if (other !== client && (other.auth as CreationTicket).sub === me.sub) other.leave(4000);
+        if (other !== client && (other.auth as CreationTicket).sub === me.sub)
+          other.leave(ANOTHER_TAB);
+      }
+      // ...and a place of theirs held after a drop (they reloaded instead) goes now, not in
+      // RECONNECT_S, so they aren't listed twice meanwhile.
+      for (const [sessionId, p] of this.state.players) {
+        if (p.id === me.sub && !this.clients.some((c) => c.sessionId === sessionId))
+          this.state.players.delete(sessionId);
       }
     }
     this.state.players.set(
@@ -209,9 +237,35 @@ export class CreationRoom extends Room<{ state: SessionState }> {
     );
   }
 
+  /**
+   * Dropped, not left: their place is held a while for their client's own reconnection. Anything
+   * else that ends here (sent off by this room, the server shutting down) goes at once.
+   */
+  onDrop(client: Client, code?: number) {
+    if (code === undefined || !DROPS.has(code)) return;
+    try {
+      // (not back in time, and onLeave follows: the rejection's Colyseus's own to act on)
+      this.allowReconnection(client, CreationRoom.reconnectSeconds).catch(() => {});
+    } catch {
+      // (the room's closing: no place to hold)
+    }
+  }
+
+  /** Back after a drop. If they've joined again from another tab meanwhile, this one steps out. */
+  onReconnect(client: Client) {
+    const me = client.auth as CreationTicket;
+    if (this.clients.some((c) => c !== client && (c.auth as CreationTicket).sub === me.sub))
+      client.leave(ANOTHER_TAB);
+  }
+
   onLeave(client: Client) {
-    CreationRoom.voice?.remove(sessionVoiceRoom(this.roomId), (client.auth as CreationTicket).sub);
     const me = client.auth as CreationTicket | undefined;
+    // (their voice too, unless they're still here from another tab or after a reload)
+    if (!this.clients.some((c) => c !== client && (c.auth as CreationTicket).sub === me?.sub))
+      CreationRoom.voice?.remove(
+        sessionVoiceRoom(this.roomId),
+        (client.auth as CreationTicket).sub,
+      );
     this.state.players.delete(client.sessionId);
     this.sent.delete(client.sessionId);
     const visit = this.visitOf.get(client.sessionId);

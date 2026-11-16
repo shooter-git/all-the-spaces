@@ -70,6 +70,84 @@ const join = async (sub: string, mode: Mode = 'shared') =>
   watch(await client(sub, mode).joinOrCreate('creation', { creationId, versionId, mode }));
 
 describe('creation sessions', () => {
+  describe('a dropped connection', () => {
+    // Each its own creation, so a place held from one test can't be in another's session.
+    const enter = async (sub: string, creation: ReturnType<typeof randomUUID>) =>
+      watch(
+        await client(sub, 'shared', creation).joinOrCreate('creation', {
+          creationId: creation,
+          versionId,
+          mode: 'shared',
+        }),
+      );
+    // The server's end of someone's socket cut, as a network blip does: no close frame (1006).
+    const cut = (s: Session) => {
+      const room = matchMaker.getLocalRoomById(s.room.roomId);
+      const c = room?.clients.find((x) => x.sessionId === s.room.sessionId);
+      (c?.ref as { terminate?: () => void } | undefined)?.terminate?.();
+    };
+
+    it('holds their place, and their client carries on in the same session', async () => {
+      const own = randomUUID();
+      const drops = await enter('drops', own);
+      const stays = await enter('stays', own);
+      await until(() => stays.players() === 2 && drops.players() === 2);
+      drops.room.reconnection.minUptime = 0;
+      let back = false;
+      drops.room.onReconnect(() => {
+        back = true;
+      });
+      const sessionId = drops.room.sessionId;
+      cut(drops);
+      await new Promise((r) => setTimeout(r, 50));
+      // Paused, not gone.
+      expect(stays.players()).toBe(2);
+      await until(() => back, 5000);
+      expect(drops.room.sessionId).toBe(sessionId);
+      drops.room.send('send', { kind: 'hello', body: 1 });
+      await until(() => stays.messages.some((m) => m.from === 'drops' && m.kind === 'hello'));
+      stays.room.send('send', { kind: 'back', body: 2 });
+      await until(() => drops.messages.some((m) => m.from === 'stays' && m.kind === 'back'));
+      await drops.room.leave();
+      await stays.room.leave();
+    });
+
+    it("lets them go if they aren't back in time", async () => {
+      const was = CreationRoom.reconnectSeconds;
+      CreationRoom.reconnectSeconds = 0.3;
+      try {
+        const own = randomUUID();
+        const drops = await enter('drops', own);
+        const stays = await enter('stays', own);
+        await until(() => stays.players() === 2);
+        drops.room.reconnection.enabled = false;
+        cut(drops);
+        await until(() => stays.players() === 1, 3000);
+        expect(stays.hostId()).toBe('stays');
+        await stays.room.leave();
+      } finally {
+        CreationRoom.reconnectSeconds = was;
+      }
+    });
+
+    it('lists someone once who reloads while their place is held', async () => {
+      const own = randomUUID();
+      const drops = await enter('reloads', own);
+      const stays = await enter('stays', own);
+      await until(() => stays.players() === 2);
+      drops.room.reconnection.enabled = false;
+      cut(drops);
+      await new Promise((r) => setTimeout(r, 50));
+      const again = await enter('reloads', own);
+      expect(again.room.roomId).toBe(stays.room.roomId);
+      await new Promise((r) => setTimeout(r, 200));
+      expect(stays.players()).toBe(2);
+      expect(again.players()).toBe(2);
+      await again.room.leave();
+      await stays.room.leave();
+    });
+  });
+
   it('lets go of someone taken out of the group, at once, and only them', async () => {
     const own = randomUUID();
     const enter = async (sub: string) =>
